@@ -26,7 +26,7 @@ while [[ $# -gt 0 ]]; do
                 APP_NAME="$2"  
                 shift # past argument  
             else  
-                echo "Error: --name parameter is only allowed with 'install' or 'install-script' commands."  
+                echo "Ошибка: параметр --name разрешен только с командами 'install' или 'install-script'."  
                 exit 1  
             fi  
             shift # past value  
@@ -35,7 +35,7 @@ while [[ $# -gt 0 ]]; do
             if [[ "$COMMAND" == "install" ]]; then  
                 USE_DEV_BRANCH="true"  
             else  
-                echo "Error: --dev parameter is only allowed with 'install' command."  
+                echo "Ошибка: параметр --dev разрешен только с командой 'install'."  
                 exit 1  
             fi  
             shift # past argument  
@@ -65,8 +65,13 @@ if [[ "$COMMAND" == "install" || "$COMMAND" == "install-script" ]] && [ -z "$APP
 fi
 # Set script name if APP_NAME is not set
 if [ -z "$APP_NAME" ]; then
-    SCRIPT_NAME=$(basename "$0")
-    APP_NAME="${SCRIPT_NAME%.*}"
+    # Проверяем, запущен ли скрипт через curl
+    if [[ "$0" == *"/dev/fd/"* ]] || [[ "$0" == *"/proc/self/fd/"* ]]; then
+        APP_NAME="remnawave"  # Устанавливаем дефолтное имя
+    else
+        SCRIPT_NAME=$(basename "$0")
+        APP_NAME="${SCRIPT_NAME%.*}"
+    fi
 fi
 
 INSTALL_DIR="/opt"
@@ -74,7 +79,7 @@ APP_DIR="$INSTALL_DIR/$APP_NAME"
 COMPOSE_FILE="$APP_DIR/docker-compose.yml"
 ENV_FILE="$APP_DIR/.env"
 APP_CONFIG_FILE="$APP_DIR/app-config.json"
-SCRIPT_URL="https://raw.githubusercontent.com/DigneZzZ/remnawave-scripts/main/remnawave.sh"  # Update with actual URL
+SCRIPT_URL="https://raw.githubusercontent.com/Spakieone/Remna/main/remnawave.sh"
 SUB_ENV_FILE="$APP_DIR/.env.subscription"
 BACKUP_CONFIG_FILE="$APP_DIR/backup-config.json"
 BACKUP_SCRIPT_FILE="$APP_DIR/backup-scheduler.sh"
@@ -5673,7 +5678,7 @@ Restoration:
 ----------------------------------
 1. Transfer backup file to target server
 2. Install management script (if not installed):
-   • curl -Ls https://github.com/DigneZzZ/remnawave-scripts/raw/main/remnawave.sh -o remnawave.sh
+   • curl -Ls https://raw.githubusercontent.com/Spakieone/Remna/main/remnawave.sh -o remnawave.sh
    • sudo bash remnawave.sh @ install-script --name $APP_NAME
 3. Use built-in restore function:
    • sudo $APP_NAME restore --file $(basename "$backup_path")
@@ -5691,7 +5696,7 @@ Restoration:
 Only use if automatic restore fails or for custom scenarios.
 
 New Installation:
-1. Download: curl -Ls https://github.com/DigneZzZ/remnawave-scripts/raw/main/remnawave.sh
+1. Download: curl -Ls https://raw.githubusercontent.com/Spakieone/Remna/main/remnawave.sh
 2. Install script: sudo bash remnawave.sh @ install-script --name $APP_NAME
 3. Create directory: sudo mkdir -p $APP_DIR
 4. Extract: tar -xzf $(basename "$backup_path")
@@ -5838,7 +5843,7 @@ EOF
         echo
         echo -e "\033[1;37m🚀 RECOMMENDED: Use built-in restore function\033[0m"
         echo -e "\033[38;5;244m1. Transfer backup to target server\033[0m"
-        echo -e "\033[38;5;244m2. Install script: curl -Ls https://github.com/DigneZzZ/remnawave-scripts/raw/main/remnawave.sh -o remnawave.sh\033[0m"
+        echo -e "\033[38;5;244m2. Install script: curl -Ls https://raw.githubusercontent.com/Spakieone/Remna/main/remnawave.sh -o remnawave.sh\033[0m"
         echo -e "\033[38;5;244m3. Install manager: sudo bash remnawave.sh @ install-script --name $APP_NAME\033[0m"
         echo -e "\033[38;5;244m4. Restore: sudo $APP_NAME restore --file \"$(basename "$backup_path")\"\033[0m"
         echo
@@ -5846,7 +5851,7 @@ EOF
         echo
         echo -e "\033[1;37m🛠️  MANUAL METHOD (if automatic fails):\033[0m"
         echo -e "\033[38;5;244mNew installation:\033[0m"
-        echo -e "\033[38;5;244m1. Download: curl -Ls https://github.com/DigneZzZ/remnawave-scripts/raw/main/remnawave.sh\033[0m"
+        echo -e "\033[38;5;244m1. Download: curl -Ls https://raw.githubusercontent.com/Spakieone/Remna/main/remnawave.sh\033[0m"
         echo -e "\033[38;5;244m2. Install script: sudo bash remnawave.sh @ install-script --name $APP_NAME\033[0m"
         echo -e "\033[38;5;244m3. Create directory: sudo mkdir -p $APP_DIR\033[0m"
         if [ "$compress" = true ]; then
@@ -6966,7 +6971,7 @@ main_menu() {
         # Проверка статуса панели
         if is_remnawave_installed; then
             if is_remnawave_up; then
-                echo -e "\033[1;32m✅ Panel Status: RUNNING\033[0m"
+                echo -e "\033[1;32m✅ Статус панели: ЗАПУЩЕНА\033[0m"
                 
                 if [ -f "$ENV_FILE" ]; then
 
@@ -6974,7 +6979,7 @@ main_menu() {
                     local sub_domain=$(grep "SUB_PUBLIC_DOMAIN=" "$ENV_FILE" | cut -d'=' -f2- | tr -d '"' | tr -d "'" | xargs 2>/dev/null)
                     
                     echo
-                    echo -e "\033[1;37m🌐 Access URLs:\033[0m"
+                    echo -e "\033[1;37m🌐 URL доступа:\033[0m"
                     
                     local domains_found=0
                     
@@ -6982,9 +6987,9 @@ main_menu() {
                     if [ -n "$panel_domain" ] && [ "$panel_domain" != "null" ]; then
                         domains_found=$((domains_found + 1))
                         if [[ "$panel_domain" =~ ^https?:// ]]; then
-                            printf "   \033[38;5;15m📊 Admin Panel:\033[0m    \033[38;5;117m%s\033[0m\n" "$panel_domain"
+                            printf "   \033[38;5;15m📊 Админ панель:\033[0m    \033[38;5;117m%s\033[0m\n" "$panel_domain"
                         else
-                            printf "   \033[38;5;15m📊 Admin Panel:\033[0m    \033[38;5;117mhttps://%s\033[0m\n" "$panel_domain"
+                            printf "   \033[38;5;15m📊 Админ панель:\033[0m    \033[38;5;117mhttps://%s\033[0m\n" "$panel_domain"
                         fi
                     fi
                     
@@ -6992,17 +6997,17 @@ main_menu() {
                     if [ -n "$sub_domain" ] && [ "$sub_domain" != "null" ]; then
                         domains_found=$((domains_found + 1))
                         if [[ "$sub_domain" =~ ^https?:// ]]; then
-                            printf "   \033[38;5;15m📄 Subscriptions:\033[0m   \033[38;5;117m%s\033[0m\n" "$sub_domain"
+                            printf "   \033[38;5;15m📄 Подписки:\033[0m   \033[38;5;117m%s\033[0m\n" "$sub_domain"
                         else
-                            printf "   \033[38;5;15m📄 Subscriptions:\033[0m   \033[38;5;117mhttps://%s\033[0m\n" "$sub_domain"
+                            printf "   \033[38;5;15m📄 Подписки:\033[0m   \033[38;5;117mhttps://%s\033[0m\n" "$sub_domain"
                         fi
                     fi
                     
                     echo
                     if [ "$domains_found" -gt 0 ]; then
-                        echo -e "\033[38;5;32m✅ Domains configured - Panel accessible via HTTPS\033[0m"
+                        echo -e "\033[38;5;32m✅ Домены настроены - Панель доступна по HTTPS\033[0m"
                     else
-                        echo -e "\033[1;33m⚠️  No domains configured - Panel not accessible!\033[0m"
+                        echo -e "\033[1;33m⚠️  Домены не настроены - Панель недоступна!\033[0m"
                         echo
                         echo -e "\033[1;37m🔧 Setup Required:\033[0m"
                         echo -e "\033[38;5;244m   1. Configure reverse proxy (nginx/cloudflare)\033[0m"
@@ -7083,50 +7088,50 @@ main_menu() {
                 fi
                 
             else
-                echo -e "\033[1;31m❌ Panel Status: STOPPED\033[0m"
-                echo -e "\033[38;5;244m   Services are installed but not running\033[0m"
-                echo -e "\033[38;5;244m   Use option 4 to start services\033[0m"
+                echo -e "\033[1;31m❌ Статус панели: ОСТАНОВЛЕНА\033[0m"
+                echo -e "\033[38;5;244m   Сервисы установлены, но не запущены\033[0m"
+                echo -e "\033[38;5;244m   Используйте опцию 4 для запуска сервисов\033[0m"
             fi
         else
-            echo -e "\033[1;33m⚠️  Panel Status: NOT INSTALLED\033[0m"
-            echo -e "\033[38;5;244m   Use option 1 to install Remnawave Panel\033[0m"
+            echo -e "\033[1;33m⚠️  Статус панели: НЕ УСТАНОВЛЕНА\033[0m"
+            echo -e "\033[38;5;244m   Используйте опцию 1 для установки панели Remnawave\033[0m"
         fi
         
         echo
         echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 60))\033[0m"
         echo
-        echo -e "\033[1;37m🚀 Installation & Updates:\033[0m"
-        echo -e "   \033[38;5;15m1)\033[0m 🛠️  Install Remnawave panel"
-        echo -e "   \033[38;5;15m2)\033[0m ⬆️  Update to latest version"
-        echo -e "   \033[38;5;15m3)\033[0m 🗑️  Remove panel completely"
+        echo -e "\033[1;37m🚀 Установка и обновления:\033[0m"
+        echo -e "   \033[38;5;15m1)\033[0m 🛠️  Установить панель Remnawave"
+        echo -e "   \033[38;5;15m2)\033[0m ⬆️  Обновить до последней версии"
+        echo -e "   \033[38;5;15m3)\033[0m 🗑️  Полностью удалить панель"
         echo
-        echo -e "\033[1;37m⚙️  Service Management:\033[0m"
-        echo -e "   \033[38;5;15m4)\033[0m ▶️  Start all services"
-        echo -e "   \033[38;5;15m5)\033[0m ⏹️  Stop all services"
-        echo -e "   \033[38;5;15m6)\033[0m 🔄 Restart all services"
-        echo -e "   \033[38;5;15m7)\033[0m 📊 Show services status"
+        echo -e "\033[1;37m⚙️  Управление сервисами:\033[0m"
+        echo -e "   \033[38;5;15m4)\033[0m ▶️  Запустить все сервисы"
+        echo -e "   \033[38;5;15m5)\033[0m ⏹️  Остановить все сервисы"
+        echo -e "   \033[38;5;15m6)\033[0m 🔄 Перезапустить все сервисы"
+        echo -e "   \033[38;5;15m7)\033[0m 📊 Показать статус сервисов"
         echo
-        echo -e "\033[1;37m📊 Monitoring & Logs:\033[0m"
-        echo -e "   \033[38;5;15m8)\033[0m 📋 View application logs"
-        echo -e "   \033[38;5;15m9)\033[0m 📈 System performance monitor"
-        echo -e "   \033[38;5;15m10)\033[0m 🩺 Health check diagnostics"
+        echo -e "\033[1;37m📊 Мониторинг и логи:\033[0m"
+        echo -e "   \033[38;5;15m8)\033[0m 📋 Просмотреть логи приложения"
+        echo -e "   \033[38;5;15m9)\033[0m 📈 Монитор производительности системы"
+        echo -e "   \033[38;5;15m10)\033[0m 🩺 Диагностика состояния здоровья"
         echo
-        echo -e "\033[1;37m💾 Backup & Restore:\033[0m"
-        echo -e "   \033[38;5;15m11)\033[0m 💾 Manual backup"
-        echo -e "   \033[38;5;15m12)\033[0m 📅 Scheduled backup system"
-        echo -e "   \033[38;5;15m13)\033[0m 🔄 Restore from backup"
+        echo -e "\033[1;37m💾 Резервное копирование и восстановление:\033[0m"
+        echo -e "   \033[38;5;15m11)\033[0m 💾 Ручное резервное копирование"
+        echo -e "   \033[38;5;15m12)\033[0m 📅 Система запланированных бэкапов"
+        echo -e "   \033[38;5;15m13)\033[0m 🔄 Восстановить из бэкапа"
         echo
-        echo -e "\033[1;37m🔧 Configuration & Access:\033[0m"
-        echo -e "   \033[38;5;15m14)\033[0m 📝 Edit configuration files"
-        echo -e "   \033[38;5;15m15)\033[0m 🖥️  Access container shell"
-        echo -e "   \033[38;5;15m16)\033[0m 📊 PM2 process monitor"
+        echo -e "\033[1;37m🔧 Конфигурация и доступ:\033[0m"
+        echo -e "   \033[38;5;15m14)\033[0m 📝 Редактировать файлы конфигурации"
+        echo -e "   \033[38;5;15m15)\033[0m 🖥️  Доступ к оболочке контейнера"
+        echo -e "   \033[38;5;15m16)\033[0m 📊 Монитор процессов PM2"
         echo
         echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 60))\033[0m"
-        echo -e "\033[38;5;15m   0)\033[0m 🚪 Exit to terminal"
+        echo -e "\033[38;5;15m   0)\033[0m 🚪 Выход в терминал"
         echo
         echo -e "\033[38;5;8mRemnawave Panel CLI v$SCRIPT_VERSION by DigneZzZ • gig.ovh\033[0m"
         echo
-        read -p "$(echo -e "\033[1;37mSelect option [0-16]:\033[0m ")" choice
+        read -p "$(echo -e "\033[1;37mВыберите опцию [0-16]:\033[0m ")" choice
 
         case "$choice" in
             1) install_command; read -p "Press Enter to continue..." ;;
@@ -7251,7 +7256,7 @@ usage() {
     echo
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 60))\033[0m"
     echo -e "\033[38;5;8m📚 Project: \033[38;5;250mhttps://gig.ovh\033[0m"
-    echo -e "\033[38;5;8m🐛 Issues: \033[38;5;250mhttps://github.com/DigneZzZ/remnawave-scripts\033[0m"
+    echo -e "\033[38;5;8m🐛 Issues: \033[38;5;250mhttps://github.com/Spakieone/Remna\033[0m"
     echo -e "\033[38;5;8m💬 Support: \033[38;5;250mhttps://t.me/remnawave\033[0m"
     echo -e "\033[38;5;8m👨‍💻 Author: \033[38;5;250mDigneZzZ\033[0m"
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 60))\033[0m"
@@ -7341,7 +7346,7 @@ show_version() {
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 40))\033[0m"
     echo -e "\033[38;5;250mVersion: \033[38;5;15m$SCRIPT_VERSION\033[0m"
     echo -e "\033[38;5;250mAuthor:  \033[38;5;15mDigneZzZ\033[0m"
-    echo -e "\033[38;5;250mGitHub:  \033[38;5;15mhttps://github.com/DigneZzZ/remnawave-scripts\033[0m"
+    echo -e "\033[38;5;250mGitHub:  \033[38;5;15mhttps://github.com/Spakieone/Remna\033[0m"
     echo -e "\033[38;5;250mProject: \033[38;5;15mhttps://gig.ovh\033[0m"
     echo -e "\033[38;5;250mCommunity: \033[38;5;15mhttps://openode.xyz\033[0m"
     echo -e "\033[38;5;250mSupport: \033[38;5;15mhttps://t.me/remnawave\033[0m"

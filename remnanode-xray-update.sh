@@ -3,10 +3,10 @@
 # RemnaNode Xray-core Updater
 # Created by DigneZzZ
 
-echo -e "\e[1m\e[33mOur community: https://gig.ovh\n\e[0m"
+echo -e "\e[1m\e[33mНаше сообщество: https://gig.ovh\n\e[0m"
 sleep 2s
 
-echo -e "\e[1m\e[33mThis script installs/updates Xray-core for RemnaNode\n\e[0m"
+echo -e "\e[1m\e[33mЭтот скрипт устанавливает/обновляет Xray-core для RemnaNode\n\e[0m"
 sleep 1
 
 
@@ -57,10 +57,10 @@ identify_the_operating_system_and_architecture() {
             'ppc64le') ARCH='ppc64le' ;;
             'riscv64') ARCH='riscv64' ;;
             's390x') ARCH='s390x' ;;
-            *) echo "error: The architecture is not supported."; exit 1 ;;
-        esac
-    else
-        echo "error: This operating system is not supported."
+        *) echo "ошибка: Архитектура не поддерживается."; exit 1 ;;
+    esac
+else
+    echo "ошибка: Эта операционная система не поддерживается."
         exit 1
     fi
 }
@@ -74,12 +74,12 @@ find_remnanode_directory() {
         "/var/lib/remna"
     )
     
-    colorized_echo blue "Searching for RemnaNode directory..."
+    colorized_echo blue "Поиск директории RemnaNode..."
     
     for path in "${possible_paths[@]}"; do
         if [ -d "$path" ] && [ -f "$path/docker-compose.yml" ]; then
             REMNANODE_DIR="$path"
-            colorized_echo green "Found RemnaNode directory: $REMNANODE_DIR"
+            colorized_echo green "Найдена директория RemnaNode: $REMNANODE_DIR"
             return 0
         fi
     done
@@ -89,12 +89,12 @@ find_remnanode_directory() {
     if [ -n "$found_dirs" ]; then
         local first_dir=$(echo "$found_dirs" | head -1)
         REMNANODE_DIR="$first_dir"
-        colorized_echo green "Found RemnaNode directory: $REMNANODE_DIR"
+        colorized_echo green "Найдена директория RemnaNode: $REMNANODE_DIR"
         return 0
     fi
     
-    colorized_echo red "RemnaNode directory not found!"
-    colorized_echo yellow "Make sure RemnaNode is installed and contains docker-compose.yml file"
+    colorized_echo red "Директория RemnaNode не найдена!"
+    colorized_echo yellow "Убедитесь, что RemnaNode установлен и содержит файл docker-compose.yml"
     exit 1
 }
 

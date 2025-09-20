@@ -7,9 +7,9 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 
 echo -e "${GREEN}====================================================${NC}"
-echo -e "${GREEN}   Welcome to Remnawave Backup Installer${NC}"
+echo -e "${GREEN}   Добро пожаловать в установщик бэкапа Remnawave${NC}"
 echo -e "${GREEN}====================================================${NC}"
-echo -e "${BLUE}This script will create a ${YELLOW}backup.sh${BLUE} file with your settings.${NC}"
+echo -e "${BLUE}Этот скрипт создаст файл ${YELLOW}backup.sh${BLUE} с вашими настройками.${NC}"
 echo
 
 prompt_input() {
@@ -21,31 +21,31 @@ prompt_input() {
     eval "$var_name=\"${input:-$default}\""
 }
 
-echo -e "${YELLOW}📍 Specify the path to docker-compose.yml for Remnawave:${NC}"
+echo -e "${YELLOW}📍 Укажите путь к docker-compose.yml для Remnawave:${NC}"
 echo -e "${BLUE}  1) /root/remnawave${NC}"
 echo -e "${BLUE}  2) /opt/remnawave${NC}"
-echo -e "${BLUE}  3) Enter manually${NC}"
-echo -e "${GREEN}Note:${NC} Info from .env and other files will be read from this path."
-echo -ne "Choose an option (1-3) [2]: "
+echo -e "${BLUE}  3) Ввести вручную${NC}"
+echo -e "${GREEN}Примечание:${NC} Информация из .env и других файлов будет прочитана из этого пути."
+echo -ne "Выберите опцию (1-3) [2]: "
 read choice
 choice=${choice:-2}
 
 case $choice in
     1) COMPOSE_PATH="/root/remnawave" ;;
     2) COMPOSE_PATH="/opt/remnawave" ;;
-    3) prompt_input "${YELLOW}Enter the path manually${NC}" COMPOSE_PATH "" ;;
+    3) prompt_input "${YELLOW}Введите путь вручную${NC}" COMPOSE_PATH "" ;;
     *) COMPOSE_PATH="/opt/remnawave" ;;
 esac
 
 if [ ! -f "$COMPOSE_PATH/docker-compose.yml" ]; then
-    echo -e "${RED}✖ Error: docker-compose.yml not found at $COMPOSE_PATH${NC}"
+    echo -e "${RED}✖ Ошибка: docker-compose.yml не найден в $COMPOSE_PATH${NC}"
     exit 1
 fi
 
-echo -e "${YELLOW}📁 Do you want to backup the entire folder ($COMPOSE_PATH)?${NC}"
-echo -e "${BLUE}  1) Yes, backup all files and subfolders${NC}"
-echo -e "${BLUE}  2) No, backup only specific files (docker-compose.yml, .env, app-config.json)${NC}"
-echo -ne "Choose an option (1-2) [2]: "
+echo -e "${YELLOW}📁 Хотите ли вы создать бэкап всей папки ($COMPOSE_PATH)?${NC}"
+echo -e "${BLUE}  1) Да, бэкап всех файлов и подпапок${NC}"
+echo -e "${BLUE}  2) Нет, бэкап только определенных файлов (docker-compose.yml, .env, app-config.json)${NC}"
+echo -ne "Выберите опцию (1-2) [2]: "
 read backup_choice
 backup_choice=${backup_choice:-2}
 

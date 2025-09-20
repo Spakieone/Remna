@@ -21,13 +21,13 @@ show_header() {
 # Главное меню
 show_main_menu() {
     show_header
-    echo -e "${GREEN}1.${NC} Panel Management (remnawave.sh)"
-    echo -e "${GREEN}2.${NC} Node Management (remnanode.sh + tBlocker)"
-    echo -e "${GREEN}3.${NC} Reality Tools (selfsteal.sh)"
-    echo -e "${GREEN}4.${NC} Network Tools (wtm.sh)"
-    echo -e "${GREEN}5.${NC} Monitoring (install_node_exporter.sh)"
-    echo -e "${GREEN}6.${NC} System Status"
-    echo -e "${RED}7.${NC} Exit"
+    echo -e "${GREEN}1.${NC} Управление панелью"
+    echo -e "${GREEN}2.${NC} Управление узлами"
+    echo -e "${GREEN}3.${NC} Инструменты Reality"
+    echo -e "${GREEN}4.${NC} Сетевые инструменты"
+    echo -e "${GREEN}5.${NC} Установка Node Exporter"
+    echo -e "${GREEN}6.${NC} Статус системы"
+    echo -e "${RED}7.${NC} Выход"
     echo ""
     echo -n "Выберите опцию (1-7): "
 }
@@ -69,21 +69,21 @@ call_script() {
 # Функция системного статуса
 show_system_status() {
     show_header
-    echo -e "${BLUE}=== System Status ===${NC}"
+    echo -e "${BLUE}=== Статус системы ===${NC}"
     echo ""
     
     # Проверка Docker
     if systemctl is-active --quiet docker; then
-        echo -e "${GREEN}✓${NC} Docker: Running"
+        echo -e "${GREEN}✓${NC} Docker: Запущен"
     else
-        echo -e "${RED}✗${NC} Docker: Stopped"
+        echo -e "${RED}✗${NC} Docker: Остановлен"
     fi
     
     # Проверка Docker Compose
     if command -v docker-compose &> /dev/null || command -v docker compose &> /dev/null; then
-        echo -e "${GREEN}✓${NC} Docker Compose: Available"
+        echo -e "${GREEN}✓${NC} Docker Compose: Доступен"
     else
-        echo -e "${RED}✗${NC} Docker Compose: Not found"
+        echo -e "${RED}✗${NC} Docker Compose: Не найден"
     fi
     
     # Проверка портов

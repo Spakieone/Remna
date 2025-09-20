@@ -7,9 +7,9 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 
 echo -e "${GREEN}====================================================${NC}"
-echo -e "${GREEN}   Welcome to Remnawave Backup Restore Script${NC}"
+echo -e "${GREEN}   Добро пожаловать в скрипт восстановления бэкапа Remnawave${NC}"
 echo -e "${GREEN}====================================================${NC}"
-echo -e "${BLUE}This script will restore your Remnawave backup.${NC}"
+echo -e "${BLUE}Этот скрипт восстановит ваш бэкап Remnawave.${NC}"
 echo
 
 prompt_input() {
@@ -21,11 +21,11 @@ prompt_input() {
     eval "$var_name=\"${input:-$default}\""
 }
 
-echo -e "${YELLOW}📍 Specify the directory where to restore the backup:${NC}"
+echo -e "${YELLOW}📍 Укажите директорию для восстановления бэкапа:${NC}"
 echo -e "${BLUE}  1) /root/remnawave${NC}"
 echo -e "${BLUE}  2) /opt/remnawave${NC}"
-echo -e "${BLUE}  3) Enter manually${NC}"
-echo -ne "Choose an option (1-3) [2]: "
+echo -e "${BLUE}  3) Ввести вручную${NC}"
+echo -ne "Выберите опцию (1-3) [2]: "
 read choice
 choice=${choice:-2}
 

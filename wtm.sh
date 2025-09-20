@@ -7,7 +7,7 @@ set -e
 SCRIPT_VERSION="1.2.1"
 
 # Script URL for updates
-SCRIPT_URL="https://raw.githubusercontent.com/DigneZzZ/remnawave-scripts/main/wtm.sh"
+SCRIPT_URL="https://raw.githubusercontent.com/Spakieone/Remna/main/wtm.sh"
 
 # Handle @ prefix for consistency with other scripts
 if [ $# -gt 0 ] && [ "$1" = "@" ]; then
@@ -173,7 +173,7 @@ show_version() {
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 40))\033[0m"
     echo -e "\033[38;5;250mVersion: \033[38;5;15m$SCRIPT_VERSION\033[0m"
     echo -e "\033[38;5;250mAuthor:  \033[38;5;15mDigneZzZ\033[0m"
-    echo -e "\033[38;5;250mGitHub:  \033[38;5;15mhttps://github.com/DigneZzZ/remnawave-scripts\033[0m"
+    echo -e "\033[38;5;250mGitHub:  \033[38;5;15mhttps://github.com/Spakieone/Remna\033[0m"
     echo -e "\033[38;5;250mProject: \033[38;5;15mhttps://gig.ovh\033[0m"
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 40))\033[0m"
 }
@@ -1065,111 +1065,111 @@ show_main_menu() {
     esac
     
     # Статус WARP
-    echo -e "\033[1;37m📡 WARP Status:\033[0m"
+    echo -e "\033[1;37m📡 Статус WARP:\033[0m"
     case $warp_status in
         "running")
-            echo -e "${status_color}✅ RUNNING\033[0m"
+            echo -e "${status_color}✅ ЗАПУЩЕН\033[0m"
             local warp_memory=$(get_service_memory "$WARP_SERVICE")
-            printf "   \033[38;5;15m%-12s\033[0m \033[38;5;250m%s\033[0m\n" "Memory:" "$warp_memory"
+            printf "   \033[38;5;15m%-12s\033[0m \033[38;5;250m%s\033[0m\n" "Память:" "$warp_memory"
             
             # Проверяем WireGuard интерфейс
             if wg show warp >/dev/null 2>&1; then
-                printf "   \033[38;5;15m%-12s\033[0m \033[1;32m✅ Active interface\033[0m\n" "WireGuard:"
+                printf "   \033[38;5;15m%-12s\033[0m \033[1;32m✅ Активный интерфейс\033[0m\n" "WireGuard:"
                 # Показываем endpoint если доступен
                 local endpoint=$(wg show warp | grep "endpoint:" | awk '{print $2}' 2>/dev/null || echo "N/A")
                 if [ "$endpoint" != "N/A" ]; then
                     printf "   \033[38;5;15m%-12s\033[0m \033[38;5;250m%s\033[0m\n" "Endpoint:" "$endpoint"
                 fi
             else
-                printf "   \033[38;5;15m%-12s\033[0m \033[1;31m❌ Not found\033[0m\n" "WireGuard:"
+                printf "   \033[38;5;15m%-12s\033[0m \033[1;31m❌ Не найден\033[0m\n" "WireGuard:"
             fi
             ;;
         "installed")
-            echo -e "${status_color}⚠️  INSTALLED BUT STOPPED\033[0m"
-            echo -e "\033[38;5;244m   Use WARP menu to start service\033[0m"
+            echo -e "${status_color}⚠️  УСТАНОВЛЕН, НО ОСТАНОВЛЕН\033[0m"
+            echo -e "\033[38;5;244m   Используйте меню WARP для запуска сервиса\033[0m"
             ;;
         "not_installed")
-            echo -e "${status_color}📦 NOT INSTALLED\033[0m"
-            echo -e "\033[38;5;244m   Use WARP menu to install\033[0m"
+            echo -e "${status_color}📦 НЕ УСТАНОВЛЕН\033[0m"
+            echo -e "\033[38;5;244m   Используйте меню WARP для установки\033[0m"
             ;;
     esac
     
     echo
     
     # Статус Tor
-    echo -e "\033[1;37m🧅 Tor Status:\033[0m"
+    echo -e "\033[1;37m🧅 Статус Tor:\033[0m"
     case $tor_status in
         "running")
-            echo -e "${status_color}✅ RUNNING\033[0m"
+            echo -e "${status_color}✅ ЗАПУЩЕН\033[0m"
             local tor_memory=$(get_service_memory "$TOR_SERVICE")
-            printf "   \033[38;5;15m%-12s\033[0m \033[38;5;250m%s\033[0m\n" "Memory:" "$tor_memory"
+            printf "   \033[38;5;15m%-12s\033[0m \033[38;5;250m%s\033[0m\n" "Память:" "$tor_memory"
             
             # Проверяем SOCKS5 порт
             if check_port_listening 9050; then
                 printf "   \033[38;5;15m%-12s\033[0m \033[1;32m✅ 127.0.0.1:9050\033[0m\n" "SOCKS5:"
             else
-                printf "   \033[38;5;15m%-12s\033[0m \033[1;31m❌ Not accessible\033[0m\n" "SOCKS5:"
+                printf "   \033[38;5;15m%-12s\033[0m \033[1;31m❌ Недоступен\033[0m\n" "SOCKS5:"
             fi
             
             # Контрольный порт
             if check_port_listening 9051; then
                 printf "   \033[38;5;15m%-12s\033[0m \033[1;32m✅ 127.0.0.1:9051\033[0m\n" "Control:"
             else
-                printf "   \033[38;5;15m%-12s\033[0m \033[1;31m❌ Not accessible\033[0m\n" "Control:"
+                printf "   \033[38;5;15m%-12s\033[0m \033[1;31m❌ Недоступен\033[0m\n" "Control:"
             fi
             ;;
         "installed")
-            echo -e "${status_color}⚠️  INSTALLED BUT STOPPED\033[0m"
-            echo -e "\033[38;5;244m   Use Tor menu to start service\033[0m"
+            echo -e "${status_color}⚠️  УСТАНОВЛЕН, НО ОСТАНОВЛЕН\033[0m"
+            echo -e "\033[38;5;244m   Используйте меню Tor для запуска сервиса\033[0m"
             ;;
         "not_installed")
-            echo -e "${status_color}📦 NOT INSTALLED\033[0m"
-            echo -e "\033[38;5;244m   Use Tor menu to install\033[0m"
+            echo -e "${status_color}📦 НЕ УСТАНОВЛЕН\033[0m"
+            echo -e "\033[38;5;244m   Используйте меню Tor для установки\033[0m"
             ;;
     esac
     
     # Системная информация
     echo
-    echo -e "\033[1;37m💾 System Info:\033[0m"
+    echo -e "\033[1;37m💾 Информация о системе:\033[0m"
     local ram=$(free -h | awk '/^Mem:/ {print $3"/"$2}' 2>/dev/null || echo "N/A")
     local ip=$(curl -s4 --max-time 3 ifconfig.me 2>/dev/null || echo "Unknown")
-    printf "   \033[38;5;15m%-12s\033[0m \033[38;5;250m%s\033[0m\n" "RAM Usage:" "$ram"
-    printf "   \033[38;5;15m%-12s\033[0m \033[38;5;250m%s\033[0m\n" "Public IP:" "$ip"
+    printf "   \033[38;5;15m%-12s\033[0m \033[38;5;250m%s\033[0m\n" "Использование RAM:" "$ram"
+    printf "   \033[38;5;15m%-12s\033[0m \033[38;5;250m%s\033[0m\n" "Публичный IP:" "$ip"
     
     echo
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 50))\033[0m"
     echo
-    echo -e "\033[1;37m🛠️  Service Management:\033[0m"
-    echo -e "   \033[38;5;15m1)\033[0m 📡 WARP Menu"
-    echo -e "   \033[38;5;15m2)\033[0m 🧅 Tor Menu"
-    echo -e "   \033[38;5;15m3)\033[0m 🔄 Quick Actions"
+    echo -e "\033[1;37m🛠️  Управление сервисами:\033[0m"
+    echo -e "   \033[38;5;15m1)\033[0m 📡 Меню WARP"
+    echo -e "   \033[38;5;15m2)\033[0m 🧅 Меню Tor"
+    echo -e "   \033[38;5;15m3)\033[0m 🔄 Быстрые действия"
     echo
-    echo -e "\033[1;37m📊 Monitoring & Tools:\033[0m"
-    echo -e "   \033[38;5;15m4)\033[0m 🧪 Test Connections"
-    echo -e "   \033[38;5;15m5)\033[0m 📋 View Logs"
-    echo -e "   \033[38;5;15m6)\033[0m 💻 System Information"
+    echo -e "\033[1;37m📊 Мониторинг и инструменты:\033[0m"
+    echo -e "   \033[38;5;15m4)\033[0m 🧪 Тестирование подключений"
+    echo -e "   \033[38;5;15m5)\033[0m 📋 Просмотр логов"
+    echo -e "   \033[38;5;15m6)\033[0m 💻 Информация о системе"
     echo
-    echo -e "\033[1;37m📖 Configuration:\033[0m"
-    echo -e "   \033[38;5;15m7)\033[0m ⚙️  XRay Configuration"
-    echo -e "   \033[38;5;15m8)\033[0m ❓ Help & Usage Examples"
-    echo -e "   \033[38;5;15m9)\033[0m 🔄 Check Updates"
+    echo -e "\033[1;37m📖 Конфигурация:\033[0m"
+    echo -e "   \033[38;5;15m7)\033[0m ⚙️  Конфигурация XRay"
+    echo -e "   \033[38;5;15m8)\033[0m ❓ Справка и примеры использования"
+    echo -e "   \033[38;5;15m9)\033[0m 🔄 Проверить обновления"
     echo
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 50))\033[0m"
-    echo -e "\033[38;5;15m   0)\033[0m 🚪 Exit"
+    echo -e "\033[38;5;15m   0)\033[0m 🚪 Выход"
     echo
     
     # Подсказки в зависимости от состояния
     if [ "$warp_status" = "not_installed" ] && [ "$tor_status" = "not_installed" ]; then
-        echo -e "\033[1;34m💡 Tip: Start with WARP Menu (1) or Tor Menu (2) to install services\033[0m"
+        echo -e "\033[1;34m💡 Совет: Начните с меню WARP (1) или меню Tor (2) для установки сервисов\033[0m"
     elif [ "$warp_status" = "running" ] || [ "$tor_status" = "running" ]; then
-        echo -e "\033[1;34m💡 Tip: Test connections (4) to verify everything works correctly\033[0m"
+        echo -e "\033[1;34m💡 Совет: Протестируйте подключения (4) для проверки корректной работы\033[0m"
     else
-        echo -e "\033[1;34m💡 Tip: Use service menus to start installed components\033[0m"
+        echo -e "\033[1;34m💡 Совет: Используйте меню сервисов для запуска установленных компонентов\033[0m"
     fi
     
     echo -e "\033[38;5;8mWARP & Tor Manager v$SCRIPT_VERSION • Network Proxy Solutions\033[0m"
     echo
-    read -p "$(echo -e "\033[1;37mSelect option [0-9]:\033[0m ")" choice
+    read -p "$(echo -e "\033[1;37mВыберите опцию [0-9]:\033[0m ")" choice
 }
 
 # Подменю WARP

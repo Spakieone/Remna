@@ -24,7 +24,7 @@ while [[ $# -gt 0 ]]; do
                 APP_NAME="$2"
                 shift # past argument
             else
-                echo "Error: --name parameter is only allowed with 'install' or 'install-script' commands."
+                echo "Ошибка: параметр --name разрешен только с командами 'install' или 'install-script'."
                 exit 1
             fi
             shift # past value
@@ -33,7 +33,7 @@ while [[ $# -gt 0 ]]; do
             if [[ "$COMMAND" == "install" ]]; then
                 USE_DEV_BRANCH="true"
             else
-                echo "Error: --dev parameter is only allowed with 'install' command."
+                echo "Ошибка: параметр --dev разрешен только с командой 'install'."
                 exit 1
             fi
             shift # past argument
@@ -43,7 +43,7 @@ while [[ $# -gt 0 ]]; do
             exit 0
         ;;
         *)
-            echo "Unknown argument: $key"
+            echo "Неизвестный аргумент: $key"
             exit 1
         ;;
     esac
@@ -62,8 +62,13 @@ if [[ "$COMMAND" == "install" || "$COMMAND" == "install-script" ]] && [ -z "$APP
 fi
 # Set script name if APP_NAME is not set
 if [ -z "$APP_NAME" ]; then
-    SCRIPT_NAME=$(basename "$0")
-    APP_NAME="${SCRIPT_NAME%.*}"
+    # Проверяем, запущен ли скрипт через curl
+    if [[ "$0" == *"/dev/fd/"* ]] || [[ "$0" == *"/proc/self/fd/"* ]]; then
+        APP_NAME="remnanode"  # Устанавливаем дефолтное имя
+    else
+        SCRIPT_NAME=$(basename "$0")
+        APP_NAME="${SCRIPT_NAME%.*}"
+    fi
 fi
 
 INSTALL_DIR="/opt"
@@ -74,7 +79,7 @@ ENV_FILE="$APP_DIR/.env"
 XRAY_FILE="$DATA_DIR/xray"
 GEOIP_FILE="$DATA_DIR/geoip.dat"
 GEOSITE_FILE="$DATA_DIR/geosite.dat"
-SCRIPT_URL="https://github.com/DigneZzZ/remnawave-scripts/raw/main/remnanode.sh"  # Убедитесь, что URL актуален
+SCRIPT_URL="https://raw.githubusercontent.com/Spakieone/Remna/main/remnanode.sh"
 
 # Color definitions
 RED='\033[0;31m'
@@ -2118,7 +2123,7 @@ usage() {
     echo
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 55))\033[0m"
     echo -e "\033[38;5;8m📚 Project: \033[38;5;250mhttps://gig.ovh\033[0m"
-    echo -e "\033[38;5;8m🐛 Issues: \033[38;5;250mhttps://github.com/DigneZzZ/remnawave-scripts\033[0m"
+    echo -e "\033[38;5;8m🐛 Issues: \033[38;5;250mhttps://github.com/Spakieone/Remna\033[0m"
     echo -e "\033[38;5;8m💬 Support: \033[38;5;250mhttps://t.me/remnawave\033[0m"
     echo -e "\033[38;5;8m👨‍💻 Author: \033[38;5;250mDigneZzZ\033[0m"
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 55))\033[0m"
@@ -2130,7 +2135,7 @@ show_version() {
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 40))\033[0m"
     echo -e "\033[38;5;250mVersion: \033[38;5;15m$SCRIPT_VERSION\033[0m"
     echo -e "\033[38;5;250mAuthor:  \033[38;5;15mDigneZzZ\033[0m"
-    echo -e "\033[38;5;250mGitHub:  \033[38;5;15mhttps://github.com/DigneZzZ/remnawave-scripts\033[0m"
+    echo -e "\033[38;5;250mGitHub:  \033[38;5;15mhttps://github.com/Spakieone/Remna\033[0m"
     echo -e "\033[38;5;250mProject: \033[38;5;15mhttps://gig.ovh\033[0m"
     echo -e "\033[38;5;250mSupport: \033[38;5;15mhttps://t.me/remnawave\033[0m"
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 40))\033[0m"
@@ -2157,15 +2162,15 @@ main_menu() {
             if is_remnanode_up; then
                 menu_status="Running"
                 status_color="\033[1;32m"
-                echo -e "${status_color}✅ Node Status: RUNNING\033[0m"
+                echo -e "${status_color}✅ Статус узла: ЗАПУЩЕН\033[0m"
                 
                 # Показываем информацию о подключении
                 if [ -n "$node_port" ]; then
                     echo
-                    echo -e "\033[1;37m🌐 Connection Information:\033[0m"
-                    printf "   \033[38;5;15m%-12s\033[0m \033[38;5;117m%s\033[0m\n" "IP Address:" "$NODE_IP"
-                    printf "   \033[38;5;15m%-12s\033[0m \033[38;5;117m%s\033[0m\n" "Port:" "$node_port"
-                    printf "   \033[38;5;15m%-12s\033[0m \033[38;5;117m%s:%s\033[0m\n" "Full URL:" "$NODE_IP" "$node_port"
+                    echo -e "\033[1;37m🌐 Информация о подключении:\033[0m"
+                    printf "   \033[38;5;15m%-12s\033[0m \033[38;5;117m%s\033[0m\n" "IP адрес:" "$NODE_IP"
+                    printf "   \033[38;5;15m%-12s\033[0m \033[38;5;117m%s\033[0m\n" "Порт:" "$node_port"
+                    printf "   \033[38;5;15m%-12s\033[0m \033[38;5;117m%s:%s\033[0m\n" "Полный URL:" "$NODE_IP" "$node_port"
                 fi
                 
                 # Проверяем Xray-core
@@ -2208,79 +2213,79 @@ main_menu() {
             else
                 menu_status="Stopped"
                 status_color="\033[1;31m"
-                echo -e "${status_color}❌ Node Status: STOPPED\033[0m"
-                echo -e "\033[38;5;244m   Services are installed but not running\033[0m"
-                echo -e "\033[38;5;244m   Use option 2 to start the node\033[0m"
+                echo -e "${status_color}❌ Статус узла: ОСТАНОВЛЕН\033[0m"
+                echo -e "\033[38;5;244m   Сервисы установлены, но не запущены\033[0m"
+                echo -e "\033[38;5;244m   Используйте опцию 2 для запуска узла\033[0m"
             fi
         else
-            echo -e "${status_color}📦 Node Status: NOT INSTALLED\033[0m"
-            echo -e "\033[38;5;244m   Use option 1 to install RemnaNode\033[0m"
+            echo -e "${status_color}📦 Статус узла: НЕ УСТАНОВЛЕН\033[0m"
+            echo -e "\033[38;5;244m   Используйте опцию 1 для установки RemnaNode\033[0m"
         fi
         
         echo
         echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 55))\033[0m"
         echo
-        echo -e "\033[1;37m🚀 Installation & Management:\033[0m"
-        echo -e "   \033[38;5;15m1)\033[0m 🛠️  Install RemnaNode"
-        echo -e "   \033[38;5;15m2)\033[0m ▶️  Start node services"
-        echo -e "   \033[38;5;15m3)\033[0m ⏹️  Stop node services"
-        echo -e "   \033[38;5;15m4)\033[0m 🔄 Restart node services"
-        echo -e "   \033[38;5;15m5)\033[0m 🗑️  Uninstall RemnaNode"
+        echo -e "\033[1;37m🚀 Установка и управление:\033[0m"
+        echo -e "   \033[38;5;15m1)\033[0m 🛠️  Установить RemnaNode"
+        echo -e "   \033[38;5;15m2)\033[0m ▶️  Запустить сервисы узла"
+        echo -e "   \033[38;5;15m3)\033[0m ⏹️  Остановить сервисы узла"
+        echo -e "   \033[38;5;15m4)\033[0m 🔄 Перезапустить сервисы узла"
+        echo -e "   \033[38;5;15m5)\033[0m 🗑️  Удалить RemnaNode"
         echo
-        echo -e "\033[1;37m📊 Monitoring & Logs:\033[0m"
-        echo -e "   \033[38;5;15m6)\033[0m 📊 Show node status"
-        echo -e "   \033[38;5;15m7)\033[0m 📋 View container logs"
-        echo -e "   \033[38;5;15m8)\033[0m 📤 View Xray output logs"
-        echo -e "   \033[38;5;15m9)\033[0m 📥 View Xray error logs"
+        echo -e "\033[1;37m📊 Мониторинг и логи:\033[0m"
+        echo -e "   \033[38;5;15m6)\033[0m 📊 Показать статус узла"
+        echo -e "   \033[38;5;15m7)\033[0m 📋 Просмотреть логи контейнера"
+        echo -e "   \033[38;5;15m8)\033[0m 📤 Просмотреть выходные логи Xray"
+        echo -e "   \033[38;5;15m9)\033[0m 📥 Просмотреть логи ошибок Xray"
         echo
-        echo -e "\033[1;37m⚙️  Updates & Configuration:\033[0m"
-        echo -e "   \033[38;5;15m10)\033[0m 🔄 Update RemnaNode"
-        echo -e "   \033[38;5;15m11)\033[0m ⬆️  Update Xray-core"
-        echo -e "   \033[38;5;15m12)\033[0m 📝 Edit configuration"
-        echo -e "   \033[38;5;15m13)\033[0m 🗂️  Setup log rotation"
+        echo -e "\033[1;37m⚙️  Обновления и конфигурация:\033[0m"
+        echo -e "   \033[38;5;15m10)\033[0m 🔄 Обновить RemnaNode"
+        echo -e "   \033[38;5;15m11)\033[0m ⬆️  Обновить Xray-core"
+        echo -e "   \033[38;5;15m12)\033[0m 📝 Редактировать конфигурацию"
+        echo -e "   \033[38;5;15m13)\033[0m 🗂️  Настроить ротацию логов"
         echo
         echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 55))\033[0m"
-        echo -e "\033[38;5;15m   0)\033[0m 🚪 Exit to terminal"
+        echo -e "\033[38;5;15m   0)\033[0m 🚪 Выход в терминал"
         echo
         
         # Показываем подсказки в зависимости от состояния
         case "$menu_status" in
             "Not installed")
-                echo -e "\033[1;34m💡 Tip: Start with option 1 to install RemnaNode\033[0m"
+                echo -e "\033[1;34m💡 Совет: Начните с опции 1 для установки RemnaNode\033[0m"
                 ;;
             "Stopped")
-                echo -e "\033[1;34m💡 Tip: Use option 2 to start the node\033[0m"
+                echo -e "\033[1;34m💡 Совет: Используйте опцию 2 для запуска узла\033[0m"
                 ;;
             "Running")
                 if [ "$xray_version" = "Not installed" ]; then
-                    echo -e "\033[1;34m💡 Tip: Install Xray-core with option 11 for better performance\033[0m"
+                    echo -e "\033[1;34m💡 Совет: Установите Xray-core с опцией 11 для лучшей производительности\033[0m"
                 else
-                    echo -e "\033[1;34m💡 Tip: Check logs (7-9) or configure log rotation (13)\033[0m"
+                    echo -e "\033[1;34m💡 Совет: Проверьте логи (7-9) или настройте ротацию логов (13)\033[0m"
                 fi
                 ;;
         esac
         
         echo -e "\033[38;5;8mRemnaNode CLI v$SCRIPT_VERSION by DigneZzZ • gig.ovh\033[0m"
         echo
-        read -p "$(echo -e "\033[1;37mSelect option [0-13]:\033[0m ")" choice
+        read -p "$(echo -e "\033[1;37mВыберите опцию [0-13]:\033[0m ")" choice
 
         case "$choice" in
-            1) install_command; read -p "Press Enter to continue..." ;;
-            2) up_command; read -p "Press Enter to continue..." ;;
-            3) down_command; read -p "Press Enter to continue..." ;;
-            4) restart_command; read -p "Press Enter to continue..." ;;
-            5) uninstall_command; read -p "Press Enter to continue..." ;;
-            6) status_command; read -p "Press Enter to continue..." ;;
-            7) logs_command; read -p "Press Enter to continue..." ;;
-            8) xray_log_out; read -p "Press Enter to continue..." ;;
-            9) xray_log_err; read -p "Press Enter to continue..." ;;
-            10) update_command; read -p "Press Enter to continue..." ;;
-            11) update_core_command; read -p "Press Enter to continue..." ;;
-            12) edit_command; read -p "Press Enter to continue..." ;;
-            13) setup_log_rotation; read -p "Press Enter to continue..." ;;
+            1) install_command; read -p "Нажмите Enter для продолжения..." ;;
+            2) up_command; read -p "Нажмите Enter для продолжения..." ;;
+            3) down_command; read -p "Нажмите Enter для продолжения..." ;;
+            4) restart_command; read -p "Нажмите Enter для продолжения..." ;;
+            5) uninstall_command; read -p "Нажмите Enter для продолжения..." ;;
+            6) status_command; read -p "Нажмите Enter для продолжения..." ;;
+            7) logs_command; read -p "Нажмите Enter для продолжения..." ;;
+            8) xray_log_out; read -p "Нажмите Enter для продолжения..." ;;
+            9) xray_log_err; read -p "Нажмите Enter для продолжения..." ;;
+            10) update_command; read -p "Нажмите Enter для продолжения..." ;;
+            11) update_core_command; read -p "Нажмите Enter для продолжения..." ;;
+            12) edit_command; read -p "Нажмите Enter для продолжения..." ;;
+            13) setup_log_rotation; read -p "Нажмите Enter для продолжения..." ;;
             0) clear; exit 0 ;;
             *) 
-                echo -e "\033[1;31m❌ Invalid option!\033[0m"
+                echo -e "\033[1;31m❌ Неверная опция!\033[0m"
                 sleep 1
                 ;;
         esac

@@ -10,7 +10,7 @@ fi
 
 set -e
 SCRIPT_VERSION="2.1.4"
-GITHUB_REPO="dignezzz/remnawave-scripts"
+GITHUB_REPO="Spakieone/Remna"
 UPDATE_URL="https://raw.githubusercontent.com/$GITHUB_REPO/main/selfsteal.sh"
 SCRIPT_URL="$UPDATE_URL"  # Алиас для совместимости
 CONTAINER_NAME="caddy-selfsteal"
@@ -44,7 +44,7 @@ if [ $# -gt 0 ]; then
             exit 0
             ;;
         --version|-v)
-            echo "Caddy Selfsteal Management Script v$SCRIPT_VERSION"
+            echo "Скрипт управления Caddy Selfsteal v$SCRIPT_VERSION"
             exit 0
             ;;
         *)
@@ -61,14 +61,14 @@ fi
 # Check if running as root
 check_running_as_root() {
     if [ "$EUID" -ne 0 ]; then
-        echo -e "${RED}❌ This script must be run as root (use sudo)${NC}"
+        echo -e "${RED}❌ Этот скрипт должен запускаться от root (используйте sudo)${NC}"
         exit 1
     fi
 }
 
 # Check system requirements
 check_system_requirements() {
-    echo -e "${WHITE}🔍 Checking System Requirements${NC}"
+    echo -e "${WHITE}🔍 Проверка системных требований${NC}"
     echo -e "${GRAY}$(printf '─%.0s' $(seq 1 40))${NC}"
     echo
 
@@ -76,17 +76,17 @@ check_system_requirements() {
 
     # Check Docker
     if ! command -v docker >/dev/null 2>&1; then
-        echo -e "${RED}❌ Docker is not installed${NC}"
-        echo -e "${GRAY}   Please install Docker first${NC}"
+        echo -e "${RED}❌ Docker не установлен${NC}"
+        echo -e "${GRAY}   Сначала установите Docker${NC}"
         requirements_met=false
     else
         local docker_version=$(docker --version | cut -d' ' -f3 | tr -d ',')
-        echo -e "${GREEN}✅ Docker installed: $docker_version${NC}"
+        echo -e "${GREEN}✅ Docker установлен: $docker_version${NC}"
     fi
 
     # Check Docker Compose
     if ! docker compose version >/dev/null 2>&1; then
-        echo -e "${RED}❌ Docker Compose V2 is not available${NC}"
+        echo -e "${RED}❌ Docker Compose V2 недоступен${NC}"
         requirements_met=false
     else
         local compose_version=$(docker compose version --short 2>/dev/null || echo "unknown")
@@ -95,10 +95,10 @@ check_system_requirements() {
 
     # Check curl
     if ! command -v curl >/dev/null 2>&1; then
-        echo -e "${RED}❌ curl is not installed${NC}"
+        echo -e "${RED}❌ curl не установлен${NC}"
         requirements_met=false
     else
-        echo -e "${GREEN}✅ curl is available${NC}"
+        echo -e "${GREEN}✅ curl доступен${NC}"
     fi
 
     # Check available disk space
@@ -106,19 +106,19 @@ check_system_requirements() {
     local available_gb=$((available_space / 1024 / 1024))
     
     if [ $available_gb -lt 1 ]; then
-        echo -e "${RED}❌ Insufficient disk space: ${available_gb}GB available${NC}"
+        echo -e "${RED}❌ Недостаточно места на диске: доступно ${available_gb}GB${NC}"
         requirements_met=false
     else
-        echo -e "${GREEN}✅ Sufficient disk space: ${available_gb}GB available${NC}"
+        echo -e "${GREEN}✅ Достаточно места на диске: доступно ${available_gb}GB${NC}"
     fi
 
     echo
 
     if [ "$requirements_met" = false ]; then
-        echo -e "${RED}❌ System requirements not met!${NC}"
+        echo -e "${RED}❌ Системные требования не выполнены!${NC}"
         return 1
     else
-        echo -e "${GREEN}🎉 All system requirements satisfied!${NC}"
+        echo -e "${GREEN}🎉 Все системные требования выполнены!${NC}"
         return 0
     fi
 }
@@ -128,13 +128,13 @@ validate_domain_dns() {
     local domain="$1"
     local server_ip="$2"
     
-    echo -e "${WHITE}🔍 Validating DNS Configuration${NC}"
+    echo -e "${WHITE}🔍 Проверка DNS конфигурации${NC}"
     echo -e "${GRAY}$(printf '─%.0s' $(seq 1 40))${NC}"
     echo
     
     # Check if domain format is valid
     if ! [[ "$domain" =~ ^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$ ]]; then
-        echo -e "${RED}❌ Invalid domain format!${NC}"
+        echo -e "${RED}❌ Неверный формат домена!${NC}"
         echo -e "${GRAY}   Domain should be in format: subdomain.domain.com${NC}"
         return 1
     fi
@@ -812,7 +812,7 @@ download_template() {
         mkdir -p "$temp_dir"
         
         # Клонируем только нужную папку через sparse-checkout
-        if git clone --filter=blob:none --sparse "https://github.com/DigneZzZ/remnawave-scripts.git" "$temp_dir" 2>/dev/null; then
+        if git clone --filter=blob:none --sparse "https://github.com/Spakieone/Remna.git" "$temp_dir" 2>/dev/null; then
             cd "$temp_dir"
             git sparse-checkout set "sni-templates/$template_folder" 2>/dev/null
             
@@ -849,10 +849,10 @@ download_template() {
     if command -v wget >/dev/null 2>&1; then
         echo -e "${WHITE}📦 Using wget for recursive download...${NC}"
         
-        local base_url="https://raw.githubusercontent.com/DigneZzZ/remnawave-scripts/main/sni-templates/$template_folder"
+        local base_url="https://raw.githubusercontent.com/Spakieone/Remna/main/sni-templates/$template_folder"
         
         # Получаем структуру папки через GitHub API
-        local api_url="https://api.github.com/repos/DigneZzZ/remnawave-scripts/git/trees/main?recursive=1"
+        local api_url="https://api.github.com/repos/Spakieone/Remna/git/trees/main?recursive=1"
         local tree_data
         tree_data=$(curl -s "$api_url" 2>/dev/null)
         
@@ -872,7 +872,7 @@ download_template() {
                     if [ -n "$file_path" ]; then
                         # Получаем относительный путь (убираем sni-templates/$template_folder/)
                         local relative_path="${file_path#sni-templates/$template_folder/}"
-                        local file_url="https://raw.githubusercontent.com/DigneZzZ/remnawave-scripts/main/$file_path"
+                        local file_url="https://raw.githubusercontent.com/Spakieone/Remna/main/$file_path"
                         
                         # Создаем директорию если нужно
                         local file_dir=$(dirname "$relative_path")
@@ -912,7 +912,7 @@ download_template() {
     local common_files=("index.html" "favicon.ico" "favicon.svg" "site.webmanifest" "apple-touch-icon.png" "favicon-96x96.png" "web-app-manifest-192x192.png" "web-app-manifest-512x512.png")
     local asset_files=("assets/style.css" "assets/script.js" "assets/main.js")
     
-    local base_url="https://raw.githubusercontent.com/DigneZzZ/remnawave-scripts/main/sni-templates/$template_folder"
+    local base_url="https://raw.githubusercontent.com/Spakieone/Remna/main/sni-templates/$template_folder"
     local files_downloaded=0
     local failed_downloads=0
     
@@ -1899,7 +1899,7 @@ show_help() {
     echo -e "  ${GRAY}sudo $APP_NAME logs${NC}"
     echo
     echo -e "${WHITE}For more information, visit:${NC}"
-    echo -e "  ${BLUE}https://github.com/remnawave/${NC}"
+    echo -e "  ${BLUE}https://github.com/Spakieone/Remna${NC}"
 }
 
 check_for_updates() {
@@ -2250,62 +2250,62 @@ main_menu() {    # Auto-check for updates on first run
         
         case "$menu_status" in
             "Running")
-                echo -e "${status_color}✅ Status: $menu_status${NC}"
+                echo -e "${status_color}✅ Статус: Запущен${NC}"
                 ;;
             "Error (Restarting)")
-                echo -e "${status_color}⚠️  Status: $menu_status${NC}"
+                echo -e "${status_color}⚠️  Статус: Ошибка (перезапуск)${NC}"
                 ;;
             "Stopped"|"Not running")
-                echo -e "${status_color}❌ Status: $menu_status${NC}"
+                echo -e "${status_color}❌ Статус: Остановлен${NC}"
                 ;;
             "Paused")
-                echo -e "${status_color}⏸️  Status: $menu_status${NC}"
+                echo -e "${status_color}⏸️  Статус: Приостановлен${NC}"
                 ;;
             *)
-                echo -e "${status_color}📦 Status: $menu_status${NC}"
+                echo -e "${status_color}📦 Статус: $menu_status${NC}"
                 ;;
         esac
         
         if [ -n "$domain" ]; then
-            printf "   ${WHITE}%-10s${NC} ${GRAY}%s${NC}\n" "Domain:" "$domain"
+            printf "   ${WHITE}%-10s${NC} ${GRAY}%s${NC}\n" "Домен:" "$domain"
         fi
         if [ -n "$port" ]; then
-            printf "   ${WHITE}%-10s${NC} ${GRAY}%s${NC}\n" "Port:" "$port"
+            printf "   ${WHITE}%-10s${NC} ${GRAY}%s${NC}\n" "Порт:" "$port"
         fi
         
         if [ "$menu_status" = "Error (Restarting)" ]; then
             echo
-            echo -e "${YELLOW}⚠️  Service is experiencing issues!${NC}"
-            echo -e "${GRAY}   Recommended: Check logs (option 7) or restart services (option 4)${NC}"
+            echo -e "${YELLOW}⚠️  Сервис испытывает проблемы!${NC}"
+            echo -e "${GRAY}   Рекомендуется: Проверить логи (опция 8) или перезапустить сервисы (опция 4)${NC}"
         fi
         
         echo
-        echo -e "${WHITE}📋 Available Operations:${NC}"
+        echo -e "${WHITE}📋 Доступные операции:${NC}"
         echo
 
-        echo -e "${WHITE}🔧 Service Management:${NC}"
-        echo -e "   ${WHITE}1)${NC} 🚀 Install Caddy"
-        echo -e "   ${WHITE}2)${NC} ▶️  Start services"
-        echo -e "   ${WHITE}3)${NC} ⏹️  Stop services"
-        echo -e "   ${WHITE}4)${NC} 🔄 Restart services"
-        echo -e "   ${WHITE}5)${NC} 📊 Service status"
+        echo -e "${WHITE}🔧 Управление сервисом:${NC}"
+        echo -e "   ${WHITE}1)${NC} 🚀 Установить Caddy"
+        echo -e "   ${WHITE}2)${NC} ▶️  Запустить сервисы"
+        echo -e "   ${WHITE}3)${NC} ⏹️  Остановить сервисы"
+        echo -e "   ${WHITE}4)${NC} 🔄 Перезапустить сервисы"
+        echo -e "   ${WHITE}5)${NC} 📊 Статус сервиса"
         echo
 
-        echo -e "${WHITE}🎨 Website Management:${NC}"
-        echo -e "   ${WHITE}6)${NC} 🎨 Website templates"
-        echo -e "   ${WHITE}7)${NC} 📖 Setup guide & examples"
+        echo -e "${WHITE}🎨 Управление сайтом:${NC}"
+        echo -e "   ${WHITE}6)${NC} 🎨 Шаблоны сайтов"
+        echo -e "   ${WHITE}7)${NC} 📖 Руководство по настройке"
         echo
 
-        echo -e "${WHITE}📝 Logs & Monitoring:${NC}"
-        echo -e "   ${WHITE}8)${NC} 📝 View logs"
-        echo -e "   ${WHITE}9)${NC} 📊 Log sizes"
-        echo -e "   ${WHITE}10)${NC} 🧹 Clean logs"
-        echo -e "   ${WHITE}11)${NC} ✏️  Edit configuration"
+        echo -e "${WHITE}📝 Логи и мониторинг:${NC}"
+        echo -e "   ${WHITE}8)${NC} 📝 Просмотреть логи"
+        echo -e "   ${WHITE}9)${NC} 📊 Размеры логов"
+        echo -e "   ${WHITE}10)${NC} 🧹 Очистить логи"
+        echo -e "   ${WHITE}11)${NC} ✏️  Редактировать конфигурацию"
         echo
 
-        echo -e "${WHITE}🗑️  Maintenance:${NC}"
-        echo -e "   ${WHITE}12)${NC} 🗑️  Uninstall Caddy"
-        echo -e "   ${WHITE}13)${NC} 🔄 Check for updates"
+        echo -e "${WHITE}🗑️  Обслуживание:${NC}"
+        echo -e "   ${WHITE}12)${NC} 🗑️  Удалить Caddy"
+        echo -e "   ${WHITE}13)${NC} 🔄 Проверить обновления"
         echo
         echo -e "   ${GRAY}0)${NC} ⬅️  Exit"
         echo

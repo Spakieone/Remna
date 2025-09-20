@@ -37,6 +37,7 @@ call_script() {
     local script_name=$1
     local script_path="./$script_name"
     
+    # Проверяем разные возможные пути
     if [ -f "$script_path" ]; then
         echo -e "${YELLOW}Запуск $script_name...${NC}"
         echo ""
@@ -44,10 +45,30 @@ call_script() {
         echo ""
         echo -e "${GREEN}Скрипт $script_name завершен.${NC}"
         read -p "Нажмите Enter для возврата в главное меню..."
+    elif [ -f "script/scripts-main/$script_name" ]; then
+        echo -e "${YELLOW}Запуск $script_name...${NC}"
+        echo ""
+        bash "script/scripts-main/$script_name"
+        echo ""
+        echo -e "${GREEN}Скрипт $script_name завершен.${NC}"
+        read -p "Нажмите Enter для возврата в главное меню..."
     else
-        echo -e "${RED}Ошибка: Скрипт $script_name не найден!${NC}"
-        echo -e "${YELLOW}Проверьте, что файл находится в текущей директории.${NC}"
-        read -p "Нажмите Enter для продолжения..."
+        # Если файл не найден локально, скачиваем с GitHub
+        echo -e "${YELLOW}Скачиваем $script_name с GitHub...${NC}"
+        local github_url="https://raw.githubusercontent.com/Spakieone/Remna/main/$script_name"
+        
+        if curl -s --head "$github_url" | head -n 1 | grep -q "200 OK"; then
+            echo -e "${YELLOW}Запуск $script_name...${NC}"
+            echo ""
+            bash <(curl -s "$github_url")
+            echo ""
+            echo -e "${GREEN}Скрипт $script_name завершен.${NC}"
+            read -p "Нажмите Enter для возврата в главное меню..."
+        else
+            echo -e "${RED}Ошибка: Скрипт $script_name не найден на GitHub!${NC}"
+            echo -e "${YELLOW}URL: $github_url${NC}"
+            read -p "Нажмите Enter для продолжения..."
+        fi
     fi
 }
 

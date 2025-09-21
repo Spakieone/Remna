@@ -110,7 +110,7 @@ colorized_echo() {
 
 check_running_as_root() {
     if [ "$(id -u)" != "0" ]; then
-        colorized_echo red "This command must be run as root."
+        colorized_echo red "Эта команда должна выполняться от root."
         exit 1
     fi
 }
@@ -122,19 +122,19 @@ check_system_requirements() {
     # Проверяем свободное место (минимум 1GB)
     local available_space=$(df / | awk 'NR==2 {print $4}')
     if [ "$available_space" -lt 1048576 ]; then  # 1GB в KB
-        colorized_echo red "Error: Insufficient disk space. At least 1GB required."
+        colorized_echo red "Ошибка: Недостаточно места на диске. Требуется минимум 1GB."
         errors=$((errors + 1))
     fi
     
     # Проверяем RAM (минимум 512MB)
     local available_ram=$(free -m | awk 'NR==2{print $7}')
     if [ "$available_ram" -lt 256 ]; then
-        colorized_echo yellow "Warning: Low available RAM (${available_ram}MB). Performance may be affected."
+        colorized_echo yellow "Предупреждение: Мало доступной RAM (${available_ram}MB). Производительность может пострадать."
     fi
     
     # Проверяем архитектуру
     if ! identify_the_operating_system_and_architecture 2>/dev/null; then
-        colorized_echo red "Error: Unsupported system architecture."
+        colorized_echo red "Ошибка: Неподдерживаемая архитектура системы."
         errors=$((errors + 1))
     fi
     
@@ -154,13 +154,13 @@ detect_os() {
     elif [ -f /etc/arch-release ]; then
         OS="Arch"
     else
-        colorized_echo red "Unsupported operating system"
+        colorized_echo red "Неподдерживаемая операционная система"
         exit 1
     fi
 }
 
 detect_and_update_package_manager() {
-    colorized_echo blue "Updating package manager"
+    colorized_echo blue "Обновление менеджера пакетов"
     if [[ "$OS" == "Ubuntu"* ]] || [[ "$OS" == "Debian"* ]]; then
         PKG_MANAGER="apt-get"
         $PKG_MANAGER update -qq >/dev/null 2>&1
@@ -180,7 +180,7 @@ detect_and_update_package_manager() {
         PKG_MANAGER="zypper"
         $PKG_MANAGER refresh --quiet >/dev/null 2>&1
     else
-        colorized_echo red "Unsupported operating system"
+        colorized_echo red "Неподдерживаемая операционная система"
         exit 1
     fi
 }
@@ -192,19 +192,19 @@ detect_compose() {
         COMPOSE='docker-compose'
     else
         if [[ "$OS" == "Amazon"* ]]; then
-            colorized_echo blue "Docker Compose plugin not found. Attempting manual installation..."
+            colorized_echo blue "Плагин Docker Compose не найден. Попытка ручной установки..."
             mkdir -p /usr/libexec/docker/cli-plugins
             curl -SL "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/libexec/docker/cli-plugins/docker-compose >/dev/null 2>&1
             chmod +x /usr/libexec/docker/cli-plugins/docker-compose
             if docker compose >/dev/null 2>&1; then
                 COMPOSE='docker compose'
-                colorized_echo green "Docker Compose plugin installed successfully"
+                colorized_echo green "Плагин Docker Compose успешно установлен"
             else
-                colorized_echo red "Failed to install Docker Compose plugin. Please check your setup."
+                colorized_echo red "Не удалось установить плагин Docker Compose. Проверьте настройки."
                 exit 1
             fi
         else
-            colorized_echo red "docker compose not found"
+            colorized_echo red "docker compose не найден"
             exit 1
         fi
     fi
@@ -216,7 +216,7 @@ install_package() {
     fi
 
     PACKAGE=$1
-    colorized_echo blue "Installing $PACKAGE"
+    colorized_echo blue "Установка $PACKAGE"
     if [[ "$OS" == "Ubuntu"* ]] || [[ "$OS" == "Debian"* ]]; then
         $PKG_MANAGER -y -qq install "$PACKAGE" >/dev/null 2>&1
     elif [[ "$OS" == "CentOS"* ]] || [[ "$OS" == "AlmaLinux"* ]] || [[ "$OS" == "Amazon"* ]]; then
@@ -228,31 +228,31 @@ install_package() {
     elif [[ "$OS" == "openSUSE"* ]]; then
         $PKG_MANAGER --quiet install -y "$PACKAGE" >/dev/null 2>&1
     else
-        colorized_echo red "Unsupported operating system"
+        colorized_echo red "Неподдерживаемая операционная система"
         exit 1
     fi
 }
 
 install_docker() {
-    colorized_echo blue "Installing Docker"
+    colorized_echo blue "Установка Docker"
     if [[ "$OS" == "Amazon"* ]]; then
         amazon-linux-extras enable docker >/dev/null 2>&1
         yum install -y docker >/dev/null 2>&1
         systemctl start docker
         systemctl enable docker
-        colorized_echo green "Docker installed successfully on Amazon Linux"
+        colorized_echo green "Docker успешно установлен на Amazon Linux"
     else
         curl -fsSL https://get.docker.com | sh
-        colorized_echo green "Docker installed successfully"
+        colorized_echo green "Docker успешно установлен"
     fi
 }
 
 install_remnanode_script() {
-    colorized_echo blue "Installing remnanode script"
+    colorized_echo blue "Установка скрипта remnanode"
     TARGET_PATH="/usr/local/bin/$APP_NAME"
     curl -sSL $SCRIPT_URL -o $TARGET_PATH
     chmod 755 $TARGET_PATH
-    colorized_echo green "Remnanode script installed successfully at $TARGET_PATH"
+    colorized_echo green "Скрипт Remnanode успешно установлен в $TARGET_PATH"
 }
 
 # Улучшенная функция проверки доступности портов
@@ -266,7 +266,7 @@ validate_port() {
     
     # Проверяем, что порт не зарезервирован системой
     if [ "$port" -lt 1024 ] && [ "$(id -u)" != "0" ]; then
-        colorized_echo yellow "Warning: Port $port requires root privileges"
+        colorized_echo yellow "Предупреждение: Порт $port требует привилегий root"
     fi
     
     return 0
@@ -281,14 +281,14 @@ get_occupied_ports() {
     elif command -v netstat &>/dev/null; then
         ports=$(netstat -tuln 2>/dev/null | awk 'NR>2 {print $4}' | grep -Eo '[0-9]+$' | sort -n | uniq)
     else
-        colorized_echo yellow "Neither ss nor netstat found. Installing net-tools..."
+        colorized_echo yellow "Не найдены ss или netstat. Устанавливаем net-tools..."
         detect_os
         if install_package net-tools; then
             if command -v netstat &>/dev/null; then
                 ports=$(netstat -tuln 2>/dev/null | awk 'NR>2 {print $4}' | grep -Eo '[0-9]+$' | sort -n | uniq)
             fi
         else
-            colorized_echo yellow "Could not install net-tools. Skipping port conflict check."
+            colorized_echo yellow "Не удалось установить net-tools. Пропускаем проверку конфликтов портов."
             return 1
         fi
     fi
@@ -311,12 +311,12 @@ install_latest_xray_core() {
     
     latest_release=$(curl -s "https://api.github.com/repos/XTLS/Xray-core/releases/latest" | grep -oP '"tag_name": "\K(.*?)(?=")')
     if [ -z "$latest_release" ]; then
-        colorized_echo red "Failed to fetch latest Xray-core version."
+        colorized_echo red "Не удалось получить последнюю версию Xray-core."
         exit 1
     fi
     
     if ! dpkg -s unzip >/dev/null 2>&1; then
-        colorized_echo blue "Installing unzip..."
+        colorized_echo blue "Установка unzip..."
         detect_os
         install_package unzip
     fi
@@ -324,17 +324,17 @@ install_latest_xray_core() {
     xray_filename="Xray-linux-$ARCH.zip"
     xray_download_url="https://github.com/XTLS/Xray-core/releases/download/${latest_release}/${xray_filename}"
     
-    colorized_echo blue "Downloading Xray-core version ${latest_release}..."
+    colorized_echo blue "Загрузка Xray-core версии ${latest_release}..."
     wget "${xray_download_url}" -q
     if [ $? -ne 0 ]; then
-        colorized_echo red "Error: Failed to download Xray-core."
+        colorized_echo red "Ошибка: Не удалось загрузить Xray-core."
         exit 1
     fi
     
-    colorized_echo blue "Extracting Xray-core..."
+    colorized_echo blue "Извлечение Xray-core..."
     unzip -o "${xray_filename}" -d "$DATA_DIR" >/dev/null 2>&1
     if [ $? -ne 0 ]; then
-        colorized_echo red "Error: Failed to extract Xray-core."
+        colorized_echo red "Ошибка: Не удалось извлечь Xray-core."
         exit 1
     fi
 
@@ -342,9 +342,9 @@ install_latest_xray_core() {
     chmod +x "$XRAY_FILE"
     
     # Check what files were extracted
-    colorized_echo blue "Extracted files:"
+    colorized_echo blue "Извлеченные файлы:"
     if [ -f "$XRAY_FILE" ]; then
-        colorized_echo green "  ✅ xray executable"
+        colorized_echo green "  ✅ исполняемый файл xray"
     fi
     if [ -f "$GEOIP_FILE" ]; then
         colorized_echo green "  ✅ geoip.dat"
@@ -353,7 +353,7 @@ install_latest_xray_core() {
         colorized_echo green "  ✅ geosite.dat"
     fi
     
-    colorized_echo green "Latest Xray-core (${latest_release}) installed at $XRAY_FILE"
+    colorized_echo green "Последний Xray-core (${latest_release}) установлен в $XRAY_FILE"
 }
 
 setup_log_rotation() {
@@ -361,34 +361,34 @@ setup_log_rotation() {
     
     # Check if the directory exists
     if [ ! -d "$DATA_DIR" ]; then
-        colorized_echo blue "Creating directory $DATA_DIR"
+        colorized_echo blue "Создание директории $DATA_DIR"
         mkdir -p "$DATA_DIR"
     else
-        colorized_echo green "Directory $DATA_DIR already exists"
+        colorized_echo green "Директория $DATA_DIR уже существует"
     fi
     
     # Check if logrotate is installed
     if ! command -v logrotate &> /dev/null; then
-        colorized_echo blue "Installing logrotate"
+        colorized_echo blue "Установка logrotate"
         detect_os
         install_package logrotate
     else
-        colorized_echo green "Logrotate is already installed"
+        colorized_echo green "Logrotate уже установлен"
     fi
     
     # Check if logrotate config already exists
     LOGROTATE_CONFIG="/etc/logrotate.d/remnanode"
     if [ -f "$LOGROTATE_CONFIG" ]; then
-        colorized_echo yellow "Logrotate configuration already exists at $LOGROTATE_CONFIG"
-        read -p "Do you want to overwrite it? (y/n): " -r overwrite
+        colorized_echo yellow "Конфигурация logrotate уже существует в $LOGROTATE_CONFIG"
+        read -p "Хотите перезаписать её? (y/n): " -r overwrite
         if [[ ! $overwrite =~ ^[Yy]$ ]]; then
-            colorized_echo yellow "Keeping existing logrotate configuration"
+            colorized_echo yellow "Сохраняем существующую конфигурацию logrotate"
             return
         fi
     fi
     
     # Create logrotate configuration
-    colorized_echo blue "Creating logrotate configuration at $LOGROTATE_CONFIG"
+    colorized_echo blue "Создание конфигурации logrotate в $LOGROTATE_CONFIG"
     cat > "$LOGROTATE_CONFIG" <<EOL
 $DATA_DIR/*.log {
     size 50M
@@ -403,36 +403,36 @@ EOL
     chmod 644 "$LOGROTATE_CONFIG"
     
     # Test logrotate configuration
-    colorized_echo blue "Testing logrotate configuration"
+    colorized_echo blue "Тестирование конфигурации logrotate"
     if logrotate -d "$LOGROTATE_CONFIG" &> /dev/null; then
-        colorized_echo green "Logrotate configuration test successful"
+        colorized_echo green "Тест конфигурации logrotate прошел успешно"
         
         # Ask if user wants to run logrotate now
-        read -p "Do you want to run logrotate now? (y/n): " -r run_now
+        read -p "Хотите запустить logrotate сейчас? (y/n): " -r run_now
         if [[ $run_now =~ ^[Yy]$ ]]; then
-            colorized_echo blue "Running logrotate"
+            colorized_echo blue "Запуск logrotate"
             if logrotate -vf "$LOGROTATE_CONFIG"; then
-                colorized_echo green "Logrotate executed successfully"
+                colorized_echo green "Logrotate выполнен успешно"
             else
-                colorized_echo red "Error running logrotate"
+                colorized_echo red "Ошибка при запуске logrotate"
             fi
         fi
     else
-        colorized_echo red "Logrotate configuration test failed"
+        colorized_echo red "Тест конфигурации logrotate не прошел"
         logrotate -d "$LOGROTATE_CONFIG"
     fi
     
     # Update docker-compose.yml to mount logs directory
     if [ -f "$COMPOSE_FILE" ]; then
-        colorized_echo blue "Updating docker-compose.yml to mount logs directory"
+        colorized_echo blue "Обновление docker-compose.yml для монтирования директории логов"
         
 
-        colorized_echo blue "Creating backup of docker-compose.yml..."
+        colorized_echo blue "Создание резервной копии docker-compose.yml..."
         backup_file=$(create_backup "$COMPOSE_FILE")
         if [ $? -eq 0 ]; then
-            colorized_echo green "Backup created: $backup_file"
+            colorized_echo green "Резервная копия создана: $backup_file"
         else
-            colorized_echo red "Failed to create backup"
+            colorized_echo red "Не удалось создать резервную копию"
             return
         fi
         
@@ -454,75 +454,75 @@ EOL
         if grep -q "^${escaped_service_indent}volumes:" "$COMPOSE_FILE"; then
             if ! grep -q "$DATA_DIR:$DATA_DIR" "$COMPOSE_FILE"; then
                 sed -i "/^${escaped_service_indent}volumes:/a\\${volume_item_indent}- $DATA_DIR:$DATA_DIR" "$COMPOSE_FILE"
-                colorized_echo green "Added logs volume to existing volumes section"
+                colorized_echo green "Добавлен том логов в существующую секцию volumes"
             else
-                colorized_echo yellow "Logs volume already exists in volumes section"
+                colorized_echo yellow "Том логов уже существует в секции volumes"
             fi
         elif grep -q "^${escaped_service_indent}# volumes:" "$COMPOSE_FILE"; then
             sed -i "s|^${escaped_service_indent}# volumes:|${service_indent}volumes:|g" "$COMPOSE_FILE"
             
             if grep -q "^${escaped_volume_item_indent}#.*$DATA_DIR:$DATA_DIR" "$COMPOSE_FILE"; then
                 sed -i "s|^${escaped_volume_item_indent}#.*$DATA_DIR:$DATA_DIR|${volume_item_indent}- $DATA_DIR:$DATA_DIR|g" "$COMPOSE_FILE"
-                colorized_echo green "Uncommented volumes section and logs volume line"
+                colorized_echo green "Раскомментирована секция volumes и строка тома логов"
             else
                 sed -i "/^${escaped_service_indent}volumes:/a\\${volume_item_indent}- $DATA_DIR:$DATA_DIR" "$COMPOSE_FILE"
-                colorized_echo green "Uncommented volumes section and added logs volume line"
+                colorized_echo green "Раскомментирована секция volumes и добавлена строка тома логов"
             fi
         else
             sed -i "/^${escaped_service_indent}restart: always/a\\${service_indent}volumes:\\n${volume_item_indent}- $DATA_DIR:$DATA_DIR" "$COMPOSE_FILE"
-            colorized_echo green "Added new volumes section with logs volume"
+            colorized_echo green "Добавлена новая секция volumes с томом логов"
         fi
         
 
-        colorized_echo blue "Validating docker-compose.yml..."
+        colorized_echo blue "Проверка docker-compose.yml..."
         if validate_compose_file "$COMPOSE_FILE"; then
-            colorized_echo green "Docker-compose.yml validation successful"
+            colorized_echo green "Проверка docker-compose.yml прошла успешно"
             cleanup_old_backups "$COMPOSE_FILE"
 
             if is_remnanode_up; then
-                read -p "Do you want to restart RemnaNode to apply changes? (y/n): " -r restart_now
+                read -p "Хотите перезапустить RemnaNode для применения изменений? (y/n): " -r restart_now
                 if [[ $restart_now =~ ^[Yy]$ ]]; then
-                    colorized_echo blue "Restarting RemnaNode"
+                    colorized_echo blue "Перезапуск RemnaNode"
                     if $APP_NAME restart -n; then
-                        colorized_echo green "RemnaNode restarted successfully"
+                        colorized_echo green "RemnaNode успешно перезапущен"
                     else
-                        colorized_echo red "Failed to restart RemnaNode"
+                        colorized_echo red "Не удалось перезапустить RemnaNode"
                     fi
                 else
-                    colorized_echo yellow "Remember to restart RemnaNode to apply changes"
+                    colorized_echo yellow "Не забудьте перезапустить RemnaNode для применения изменений"
                 fi
             fi
         else
-            colorized_echo red "Docker-compose.yml validation failed! Restoring backup..."
+            colorized_echo red "Проверка docker-compose.yml не прошла! Восстановление резервной копии..."
             if restore_backup "$backup_file" "$COMPOSE_FILE"; then
-                colorized_echo green "Backup restored successfully"
+                colorized_echo green "Резервная копия успешно восстановлена"
             else
-                colorized_echo red "Failed to restore backup!"
+                colorized_echo red "Не удалось восстановить резервную копию!"
             fi
             return
         fi
     else
-        colorized_echo yellow "Docker Compose file not found. Log directory will be mounted on next installation."
+        colorized_echo yellow "Файл Docker Compose не найден. Директория логов будет смонтирована при следующей установке."
     fi
     
-    colorized_echo green "Log rotation setup completed successfully"
+    colorized_echo green "Настройка ротации логов успешно завершена"
 }
 
 install_remnanode() {
 
     if ! check_system_requirements; then
-        colorized_echo red "System requirements check failed. Installation aborted."
+        colorized_echo red "Проверка системных требований не прошла. Установка прервана."
         exit 1
     fi
 
-    colorized_echo blue "Creating directory $APP_DIR"
+    colorized_echo blue "Создание директории $APP_DIR"
     mkdir -p "$APP_DIR"
 
-    colorized_echo blue "Creating directory $DATA_DIR"
+    colorized_echo blue "Создание директории $DATA_DIR"
     mkdir -p "$DATA_DIR"
 
     # Prompt the user to input the SSL certificate
-    colorized_echo blue "Please paste the content of the SSL Public Key from Remnawave-Panel, press ENTER on a new line when finished: "
+    colorized_echo blue "Вставьте содержимое SSL публичного ключа из Remnawave-Panel, нажмите ENTER на новой строке когда закончите: "
     SSL_CERT=""
     while IFS= read -r line; do
         if [[ -z $line ]]; then
@@ -533,30 +533,30 @@ install_remnanode() {
 
     get_occupied_ports
     while true; do
-        read -p "Enter the APP_PORT (default 3000): " -r APP_PORT
+        read -p "Введите APP_PORT (по умолчанию 3000): " -r APP_PORT
         APP_PORT=${APP_PORT:-3000}
         
         if validate_port "$APP_PORT"; then
             if is_port_occupied "$APP_PORT"; then
-                colorized_echo red "Port $APP_PORT is already in use. Please enter another port."
-                colorized_echo blue "Occupied ports: $(echo $OCCUPIED_PORTS | tr '\n' ' ')"
+                colorized_echo red "Порт $APP_PORT уже используется. Введите другой порт."
+                colorized_echo blue "Занятые порты: $(echo $OCCUPIED_PORTS | tr '\n' ' ')"
             else
                 break
             fi
         else
-            colorized_echo red "Invalid port. Please enter a port between 1 and 65535."
+            colorized_echo red "Неверный порт. Введите значение от 1 до 65535."
         fi
     done
 
     # Ask about installing Xray-core
-    read -p "Do you want to install the latest version of Xray-core? (y/n): " -r install_xray
+    read -p "Установить последнюю версию Xray-core? (y/n): " -r install_xray
     INSTALL_XRAY=false
     if [[ "$install_xray" =~ ^[Yy]$ ]]; then
         INSTALL_XRAY=true
         install_latest_xray_core
     fi
 
-    colorized_echo blue "Generating .env file"
+    colorized_echo blue "Создание файла .env"
     cat > "$ENV_FILE" <<EOL
 ### APP ###
 APP_PORT=$APP_PORT
@@ -564,7 +564,7 @@ APP_PORT=$APP_PORT
 ### XRAY ###
 $SSL_CERT
 EOL
-    colorized_echo green "Environment file saved in $ENV_FILE"
+    colorized_echo green "Файл окружения сохранён в $ENV_FILE"
 
     # Determine image based on --dev flag
     IMAGE_TAG="latest"
@@ -572,7 +572,7 @@ EOL
         IMAGE_TAG="dev"
     fi
 
-    colorized_echo blue "Generating docker-compose.yml file"
+    colorized_echo blue "Создание файла docker-compose.yml"
     
     # Create docker-compose.yml with commented volumes section
     cat > "$COMPOSE_FILE" <<EOL
@@ -617,7 +617,7 @@ EOL
 EOL
     fi
 
-    colorized_echo green "Docker Compose file saved in $COMPOSE_FILE"
+    colorized_echo green "Файл Docker Compose сохранён в $COMPOSE_FILE"
 }
 
 uninstall_remnanode_script() {
@@ -670,9 +670,9 @@ follow_remnanode_logs() {
 }
 
 update_remnanode_script() {
-    colorized_echo blue "Updating remnanode script"
+    colorized_echo blue "Обновление скрипта remnanode"
     curl -sSL $SCRIPT_URL | install -m 755 /dev/stdin /usr/local/bin/$APP_NAME
-    colorized_echo green "Remnanode script updated successfully"
+    colorized_echo green "Скрипт Remnanode успешно обновлен"
 }
 
 update_remnanode() {
@@ -703,10 +703,10 @@ is_remnanode_up() {
 install_command() {
     check_running_as_root
     if is_remnanode_installed; then
-        colorized_echo red "Remnanode is already installed at $APP_DIR"
-        read -p "Do you want to override the previous installation? (y/n) "
+        colorized_echo red "RemnaNode уже установлен в $APP_DIR"
+        read -p "Перезаписать предыдущую установку? (y/n) "
         if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            colorized_echo red "Aborted installation"
+            colorized_echo red "Установка отменена"
             exit 1
         fi
     fi
@@ -728,57 +728,57 @@ install_command() {
     clear
     echo
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 70))\033[0m"
-    echo -e "\033[1;37m🎉 RemnaNode Successfully Installed!\033[0m"
+    echo -e "\033[1;37m🎉 RemnaNode успешно установлен!\033[0m"
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 70))\033[0m"
     echo
     
-    echo -e "\033[1;37m🌐 Connection Information:\033[0m"
-    printf "   \033[38;5;15m%-12s\033[0m \033[38;5;250m%s\033[0m\n" "IP Address:" "$NODE_IP"
-    printf "   \033[38;5;15m%-12s\033[0m \033[38;5;250m%s\033[0m\n" "Port:" "$APP_PORT"
-    printf "   \033[38;5;15m%-12s\033[0m \033[38;5;250m%s:%s\033[0m\n" "Full URL:" "$NODE_IP" "$APP_PORT"
+    echo -e "\033[1;37m🌐 Информация о подключении:\033[0m"
+    printf "   \033[38;5;15m%-12s\033[0m \033[38;5;250m%s\033[0m\n" "IP адрес:" "$NODE_IP"
+    printf "   \033[38;5;15m%-12s\033[0m \033[38;5;250m%s\033[0m\n" "Порт:" "$APP_PORT"
+    printf "   \033[38;5;15m%-12s\033[0m \033[38;5;250m%s:%s\033[0m\n" "Полный URL:" "$NODE_IP" "$APP_PORT"
     echo
     
-    echo -e "\033[1;37m📋 Next Steps:\033[0m"
-    echo -e "   \033[38;5;250m1.\033[0m Use the IP and port above to set up your Remnawave Panel"
-    echo -e "   \033[38;5;250m2.\033[0m Configure log rotation: \033[38;5;15msudo $APP_NAME setup-logs\033[0m"
+    echo -e "\033[1;37m📋 Следующие шаги:\033[0m"
+    echo -e "   \033[38;5;250m1.\033[0m Используйте IP и порт выше для настройки Remnawave Panel"
+    echo -e "   \033[38;5;250m2.\033[0m Настройте ротацию логов: \033[38;5;15msudo $APP_NAME setup-logs\033[0m"
     
     if [ "$INSTALL_XRAY" == "true" ]; then
-        echo -e "   \033[38;5;250m3.\033[0m \033[1;37mXray-core is already installed and ready! ✅\033[0m"
+        echo -e "   \033[38;5;250m3.\033[0m \033[1;37mXray-core уже установлен и готов! ✅\033[0m"
     else
-        echo -e "   \033[38;5;250m3.\033[0m Install Xray-core: \033[38;5;15msudo $APP_NAME core-update\033[0m"
+        echo -e "   \033[38;5;250m3.\033[0m Установите Xray-core: \033[38;5;15msudo $APP_NAME core-update\033[0m"
     fi
     
-    echo -e "   \033[38;5;250m4.\033[0m Secure with UFW: \033[38;5;15msudo ufw allow from \033[38;5;244mPANEL_IP\033[38;5;15m to any port $APP_PORT\033[0m"
-    echo -e "      \033[38;5;8m(Enable UFW: \033[38;5;15msudo ufw enable\033[38;5;8m)\033[0m"
+    echo -e "   \033[38;5;250m4.\033[0m Настройте UFW: \033[38;5;15msudo ufw allow from \033[38;5;244mPANEL_IP\033[38;5;15m to any port $APP_PORT\033[0m"
+    echo -e "      \033[38;5;8m(Включить UFW: \033[38;5;15msudo ufw enable\033[38;5;8m)\033[0m"
     echo
     
-    echo -e "\033[1;37m🛠️  Quick Commands:\033[0m"
-    printf "   \033[38;5;15m%-15s\033[0m %s\n" "status" "📊 Check service status"
-    printf "   \033[38;5;15m%-15s\033[0m %s\n" "logs" "📋 View container logs"
-    printf "   \033[38;5;15m%-15s\033[0m %s\n" "restart" "🔄 Restart the service"
+    echo -e "\033[1;37m🛠️  Быстрые команды:\033[0m"
+    printf "   \033[38;5;15m%-15s\033[0m %s\n" "status" "📊 Проверить статус сервиса"
+    printf "   \033[38;5;15m%-15s\033[0m %s\n" "logs" "📋 Просмотреть логи контейнера"
+    printf "   \033[38;5;15m%-15s\033[0m %s\n" "restart" "🔄 Перезапустить сервис"
     if [ "$INSTALL_XRAY" == "true" ]; then
-        printf "   \033[38;5;15m%-15s\033[0m %s\n" "xray_log_out" "📤 View Xray logs"
+        printf "   \033[38;5;15m%-15s\033[0m %s\n" "xray_log_out" "📤 Просмотреть логи Xray"
     fi
     echo
     
-    echo -e "\033[1;37m📁 File Locations:\033[0m"
-    printf "   \033[38;5;15m%-15s\033[0m \033[38;5;250m%s\033[0m\n" "Configuration:" "$APP_DIR"
-    printf "   \033[38;5;15m%-15s\033[0m \033[38;5;250m%s\033[0m\n" "Data:" "$DATA_DIR"
+    echo -e "\033[1;37m📁 Расположение файлов:\033[0m"
+    printf "   \033[38;5;15m%-15s\033[0m \033[38;5;250m%s\033[0m\n" "Конфигурация:" "$APP_DIR"
+    printf "   \033[38;5;15m%-15s\033[0m \033[38;5;250m%s\033[0m\n" "Данные:" "$DATA_DIR"
     if [ "$INSTALL_XRAY" == "true" ]; then
-        printf "   \033[38;5;15m%-15s\033[0m \033[38;5;250m%s\033[0m\n" "Xray Binary:" "$XRAY_FILE"
+        printf "   \033[38;5;15m%-15s\033[0m \033[38;5;250m%s\033[0m\n" "Бинарник Xray:" "$XRAY_FILE"
     fi
     echo
     
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 70))\033[0m"
-    echo -e "\033[38;5;8m💡 For all commands: \033[38;5;15msudo $APP_NAME\033[0m"
-    echo -e "\033[38;5;8m📚 Project: \033[38;5;250mhttps://gig.ovh\033[0m"
+    echo -e "\033[38;5;8m💡 Для всех команд: \033[38;5;15msudo $APP_NAME\033[0m"
+    echo -e "\033[38;5;8m📚 Проект: \033[38;5;250mhttps://gig.ovh\033[0m"
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 70))\033[0m"
 }
 
 uninstall_command() {
     check_running_as_root
     if ! is_remnanode_installed; then
-        colorized_echo red "Remnanode not installed!"
+        colorized_echo red "RemnaNode не установлен!"
         exit 1
     fi
     
@@ -798,42 +798,42 @@ uninstall_command() {
     
     read -p "Do you want to remove Remnanode data files too ($DATA_DIR)? (y/n) "
     if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        colorized_echo green "Remnanode uninstalled successfully"
+        colorized_echo green "Remnanode успешно удален"
     else
         uninstall_remnanode_data_files
-        colorized_echo green "Remnanode uninstalled successfully"
+        colorized_echo green "Remnanode успешно удален"
     fi
 }
 
 install_script_command() {
     check_running_as_root
-    colorized_echo blue "Installing RemnaNode script globally"
+    colorized_echo blue "Установка скрипта RemnaNode глобально"
     install_remnanode_script
-    colorized_echo green "✅ Script installed successfully!"
-    colorized_echo white "You can now run '$APP_NAME' from anywhere"
+    colorized_echo green "✅ Скрипт успешно установлен!"
+    colorized_echo white "Теперь вы можете запускать '$APP_NAME' из любого места"
 }
 
 uninstall_script_command() {
     check_running_as_root
     if [ ! -f "/usr/local/bin/$APP_NAME" ]; then
-        colorized_echo red "❌ Script not found at /usr/local/bin/$APP_NAME"
+        colorized_echo red "❌ Скрипт не найден в /usr/local/bin/$APP_NAME"
         exit 1
     fi
     
-    read -p "Are you sure you want to remove the script? (y/n): " -r
+    read -p "Вы уверены, что хотите удалить скрипт? (y/n): " -r
     if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        colorized_echo yellow "Operation cancelled"
+        colorized_echo yellow "Операция отменена"
         exit 0
     fi
     
-    colorized_echo blue "Removing RemnaNode script"
+    colorized_echo blue "Удаление скрипта RemnaNode"
     uninstall_remnanode_script
-    colorized_echo green "✅ Script removed successfully!"
+    colorized_echo green "✅ Скрипт успешно удален!"
 }
 
 up_command() {
     help() {
-        colorized_echo red "Usage: remnanode up [options]"
+        colorized_echo red "Использование: remnanode up [опции]"
         echo "OPTIONS:"
         echo "  -h, --help        display this help message"
         echo "  -n, --no-logs     do not follow logs after starting"
@@ -850,14 +850,14 @@ up_command() {
     done
     
     if ! is_remnanode_installed; then
-        colorized_echo red "Remnanode not installed!"
+        colorized_echo red "RemnaNode не установлен!"
         exit 1
     fi
     
     detect_compose
     
     if is_remnanode_up; then
-        colorized_echo red "Remnanode already up"
+        colorized_echo red "RemnaNode уже запущен"
         exit 1
     fi
     
@@ -869,14 +869,14 @@ up_command() {
 
 down_command() {
     if ! is_remnanode_installed; then
-        colorized_echo red "Remnanode not installed!"
+        colorized_echo red "RemnaNode не установлен!"
         exit 1
     fi
     
     detect_compose
     
     if ! is_remnanode_up; then
-        colorized_echo red "Remnanode already down"
+        colorized_echo red "RemnaNode уже остановлен"
         exit 1
     fi
     
@@ -885,7 +885,7 @@ down_command() {
 
 restart_command() {
     help() {
-        colorized_echo red "Usage: remnanode restart [options]"
+        colorized_echo red "Использование: remnanode restart [опции]"
         echo "OPTIONS:"
         echo "  -h, --help        display this help message"
         echo "  -n, --no-logs     do not follow logs after starting"
@@ -902,7 +902,7 @@ restart_command() {
     done
     
     if ! is_remnanode_installed; then
-        colorized_echo red "Remnanode not installed!"
+        colorized_echo red "RemnaNode не установлен!"
         exit 1
     fi
     
@@ -918,30 +918,30 @@ restart_command() {
 }
 
 status_command() {
-    echo -e "\033[1;37m📊 RemnaNode Status Check:\033[0m"
+    echo -e "\033[1;37m📊 Проверка статуса RemnaNode:\033[0m"
     echo
     
     if ! is_remnanode_installed; then
-        printf "   \033[38;5;15m%-12s\033[0m \033[1;31m❌ Not Installed\033[0m\n" "Status:"
-        echo -e "\033[38;5;8m   Run '\033[38;5;15msudo $APP_NAME install\033[38;5;8m' to install\033[0m"
+        printf "   \033[38;5;15m%-12s\033[0m \033[1;31m❌ Не установлен\033[0m\n" "Статус:"
+        echo -e "\033[38;5;8m   Выполните '\033[38;5;15msudo $APP_NAME install\033[38;5;8m' для установки\033[0m"
         exit 1
     fi
     
     detect_compose
     
     if ! is_remnanode_up; then
-        printf "   \033[38;5;15m%-12s\033[0m \033[1;33m⏹️  Down\033[0m\n" "Status:"
-        echo -e "\033[38;5;8m   Run '\033[38;5;15msudo $APP_NAME up\033[38;5;8m' to start\033[0m"
+        printf "   \033[38;5;15m%-12s\033[0m \033[1;33m⏹️  Остановлен\033[0m\n" "Статус:"
+        echo -e "\033[38;5;8m   Запустите '\033[38;5;15msudo $APP_NAME up\033[38;5;8m' для старта\033[0m"
         exit 1
     fi
     
-    printf "   \033[38;5;15m%-12s\033[0m \033[1;32m✅ Running\033[0m\n" "Status:"
+    printf "   \033[38;5;15m%-12s\033[0m \033[1;32m✅ Запущен\033[0m\n" "Статус:"
     
     # Дополнительная информация
     if [ -f "$ENV_FILE" ]; then
         local app_port=$(grep "APP_PORT=" "$ENV_FILE" | cut -d'=' -f2 2>/dev/null)
         if [ -n "$app_port" ]; then
-            printf "   \033[38;5;15m%-12s\033[0m \033[38;5;250m%s\033[0m\n" "Port:" "$app_port"
+            printf "   \033[38;5;15m%-12s\033[0m \033[38;5;250m%s\033[0m\n" "Порт:" "$app_port"
         fi
     fi
     
@@ -954,7 +954,7 @@ status_command() {
 
 logs_command() {
     help() {
-        colorized_echo red "Usage: remnanode logs [options]"
+        colorized_echo red "Использование: remnanode logs [опции]"
         echo "OPTIONS:"
         echo "  -h, --help        display this help message"
         echo "  -n, --no-follow   do not show follow logs"
@@ -971,14 +971,14 @@ logs_command() {
     done
     
     if ! is_remnanode_installed; then
-        colorized_echo red "Remnanode not installed!"
+        colorized_echo red "RemnaNode не установлен!"
         exit 1
     fi
     
     detect_compose
     
     if ! is_remnanode_up; then
-        colorized_echo red "Remnanode is not up."
+        colorized_echo red "RemnaNode не запущен."
         exit 1
     fi
     
@@ -1026,14 +1026,14 @@ logs_command() {
 update_command() {
     check_running_as_root
     if ! is_remnanode_installed; then
-        echo -e "\033[1;31m❌ RemnaNode not installed!\033[0m"
-        echo -e "\033[38;5;8m   Run '\033[38;5;15msudo $APP_NAME install\033[38;5;8m' first\033[0m"
+    echo -e "\033[1;31m❌ RemnaNode не установлен!\033[0m"
+    echo -e "\033[38;5;8m   Сначала выполните '\033[38;5;15msudo $APP_NAME install\033[38;5;8m'\033[0m"
         exit 1
     fi
     
     detect_compose
     
-    echo -e "\033[1;37m🔄 Starting RemnaNode Update Check...\033[0m"
+    echo -e "\033[1;37m🔄 Проверка обновлений RemnaNode...\033[0m"
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 50))\033[0m"
     
     # Определяем используемый тег из docker-compose.yml
@@ -1045,10 +1045,10 @@ update_command() {
         fi
     fi
     
-    echo -e "\033[38;5;250m🏷️  Current tag:\033[0m \033[38;5;15m$current_tag\033[0m"
+    echo -e "\033[38;5;250m🏷️  Текущий тег:\033[0m \033[38;5;15m$current_tag\033[0m"
     
     # Получаем локальную версию образа
-    echo -e "\033[38;5;250m📝 Step 1:\033[0m Checking local image version..."
+    echo -e "\033[38;5;250m📝 Шаг 1:\033[0m Проверка локальной версии образа..."
     local local_image_id=""
     local local_created=""
     
@@ -1056,16 +1056,16 @@ update_command() {
         local_image_id=$(docker images remnawave/node:$current_tag --format "{{.ID}}" | head -1)
         local_created=$(docker images remnawave/node:$current_tag --format "{{.CreatedAt}}" | head -1 | cut -d' ' -f1,2)
         
-        echo -e "\033[1;32m✅ Local image found\033[0m"
-        echo -e "\033[38;5;8m   Image ID: $local_image_id\033[0m"
-        echo -e "\033[38;5;8m   Created: $local_created\033[0m"
+        echo -e "\033[1;32m✅ Локальный образ найден\033[0m"
+        echo -e "\033[38;5;8m   ID образа: $local_image_id\033[0m"
+        echo -e "\033[38;5;8m   Создан: $local_created\033[0m"
     else
-        echo -e "\033[1;33m⚠️  Local image not found\033[0m"
+        echo -e "\033[1;33m⚠️  Локальный образ не найден\033[0m"
         local_image_id="none"
     fi
     
     # Проверяем обновления через docker pull
-    echo -e "\033[38;5;250m📝 Step 2:\033[0m Checking for updates with docker pull..."
+    echo -e "\033[38;5;250m📝 Шаг 2:\033[0m Проверка обновлений с помощью docker pull..."
     
     # Сохраняем текущий образ ID для сравнения
     local old_image_id="$local_image_id"
@@ -1092,122 +1092,122 @@ update_command() {
             echo -e "\033[1;32m✅ Already up to date\033[0m"
         fi
     else
-        echo -e "\033[1;33m⚠️  Docker pull failed, assuming update needed\033[0m"
+        echo -e "\033[1;33m⚠️  Docker pull не удался, предполагаем что обновление необходимо\033[0m"
         local needs_update=true
         local update_reason="Unable to verify current version"
         local new_image_id="$old_image_id"
     fi
     
     echo
-    echo -e "\033[1;37m📊 Update Analysis:\033[0m"
+    echo -e "\033[1;37m📊 Анализ обновления:\033[0m"
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 40))\033[0m"
     
     if [ "$needs_update" = true ]; then
-        echo -e "\033[1;33m🔄 Update Available\033[0m"
-        echo -e "\033[38;5;250m   Reason: \033[38;5;15m$update_reason\033[0m"
+        echo -e "\033[1;33m🔄 Доступно обновление\033[0m"
+        echo -e "\033[38;5;250m   Причина: \033[38;5;15m$update_reason\033[0m"
         echo
         
         # Если новая версия уже загружена, автоматически продолжаем
         if [[ "$update_reason" == *"downloaded"* ]]; then
-            echo -e "\033[1;37m🚀 New version already downloaded, proceeding with update...\033[0m"
+            echo -e "\033[1;37m🚀 Новая версия уже загружена, продолжаю обновление...\033[0m"
         else
-            read -p "Do you want to proceed with the update? (y/n): " -r confirm_update
+            read -p "Продолжить обновление? (y/n): " -r confirm_update
             if [[ ! $confirm_update =~ ^[Yy]$ ]]; then
-                echo -e "\033[1;31m❌ Update cancelled by user\033[0m"
+                echo -e "\033[1;31m❌ Обновление отменено пользователем\033[0m"
                 exit 0
             fi
         fi
         
         echo
-        echo -e "\033[1;37m🚀 Performing Update...\033[0m"
+        echo -e "\033[1;37m🚀 Выполнение обновления...\033[0m"
         echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 40))\033[0m"
         
         # Обновляем скрипт
-        echo -e "\033[38;5;250m📝 Step 3:\033[0m Updating script..."
+        echo -e "\033[38;5;250m📝 Шаг 3:\033[0m Обновление скрипта..."
         if update_remnanode_script; then
-            echo -e "\033[1;32m✅ Script updated\033[0m"
+            echo -e "\033[1;32m✅ Скрипт обновлен\033[0m"
         else
-            echo -e "\033[1;33m⚠️  Script update failed, continuing...\033[0m"
+            echo -e "\033[1;33m⚠️  Не удалось обновить скрипт, продолжаем...\033[0m"
         fi
         
         # Проверяем, запущен ли контейнер
         local was_running=false
         if is_remnanode_up; then
             was_running=true
-            echo -e "\033[38;5;250m📝 Step 4:\033[0m Stopping running container..."
+            echo -e "\033[38;5;250m📝 Шаг 4:\033[0m Остановка запущенного контейнера..."
             if down_remnanode; then
-                echo -e "\033[1;32m✅ Container stopped\033[0m"
+                echo -e "\033[1;32m✅ Контейнер остановлен\033[0m"
             else
-                echo -e "\033[1;31m❌ Failed to stop container\033[0m"
+                echo -e "\033[1;31m❌ Не удалось остановить контейнер\033[0m"
                 exit 1
             fi
         else
-            echo -e "\033[38;5;250m📝 Step 4:\033[0m Container not running, skipping stop..."
+            echo -e "\033[38;5;250m📝 Шаг 4:\033[0m Контейнер не запущен, пропускаем остановку..."
         fi
         
         # Загружаем образ только если еще не загружен
         if [[ "$update_reason" != *"downloaded"* ]]; then
-            echo -e "\033[38;5;250m📝 Step 5:\033[0m Pulling latest image..."
+            echo -e "\033[38;5;250m📝 Шаг 5:\033[0m Загрузка последнего образа..."
             if update_remnanode; then
-                echo -e "\033[1;32m✅ Image updated\033[0m"
+                echo -e "\033[1;32m✅ Образ обновлен\033[0m"
                 # Обновляем ID образа
                 new_image_id=$(docker images remnawave/node:$current_tag --format "{{.ID}}" | head -1)
             else
-                echo -e "\033[1;31m❌ Failed to pull image\033[0m"
+                echo -e "\033[1;31m❌ Не удалось загрузить образ\033[0m"
                 
                 # Если контейнер был запущен, пытаемся его восстановить
                 if [ "$was_running" = true ]; then
-                    echo -e "\033[38;5;250m🔄 Attempting to restore service...\033[0m"
+                    echo -e "\033[38;5;250m🔄 Попытка восстановить сервис...\033[0m"
                     up_remnanode
                 fi
                 exit 1
             fi
         else
-            echo -e "\033[38;5;250m📝 Step 5:\033[0m Image already updated during check\033[0m"
+            echo -e "\033[38;5;250m📝 Шаг 5:\033[0m Образ уже обновлён во время проверки\033[0m"
         fi
         
         # Запускаем контейнер только если он был запущен ранее
         if [ "$was_running" = true ]; then
-            echo -e "\033[38;5;250m📝 Step 6:\033[0m Starting updated container..."
+            echo -e "\033[38;5;250m📝 Шаг 6:\033[0m Запуск обновленного контейнера..."
             if up_remnanode; then
-                echo -e "\033[1;32m✅ Container started\033[0m"
+                echo -e "\033[1;32m✅ Контейнер запущен\033[0m"
             else
-                echo -e "\033[1;31m❌ Failed to start container\033[0m"
+                echo -e "\033[1;31m❌ Не удалось запустить контейнер\033[0m"
                 exit 1
             fi
         else
-            echo -e "\033[38;5;250m📝 Step 6:\033[0m Container was not running, leaving it stopped..."
+            echo -e "\033[38;5;250m📝 Шаг 6:\033[0m Контейнер не был запущен, оставляем остановленным..."
         fi
         
         # Показываем финальную информацию
         echo
         echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 50))\033[0m"
-        echo -e "\033[1;37m🎉 RemnaNode updated successfully!\033[0m"
+        echo -e "\033[1;37m🎉 RemnaNode успешно обновлен!\033[0m"
         
         # Получаем новую информацию об образе
         local final_created=$(docker images remnawave/node:$current_tag --format "{{.CreatedAt}}" | head -1 | cut -d' ' -f1,2)
         
-        echo -e "\033[1;37m📋 Update Summary:\033[0m"
-        echo -e "\033[38;5;250m   Previous: \033[38;5;8m$old_image_id\033[0m"
-        echo -e "\033[38;5;250m   Current:  \033[38;5;15m$new_image_id\033[0m"
-        echo -e "\033[38;5;250m   Created:  \033[38;5;15m$final_created\033[0m"
+        echo -e "\033[1;37m📋 Сводка обновления:\033[0m"
+        echo -e "\033[38;5;250m   Предыдущий: \033[38;5;8m$old_image_id\033[0m"
+        echo -e "\033[38;5;250m   Текущий:  \033[38;5;15m$new_image_id\033[0m"
+        echo -e "\033[38;5;250m   Создан:  \033[38;5;15m$final_created\033[0m"
         
         if [ "$was_running" = true ]; then
-            echo -e "\033[38;5;250m   Status:   \033[1;32mRunning\033[0m"
+            echo -e "\033[38;5;250m   Статус:   \033[1;32mЗапущен\033[0m"
         else
-            echo -e "\033[38;5;250m   Status:   \033[1;33mStopped\033[0m"
+            echo -e "\033[38;5;250m   Статус:   \033[1;33mОстановлен\033[0m"
             echo -e "\033[38;5;8m   Use '\033[38;5;15msudo $APP_NAME up\033[38;5;8m' to start\033[0m"
         fi
         
         echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 50))\033[0m"
         
     else
-        echo -e "\033[1;32m✅ Already Up to Date\033[0m"
-        echo -e "\033[38;5;250m   Reason: \033[38;5;15m$update_reason\033[0m"
+        echo -e "\033[1;32m✅ Уже актуально\033[0m"
+        echo -e "\033[38;5;250m   Причина: \033[38;5;15m$update_reason\033[0m"
         echo
         
         # Проверяем все равно скрипт
-        echo -e "\033[38;5;250m📝 Checking script updates...\033[0m"
+        echo -e "\033[38;5;250m📝 Проверка обновлений скрипта...\033[0m"
         
         # Получаем текущую версию скрипта
         local current_script_version="$SCRIPT_VERSION"
@@ -1216,35 +1216,35 @@ update_command() {
         local remote_script_version=$(curl -s "$SCRIPT_URL" 2>/dev/null | grep "^SCRIPT_VERSION=" | cut -d'"' -f2)
         
         if [ -n "$remote_script_version" ] && [ "$remote_script_version" != "$current_script_version" ]; then
-            echo -e "\033[1;33m🔄 Script update available: \033[38;5;15mv$current_script_version\033[0m → \033[1;37mv$remote_script_version\033[0m"
-            read -p "Do you want to update the script? (y/n): " -r update_script
+            echo -e "\033[1;33m🔄 Доступно обновление скрипта: \033[38;5;15mv$current_script_version\033[0m → \033[1;37mv$remote_script_version\033[0m"
+            read -p "Хотите обновить скрипт? (y/n): " -r update_script
             if [[ $update_script =~ ^[Yy]$ ]]; then
                 if update_remnanode_script; then
-                    echo -e "\033[1;32m✅ Script updated to v$remote_script_version\033[0m"
-                    echo -e "\033[38;5;8m   Please run the command again to use the new version\033[0m"
+                    echo -e "\033[1;32m✅ Скрипт обновлен до v$remote_script_version\033[0m"
+                    echo -e "\033[38;5;8m   Пожалуйста, запустите команду снова для использования новой версии\033[0m"
                 else
-                    echo -e "\033[1;33m⚠️  Script update failed\033[0m"
+                    echo -e "\033[1;33m⚠️  Обновление скрипта не удалось\033[0m"
                 fi
             else
-                echo -e "\033[38;5;8m   Script update skipped\033[0m"
+                echo -e "\033[38;5;8m   Обновление скрипта пропущено\033[0m"
             fi
         else
-            echo -e "\033[1;32m✅ Script is up to date\033[0m"
+            echo -e "\033[1;32m✅ Скрипт актуален\033[0m"
         fi
         
         echo
         echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 40))\033[0m"
-        echo -e "\033[1;37m📊 Current Status:\033[0m"
+        echo -e "\033[1;37m📊 Текущий статус:\033[0m"
         
         if is_remnanode_up; then
-            echo -e "\033[38;5;250m   Container: \033[1;32mRunning ✅\033[0m"
+            echo -e "\033[38;5;250m   Контейнер: \033[1;32mЗапущен ✅\033[0m"
         else
-            echo -e "\033[38;5;250m   Container: \033[1;33mStopped ⏹️\033[0m"
-            echo -e "\033[38;5;8m   Use '\033[38;5;15msudo $APP_NAME up\033[38;5;8m' to start\033[0m"
+            echo -e "\033[38;5;250m   Контейнер: \033[1;33mОстановлен ⏹️\033[0m"
+            echo -e "\033[38;5;8m   Используйте '\033[38;5;15msudo $APP_NAME up\033[38;5;8m' для запуска\033[0m"
         fi
         
-        echo -e "\033[38;5;250m   Image Tag: \033[38;5;15m$current_tag\033[0m"
-        echo -e "\033[38;5;250m   Image ID:  \033[38;5;15m$local_image_id\033[0m"
+        echo -e "\033[38;5;250m   Тег образа: \033[38;5;15m$current_tag\033[0m"
+        echo -e "\033[38;5;250m   ID образа:  \033[38;5;15m$local_image_id\033[0m"
         echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 40))\033[0m"
     fi
 }
@@ -1344,21 +1344,21 @@ get_xray_core() {
         echo
         
         # Опции
-        echo -e "\033[1;37m🔧 Options:\033[0m"
-        printf "   \033[38;5;15m%-3s\033[0m %s\n" "M:" "📝 Enter version manually"
+        echo -e "\033[1;37m🔧 Опции:\033[0m"
+        printf "   \033[38;5;15m%-3s\033[0m %s\n" "M:" "📝 Ввести версию вручную"
         if [ "$show_prereleases" = true ]; then
-            printf "   \033[38;5;15m%-3s\033[0m %s\n" "S:" "🔒 Show stable releases only"
+            printf "   \033[38;5;15m%-3s\033[0m %s\n" "S:" "🔒 Показать только стабильные релизы"
         else
-            printf "   \033[38;5;15m%-3s\033[0m %s\n" "A:" "🧪 Show all releases (including pre-releases)"
+            printf "   \033[38;5;15m%-3s\033[0m %s\n" "A:" "🧪 Показать все релизы (включая пре-релизы)"
         fi
-        printf "   \033[38;5;15m%-3s\033[0m %s\n" "R:" "🔄 Refresh version list"
-        printf "   \033[38;5;15m%-3s\033[0m %s\n" "D:" "🏠 Restore to container default Xray"
-        printf "   \033[38;5;15m%-3s\033[0m %s\n" "Q:" "❌ Quit installer"
+        printf "   \033[38;5;15m%-3s\033[0m %s\n" "R:" "🔄 Обновить список версий"
+        printf "   \033[38;5;15m%-3s\033[0m %s\n" "D:" "🏠 Восстановить стандартный Xray контейнера"
+        printf "   \033[38;5;15m%-3s\033[0m %s\n" "Q:" "❌ Выйти из установщика"
         echo
         
         echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 70))\033[0m"
-        echo -e "\033[1;37m📖 Usage:\033[0m"
-        echo -e "   Choose a number \033[38;5;15m(1-${#versions[@]})\033[0m, \033[38;5;15mM\033[0m for manual, \033[38;5;15mA/S\033[0m to toggle releases, \033[38;5;15mD\033[0m to restore default, or \033[38;5;15mQ\033[0m to quit"
+        echo -e "\033[1;37m📖 Использование:\033[0m"
+        echo -e "   Выберите номер \033[38;5;15m(1-${#versions[@]})\033[0m, \033[38;5;15mM\033[0m для ручного ввода, \033[38;5;15mA/S\033[0m для переключения релизов, \033[38;5;15mD\033[0m для восстановления по умолчанию, или \033[38;5;15mQ\033[0m для выхода"
         echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 70))\033[0m"
     }
     
@@ -1444,38 +1444,38 @@ get_xray_core() {
             
             echo
             if [ "$selected_prerelease" = "true" ]; then
-                echo -e "\033[1;33m⚠️  Selected pre-release version: \033[1;37m$selected_version\033[0m"
-                echo -e "\033[38;5;8m   Pre-releases may contain bugs and are not recommended for production.\033[0m"
-                read -p "Are you sure you want to continue? (y/n): " -r confirm_prerelease
+            echo -e "\033[1;33m⚠️  Выбрана пре-релизная версия: \033[1;37m$selected_version\033[0m"
+            echo -е "\033[38;5;8m   Пре-релизы могут содержать ошибки и не рекомендуются для продакшена.\033[0m"
+            read -p "Вы уверены, что хотите продолжить? (y/n): " -r confirm_prerelease
                 if [[ ! $confirm_prerelease =~ ^[Yy]$ ]]; then
-                    echo -e "\033[1;31m❌ Installation cancelled.\033[0m"
+                echo -e "\033[1;31m❌ Установка отменена.\033[0m"
                     continue
                 fi
             else
-                echo -e "\033[1;32m✅ Selected stable version: \033[1;37m$selected_version\033[0m"
+                echo -e "\033[1;32m✅ Выбрана стабильная версия: \033[1;37m$selected_version\033[0m"
             fi
             break
             
         elif [ "$choice" == "M" ] || [ "$choice" == "m" ]; then
             echo
-            echo -e "\033[1;37m📝 Manual Version Entry:\033[0m"
+            echo -e "\033[1;37m📝 Ручной ввод версии:\033[0m"
             while true; do
-                echo -n -e "\033[38;5;8mEnter version (e.g., v1.8.4): \033[0m"
+                echo -n -е "\033[38;5;8mВведите версию (например, v1.8.4): \033[0m"
                 read custom_version
                 
                 if [ -z "$custom_version" ]; then
-                    echo -e "\033[1;31m❌ Version cannot be empty. Please try again.\033[0m"
+                    echo -e "\033[1;31m❌ Версия не может быть пустой. Попробуйте снова.\033[0m"
                     continue
                 fi
                 
-                echo -e "\033[1;37m🔍 Validating version $custom_version...\033[0m"
+                echo -e "\033[1;37m🔍 Проверка версии $custom_version...\033[0m"
                 if [ "$(validate_version "$custom_version")" == "valid" ]; then
                     selected_version="$custom_version"
-                    echo -e "\033[1;32m✅ Version $custom_version is valid!\033[0m"
+                    echo -e "\033[1;32m✅ Версия $custom_version корректна!\033[0m"
                     break 2
                 else
-                    echo -e "\033[1;31m❌ Version $custom_version not found. Please try again.\033[0m"
-                    echo -e "\033[38;5;8m   Hint: Check https://github.com/XTLS/Xray-core/releases\033[0m"
+                    echo -e "\033[1;31m❌ Версия $custom_version не найдена. Попробуйте снова.\033[0m"
+                    echo -e "\033[38;5;8m   Подсказка: проверьте https://github.com/XTLS/Xray-core/releases\033[0m"
                     echo
                 fi
             done
@@ -1505,19 +1505,19 @@ get_xray_core() {
             
         elif [ "$choice" == "D" ] || [ "$choice" == "d" ]; then
             echo
-            echo -e "\033[1;33m🏠 Restore to Container Default Xray\033[0m"
-            echo -e "\033[38;5;8m   This will remove external Xray mount and use the version built into the container.\033[0m"
+            echo -e "\033[1;33m🏠 Восстановить стандартный Xray контейнера\033[0m"
+            echo -e "\033[38;5;8m   Это удалит внешние монтирования Xray и вернёт встроенную версию из контейнера.\033[0m"
             echo
-            read -p "Are you sure you want to restore to container default? (y/n): " -r confirm_restore
+            read -p "Вы уверены, что хотите восстановить стандартный Xray контейнера? (y/n): " -r confirm_restore
             if [[ $confirm_restore =~ ^[Yy]$ ]]; then
                 restore_to_container_default
                 echo
-                echo -n -e "\033[38;5;8mPress Enter to continue...\033[0m"
+                echo -n -e "\033[38;5;8mНажмите Enter для продолжения...\033[0m"
                 read
             else
-                echo -e "\033[1;31m❌ Restore cancelled.\033[0m"
+                echo -e "\033[1;31m❌ Восстановление отменено.\033[0m"
                 echo
-                echo -n -e "\033[38;5;8mPress Enter to continue...\033[0m"
+                echo -n -e "\033[38;5;8mНажмите Enter для продолжения...\033[0m"
                 read
             fi
             
@@ -1538,15 +1538,15 @@ get_xray_core() {
     
     echo
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 60))\033[0m"
-    echo -e "\033[1;37m🚀 Starting Installation\033[0m"
+    echo -e "\033[1;37m🚀 Запуск установки\033[0m"
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 60))\033[0m"
     
     # Проверка и установка unzip
     if ! dpkg -s unzip >/dev/null 2>&1; then
-        echo -e "\033[1;37m📦 Installing required packages...\033[0m"
+        echo -e "\033[1;37m📦 Установка необходимых пакетов...\033[0m"
         detect_os
         install_package unzip
-        echo -e "\033[1;32m✅ Packages installed successfully\033[0m"
+        echo -e "\033[1;32m✅ Пакеты успешно установлены\033[0m"
     fi
     
     mkdir -p "$DATA_DIR"
@@ -1556,24 +1556,24 @@ get_xray_core() {
     xray_download_url="https://github.com/XTLS/Xray-core/releases/download/${selected_version}/${xray_filename}"
     
     # Скачивание с прогрессом
-    echo -e "\033[1;37m📥 Downloading Xray-core $selected_version...\033[0m"
+    echo -e "\033[1;37m📥 Скачивание Xray-core $selected_version...\033[0m"
     echo -e "\033[38;5;8m   URL: $xray_download_url\033[0m"
     
     if wget "${xray_download_url}" -q --show-progress; then
-        echo -e "\033[1;32m✅ Download completed successfully\033[0m"
+        echo -e "\033[1;32m✅ Загрузка успешно завершена\033[0m"
     else
-        echo -e "\033[1;31m❌ Download failed!\033[0m"
-        echo -e "\033[38;5;8m   Please check your internet connection or try a different version.\033[0m"
+        echo -e "\033[1;31m❌ Ошибка загрузки!\033[0m"
+        echo -e "\033[38;5;8m   Проверьте интернет-соединение или попробуйте другую версию.\033[0m"
         exit 1
     fi
     
     # Извлечение
-    echo -e "\033[1;37m📦 Extracting Xray-core...\033[0m"
+    echo -e "\033[1;37m📦 Извлечение Xray-core...\033[0m"
     if unzip -o "${xray_filename}" -d "$DATA_DIR" >/dev/null 2>&1; then
-        echo -e "\033[1;32m✅ Extraction completed successfully\033[0m"
+        echo -e "\033[1;32m✅ Извлечение успешно завершено\033[0m"
     else
-        echo -e "\033[1;31m❌ Extraction failed!\033[0m"
-        echo -e "\033[38;5;8m   The downloaded file may be corrupted.\033[0m"
+        echo -e "\033[1;31m❌ Ошибка извлечения!\033[0m"
+        echo -e "\033[38;5;8m   Загруженный файл может быть повреждён.\033[0m"
         exit 1
     fi
     
@@ -1584,24 +1584,24 @@ get_xray_core() {
     # Финальное сообщение
     echo
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 60))\033[0m"
-    echo -e "\033[1;37m🎉 Installation Complete!\033[0m"
+    echo -e "\033[1;37m🎉 Установка завершена!\033[0m"
     
     # Информация об установке
-    echo -e "\033[1;37m📋 Installation Details:\033[0m"
-    printf "   \033[38;5;15m%-15s\033[0m \033[38;5;250m%s\033[0m\n" "Version:" "$selected_version"
-    printf "   \033[38;5;15m%-15s\033[0m \033[38;5;250m%s\033[0m\n" "Architecture:" "$ARCH"
-    printf "   \033[38;5;15m%-15s\033[0m \033[38;5;250m%s\033[0m\n" "Install Path:" "$XRAY_FILE"
-    printf "   \033[38;5;15m%-15s\033[0m \033[38;5;250m%s\033[0m\n" "File Size:" "$(du -h "$XRAY_FILE" | cut -f1)"
+    echo -е "\033[1;37m📋 Подробности установки:\033[0m"
+    printf "   \033[38;5;15m%-15s\033[0m \033[38;5;250m%s\033[0m\n" "Версия:" "$selected_version"
+    printf "   \033[38;5;15m%-15s\033[0m \033[38;5;250m%s\033[0m\n" "Архитектура:" "$ARCH"
+    printf "   \033[38;5;15m%-15s\033[0m \033[38;5;250m%s\033[0m\n" "Путь установки:" "$XRAY_FILE"
+    printf "   \033[38;5;15m%-15s\033[0m \033[38;5;250m%s\033[0m\n" "Размер файла:" "$(du -h "$XRAY_FILE" | cut -f1)"
     echo
     
     # Проверка версии
-    echo -e "\033[1;37m🔍 Verifying installation...\033[0m"
+    echo -e "\033[1;37m🔍 Проверка установки...\033[0m"
     if installed_version=$("$XRAY_FILE" -version 2>/dev/null | head -n1 | awk '{print $2}'); then
-        echo -e "\033[1;32m✅ Xray-core is working correctly\033[0m"
-        printf "   \033[38;5;15m%-15s\033[0m \033[38;5;250m%s\033[0m\n" "Running Version:" "$installed_version"
+        echo -e "\033[1;32m✅ Xray-core работает корректно\033[0m"
+        printf "   \033[38;5;15m%-15s\033[0m \033[38;5;250m%s\033[0m\n" "Используемая версия:" "$installed_version"
     else
-        echo -e "\033[1;31m⚠️  Installation completed but verification failed\033[0m"
-        echo -e "\033[38;5;8m   The binary may not be compatible with your system\033[0m"
+        echo -e "\033[1;31m⚠️  Установка завершена, но проверка не прошла\033[0m"
+        echo -e "\033[38;5;8m   Бинарный файл может быть несовместим с вашей системой\033[0m"
     fi
 }
 
@@ -1659,7 +1659,7 @@ validate_compose_file() {
             return 0
         else
 
-            colorized_echo red "Docker Compose validation errors:"
+            colorized_echo red "Ошибки проверки Docker Compose:"
             $COMPOSE config 2>&1 | head -10
             cd "$current_dir"
             return 1
@@ -1792,17 +1792,17 @@ update_core_command() {
     
 
     if [ ! -f "$COMPOSE_FILE" ]; then
-        colorized_echo red "Docker Compose file not found at $COMPOSE_FILE"
+        colorized_echo red "Файл Docker Compose не найден в $COMPOSE_FILE"
         exit 1
     fi
     
 
-    colorized_echo blue "Creating backup of docker-compose.yml..."
+    colorized_echo blue "Создание резервной копии docker-compose.yml..."
     backup_file=$(create_backup "$COMPOSE_FILE")
     if [ $? -eq 0 ]; then
-        colorized_echo green "Backup created: $backup_file"
+        colorized_echo green "Резервная копия создана: $backup_file"
     else
-        colorized_echo red "Failed to create backup"
+        colorized_echo red "Не удалось создать резервную копию"
         exit 1
     fi
     
@@ -1892,33 +1892,33 @@ update_core_command() {
 
     colorized_echo blue "Validating docker-compose.yml..."
     if validate_compose_file "$COMPOSE_FILE"; then
-        colorized_echo green "Docker-compose.yml validation successful"
+        colorized_echo green "Проверка docker-compose.yml прошла успешно"
         
-        colorized_echo blue "Restarting RemnaNode..."
+        colorized_echo blue "Перезапуск RemnaNode..."
 
         restart_command -n
         
         colorized_echo green "Installation of XRAY-CORE version $selected_version completed."
         
 
-        read -p "Operation completed successfully. Do you want to keep the backup file? (y/n): " -r keep_backup
+        read -p "Операция успешно завершена. Хотите сохранить резервную копию? (y/n): " -r keep_backup
         if [[ ! $keep_backup =~ ^[Yy]$ ]]; then
             rm "$backup_file"
             colorized_echo blue "Backup file removed"
         else
-            colorized_echo blue "Backup file kept at: $backup_file"
+            colorized_echo blue "Резервная копия сохранена в: $backup_file"
         fi
 
         cleanup_old_backups "$COMPOSE_FILE"
         
     else
-        colorized_echo red "Docker-compose.yml validation failed! Restoring backup..."
+        colorized_echo red "Проверка docker-compose.yml не прошла! Восстановление резервной копии..."
         if restore_backup "$backup_file" "$COMPOSE_FILE"; then
-            colorized_echo green "Backup restored successfully"
+            colorized_echo green "Резервная копия успешно восстановлена"
             colorized_echo red "Please check the docker-compose.yml file manually"
         else
-            colorized_echo red "Failed to restore backup! Original file may be corrupted"
-            colorized_echo red "Backup location: $backup_file"
+            colorized_echo red "Не удалось восстановить резервную копию! Исходный файл может быть поврежден"
+            colorized_echo red "Расположение резервной копии: $backup_file"
         fi
         exit 1
     fi
@@ -1930,17 +1930,17 @@ restore_to_container_default() {
     colorized_echo blue "Restoring to container default Xray-core..."
     
     if [ ! -f "$COMPOSE_FILE" ]; then
-        colorized_echo red "Docker Compose file not found at $COMPOSE_FILE"
+        colorized_echo red "Файл Docker Compose не найден в $COMPOSE_FILE"
         exit 1
     fi
     
     # Create backup before making changes
-    colorized_echo blue "Creating backup of docker-compose.yml..."
+    colorized_echo blue "Создание резервной копии docker-compose.yml..."
     backup_file=$(create_backup "$COMPOSE_FILE")
     if [ $? -eq 0 ]; then
-        colorized_echo green "Backup created: $backup_file"
+        colorized_echo green "Резервная копия создана: $backup_file"
     else
-        colorized_echo red "Failed to create backup"
+        colorized_echo red "Не удалось создать резервную копию"
         exit 1
     fi
     
@@ -1971,33 +1971,33 @@ restore_to_container_default() {
     # Validate the docker-compose file
     colorized_echo blue "Validating docker-compose.yml..."
     if validate_compose_file "$COMPOSE_FILE"; then
-        colorized_echo green "Docker-compose.yml validation successful"
+        colorized_echo green "Проверка docker-compose.yml прошла успешно"
         
-        colorized_echo blue "Restarting RemnaNode to use container default Xray..."
+        colorized_echo blue "Перезапуск RemnaNode для использования стандартного Xray контейнера..."
         restart_command -n
         
-        colorized_echo green "✅ Successfully restored to container default Xray-core"
+        colorized_echo green "✅ Успешно восстановлен стандартный Xray-core контейнера"
         colorized_echo blue "The container will now use its built-in Xray version"
         
         # Ask about backup
-        read -p "Operation completed successfully. Do you want to keep the backup file? (y/n): " -r keep_backup
+        read -p "Операция успешно завершена. Хотите сохранить резервную копию? (y/n): " -r keep_backup
         if [[ ! $keep_backup =~ ^[Yy]$ ]]; then
             rm "$backup_file"
             colorized_echo blue "Backup file removed"
         else
-            colorized_echo blue "Backup file kept at: $backup_file"
+            colorized_echo blue "Резервная копия сохранена в: $backup_file"
         fi
 
         cleanup_old_backups "$COMPOSE_FILE"
         
     else
-        colorized_echo red "Docker-compose.yml validation failed! Restoring backup..."
+        colorized_echo red "Проверка docker-compose.yml не прошла! Восстановление резервной копии..."
         if restore_backup "$backup_file" "$COMPOSE_FILE"; then
-            colorized_echo green "Backup restored successfully"
+            colorized_echo green "Резервная копия успешно восстановлена"
             colorized_echo red "Please check the docker-compose.yml file manually"
         else
-            colorized_echo red "Failed to restore backup! Original file may be corrupted"
-            colorized_echo red "Backup location: $backup_file"
+            colorized_echo red "Не удалось восстановить резервную копию! Исходный файл может быть поврежден"
+            colorized_echo red "Расположение резервной копии: $backup_file"
         fi
         exit 1
     fi
@@ -2064,92 +2064,92 @@ edit_command() {
 usage() {
     clear
 
-    echo -e "\033[1;37m⚡ $APP_NAME\033[0m \033[38;5;8mCommand Line Interface\033[0m \033[38;5;244mv$SCRIPT_VERSION\033[0m"
+    echo -e "\033[1;37m⚡ $APP_NAME\033[0m \033[38;5;8mИнтерфейс командной строки\033[0m \033[38;5;244mv$SCRIPT_VERSION\033[0m"
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 60))\033[0m"
     echo
-    echo -e "\033[1;37m📖 Usage:\033[0m"
-    echo -e "   \033[38;5;15m$APP_NAME\033[0m \033[38;5;8m<command>\033[0m \033[38;5;244m[options]\033[0m"
+    echo -e "\033[1;37m📖 Использование:\033[0m"
+    echo -e "   \033[38;5;15m$APP_NAME\033[0m \033[38;5;8m<команда>\033[0m \033[38;5;244m[опции]\033[0m"
     echo
 
-    echo -e "\033[1;37m🚀 Core Commands:\033[0m"
-    printf "   \033[38;5;15m%-18s\033[0m %s\n" "install" "🛠️  Install RemnaNode"
-    printf "   \033[38;5;15m%-18s\033[0m %s\n" "update" "⬆️  Update to latest version"
-    printf "   \033[38;5;15m%-18s\033[0m %s\n" "uninstall" "🗑️  Remove RemnaNode completely"
+    echo -e "\033[1;37m🚀 Основные команды:\033[0m"
+    printf "   \033[38;5;15m%-18s\033[0m %s\n" "install" "🛠️  Установить RemnaNode"
+    printf "   \033[38;5;15m%-18s\033[0m %s\n" "update" "⬆️  Обновить до последней версии"
+    printf "   \033[38;5;15m%-18s\033[0m %s\n" "uninstall" "🗑️  Полностью удалить RemnaNode"
     echo
 
-    echo -e "\033[1;37m⚙️  Service Control:\033[0m"
-    printf "   \033[38;5;250m%-18s\033[0m %s\n" "up" "▶️  Start services"
-    printf "   \033[38;5;250m%-18s\033[0m %s\n" "down" "⏹️  Stop services"
-    printf "   \033[38;5;250m%-18s\033[0m %s\n" "restart" "🔄 Restart services"
-    printf "   \033[38;5;250m%-18s\033[0m %s\n" "status" "📊 Show service status"
+    echo -e "\033[1;37m⚙️  Управление сервисом:\033[0m"
+    printf "   \033[38;5;250m%-18s\033[0m %s\n" "up" "▶️  Запустить сервисы"
+    printf "   \033[38;5;250m%-18s\033[0m %s\n" "down" "⏹️  Остановить сервисы"
+    printf "   \033[38;5;250m%-18s\033[0m %s\n" "restart" "🔄 Перезапустить сервисы"
+    printf "   \033[38;5;250m%-18s\033[0m %s\n" "status" "📊 Показать статус сервиса"
     echo
 
-    echo -e "\033[1;37m📊 Monitoring & Logs:\033[0m"
-    printf "   \033[38;5;244m%-18s\033[0m %s\n" "logs" "📋 View container logs"
-    printf "   \033[38;5;244m%-18s\033[0m %s\n" "xray-log-out" "📤 View Xray output logs"
-    printf "   \033[38;5;244m%-18s\033[0m %s\n" "xray-log-err" "📥 View Xray error logs"
-    printf "   \033[38;5;244m%-18s\033[0m %s\n" "setup-logs" "🗂️  Setup log rotation"
+    echo -e "\033[1;37m📊 Мониторинг и логи:\033[0m"
+    printf "   \033[38;5;244m%-18s\033[0m %s\n" "logs" "📋 Просмотр логов контейнера"
+    printf "   \033[38;5;244m%-18s\033[0m %s\n" "xray-log-out" "📤 Просмотр выходных логов Xray"
+    printf "   \033[38;5;244m%-18s\033[0m %s\n" "xray-log-err" "📥 Просмотр логов ошибок Xray"
+    printf "   \033[38;5;244m%-18s\033[0m %s\n" "setup-logs" "🗂️  Настройка ротации логов"
     echo
 
-    echo -e "\033[1;37m⚙️  Updates & Configuration:\033[0m"
-    printf "   \033[38;5;178m%-18s\033[0m %s\n" "update" "🔄 Update RemnaNode"
-    printf "   \033[38;5;178m%-18s\033[0m %s\n" "core-update" "⬆️  Update Xray-core"
-    printf "   \033[38;5;178m%-18s\033[0m %s\n" "edit" "📝 Edit configuration"
+    echo -e "\033[1;37m⚙️  Обновления и конфигурация:\033[0m"
+    printf "   \033[38;5;178m%-18s\033[0m %s\n" "update" "🔄 Обновить RemnaNode"
+    printf "   \033[38;5;178m%-18s\033[0m %s\n" "core-update" "⬆️  Обновить Xray-core"
+    printf "   \033[38;5;178m%-18s\033[0m %s\n" "edit" "📝 Редактировать конфигурацию"
     echo
 
-    echo -e "\033[1;37m📋 Information:\033[0m"
-    printf "   \033[38;5;117m%-18s\033[0m %s\n" "help" "📖 Show this help"
-    printf "   \033[38;5;117m%-18s\033[0m %s\n" "version" "📋 Show version info"
-    printf "   \033[38;5;117m%-18s\033[0m %s\n" "menu" "🎛️  Interactive menu"
+    echo -e "\033[1;37m📋 Информация:\033[0m"
+    printf "   \033[38;5;117m%-18s\033[0m %s\n" "help" "📖 Показать эту справку"
+    printf "   \033[38;5;117m%-18s\033[0m %s\n" "version" "📋 Показать информацию о версии"
+    printf "   \033[38;5;117m%-18s\033[0m %s\n" "menu" "🎛️  Интерактивное меню"
     echo
 
     if is_remnanode_installed && [ -f "$ENV_FILE" ]; then
         local node_port=$(grep "APP_PORT=" "$ENV_FILE" | cut -d'=' -f2 2>/dev/null || echo "")
         if [ -n "$node_port" ]; then
             echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 55))\033[0m"
-            echo -e "\033[1;37m🌐 Node Access:\033[0m \033[38;5;117m$NODE_IP:$node_port\033[0m"
+            echo -e "\033[1;37m🌐 Доступ к узлу:\033[0m \033[38;5;117m$NODE_IP:$node_port\033[0m"
         fi
     fi
 
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 55))\033[0m"
-    echo -e "\033[1;37m📖 Examples:\033[0m"
+    echo -e "\033[1;37m📖 Примеры:\033[0m"
     echo -e "\033[38;5;244m   sudo $APP_NAME install\033[0m"
     echo -e "\033[38;5;244m   sudo $APP_NAME core-update\033[0m"
     echo -e "\033[38;5;244m   $APP_NAME logs\033[0m"
-    echo -e "\033[38;5;244m   $APP_NAME menu           # Interactive menu\033[0m"
-    echo -e "\033[38;5;244m   $APP_NAME                # Same as menu\033[0m"
+    echo -e "\033[38;5;244m   $APP_NAME menu           # Интерактивное меню\033[0m"
+    echo -e "\033[38;5;244m   $APP_NAME                # То же, что и menu\033[0m"
     echo
-    echo -e "\033[38;5;8mUse '\033[38;5;15m$APP_NAME <command> --help\033[38;5;8m' for detailed command help\033[0m"
+    echo -e "\033[38;5;8mИспользуйте '\033[38;5;15m$APP_NAME <команда> --help\033[38;5;8m' для подробной справки по команде\033[0m"
     echo
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 55))\033[0m"
-    echo -e "\033[38;5;8m📚 Project: \033[38;5;250mhttps://gig.ovh\033[0m"
-    echo -e "\033[38;5;8m🐛 Issues: \033[38;5;250mhttps://github.com/Spakieone/Remna\033[0m"
-    echo -e "\033[38;5;8m💬 Support: \033[38;5;250mhttps://t.me/remnawave\033[0m"
-    echo -e "\033[38;5;8m👨‍💻 Author: \033[38;5;250mDigneZzZ\033[0m"
+    echo -e "\033[38;5;8m📚 Проект: \033[38;5;250mhttps://gig.ovh\033[0m"
+    echo -e "\033[38;5;8m🐛 Проблемы: \033[38;5;250mhttps://github.com/Spakieone/Remna\033[0m"
+    echo -e "\033[38;5;8m💬 Поддержка: \033[38;5;250mhttps://t.me/remnawave\033[0m"
+    echo -e "\033[38;5;8m👨‍💻 Автор: \033[38;5;250mDigneZzZ\033[0m"
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 55))\033[0m"
 }
 
 # Функция для версии
 show_version() {
-    echo -e "\033[1;37m🚀 RemnaNode Management CLI\033[0m"
+    echo -e "\033[1;37m🚀 CLI управления RemnaNode\033[0m"
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 40))\033[0m"
-    echo -e "\033[38;5;250mVersion: \033[38;5;15m$SCRIPT_VERSION\033[0m"
-    echo -e "\033[38;5;250mAuthor:  \033[38;5;15mDigneZzZ\033[0m"
+    echo -e "\033[38;5;250mВерсия: \033[38;5;15m$SCRIPT_VERSION\033[0m"
+    echo -e "\033[38;5;250mАвтор:  \033[38;5;15mDigneZzZ\033[0m"
     echo -e "\033[38;5;250mGitHub:  \033[38;5;15mhttps://github.com/Spakieone/Remna\033[0m"
-    echo -e "\033[38;5;250mProject: \033[38;5;15mhttps://gig.ovh\033[0m"
-    echo -e "\033[38;5;250mSupport: \033[38;5;15mhttps://t.me/remnawave\033[0m"
+    echo -e "\033[38;5;250mПроект: \033[38;5;15mhttps://gig.ovh\033[0m"
+    echo -e "\033[38;5;250mПоддержка: \033[38;5;15mhttps://t.me/remnawave\033[0m"
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 40))\033[0m"
 }
 
 main_menu() {
     while true; do
         clear
-        echo -e "\033[1;37m🚀 $APP_NAME Node Management\033[0m \033[38;5;244mv$SCRIPT_VERSION\033[0m"
+        echo -e "\033[1;37m🚀 Управление узлом $APP_NAME\033[0m \033[38;5;244mv$SCRIPT_VERSION\033[0m"
         echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 55))\033[0m"
         echo
         
         # Проверка статуса узла
-        local menu_status="Not installed"
+        local menu_status="Не установлен"
         local status_color="\033[38;5;244m"
         local node_port=""
         local xray_version=""
@@ -2160,7 +2160,7 @@ main_menu() {
             fi
             
             if is_remnanode_up; then
-                menu_status="Running"
+                menu_status="Запущен"
                 status_color="\033[1;32m"
                 echo -e "${status_color}✅ Статус узла: ЗАПУЩЕН\033[0m"
                 
@@ -2176,42 +2176,42 @@ main_menu() {
                 # Проверяем Xray-core
                 xray_version=$(get_current_xray_core_version 2>/dev/null || echo "Not installed")
                 echo
-                echo -e "\033[1;37m⚙️  Components Status:\033[0m"
+                echo -e "\033[1;37m⚙️  Статус компонентов:\033[0m"
                 printf "   \033[38;5;15m%-12s\033[0m " "Xray Core:"
                 if [ "$xray_version" != "Not installed" ]; then
                     echo -e "\033[1;32m✅ $xray_version\033[0m"
                 else
-                    echo -e "\033[1;33m⚠️  Not installed\033[0m"
+                    echo -e "\033[1;33m⚠️  Не установлен\033[0m"
                 fi
                 
                 # Показываем использование ресурсов
                 echo
-                echo -e "\033[1;37m💾 Resource Usage:\033[0m"
+                echo -e "\033[1;37m💾 Использование ресурсов:\033[0m"
                 
                 local cpu_usage=$(top -bn1 | grep "Cpu(s)" | awk '{print $2}' | cut -d'%' -f1 2>/dev/null || echo "N/A")
                 local mem_info=$(free -h | grep "Mem:" 2>/dev/null)
                 local mem_used=$(echo "$mem_info" | awk '{print $3}' 2>/dev/null || echo "N/A")
                 local mem_total=$(echo "$mem_info" | awk '{print $2}' 2>/dev/null || echo "N/A")
                 
-                printf "   \033[38;5;15m%-12s\033[0m \033[38;5;250m%s%%\033[0m\n" "CPU Usage:" "$cpu_usage"
-                printf "   \033[38;5;15m%-12s\033[0m \033[38;5;250m%s / %s\033[0m\n" "Memory:" "$mem_used" "$mem_total"
+                printf "   \033[38;5;15m%-12s\033[0m \033[38;5;250m%s%%\033[0m\n" "Использование CPU:" "$cpu_usage"
+                printf "   \033[38;5;15m%-12s\033[0m \033[38;5;250m%s / %s\033[0m\n" "Память:" "$mem_used" "$mem_total"
                 
                 local disk_usage=$(df -h "$APP_DIR" 2>/dev/null | tail -1 | awk '{print $5}' | sed 's/%//' 2>/dev/null || echo "N/A")
                 local disk_available=$(df -h "$APP_DIR" 2>/dev/null | tail -1 | awk '{print $4}' 2>/dev/null || echo "N/A")
                 
-                printf "   \033[38;5;15m%-12s\033[0m \033[38;5;250m%s%% used, %s available\033[0m\n" "Disk Usage:" "$disk_usage" "$disk_available"
+                printf "   \033[38;5;15m%-12s\033[0m \033[38;5;250m%s%% использовано, %s доступно\033[0m\n" "Использование диска:" "$disk_usage" "$disk_available"
                 
                 # Проверяем логи
                 if [ -d "$DATA_DIR" ]; then
                     local log_files=$(find "$DATA_DIR" -name "*.log" 2>/dev/null | wc -l)
                     if [ "$log_files" -gt 0 ]; then
                         local total_log_size=$(du -sh "$DATA_DIR"/*.log 2>/dev/null | awk '{total+=$1} END {print total"K"}' | sed 's/KK/K/')
-                        printf "   \033[38;5;15m%-12s\033[0m \033[38;5;250m%s files (%s)\033[0m\n" "Log Files:" "$log_files" "$total_log_size"
+                        printf "   \033[38;5;15m%-12s\033[0m \033[38;5;250m%s файлов (%s)\033[0m\n" "Файлы логов:" "$log_files" "$total_log_size"
                     fi
                 fi
                 
             else
-                menu_status="Stopped"
+                menu_status="Остановлен"
                 status_color="\033[1;31m"
                 echo -e "${status_color}❌ Статус узла: ОСТАНОВЛЕН\033[0m"
                 echo -e "\033[38;5;244m   Сервисы установлены, но не запущены\033[0m"
@@ -2250,13 +2250,13 @@ main_menu() {
         
         # Показываем подсказки в зависимости от состояния
         case "$menu_status" in
-            "Not installed")
+            "Не установлен")
                 echo -e "\033[1;34m💡 Совет: Начните с опции 1 для установки RemnaNode\033[0m"
                 ;;
-            "Stopped")
+            "Остановлен")
                 echo -e "\033[1;34m💡 Совет: Используйте опцию 2 для запуска узла\033[0m"
                 ;;
-            "Running")
+            "Запущен")
                 if [ "$xray_version" = "Not installed" ]; then
                     echo -e "\033[1;34m💡 Совет: Установите Xray-core с опцией 11 для лучшей производительности\033[0m"
                 else
@@ -2314,8 +2314,8 @@ case "${COMMAND:-menu}" in
     menu) main_menu ;;
     "") main_menu ;;
     *) 
-        echo -e "\033[1;31m❌ Unknown command: $COMMAND\033[0m"
-        echo -e "\033[38;5;244mUse '\033[38;5;15m$APP_NAME help\033[38;5;244m' for available commands\033[0m"
+        echo -e "\033[1;31m❌ Неизвестная команда: $COMMAND\033[0m"
+        echo -e "\033[38;5;244mИспользуйте '\033[38;5;15m$APP_NAME help\033[38;5;244m' для просмотра доступных команд\033[0m"
         exit 1
         ;;
 esac

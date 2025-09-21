@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Remnawave Panel Installation Script
-# This script installs and manages Remnawave Panel
+# Скрипт установки панели Remnawave
+# Этот скрипт устанавливает и управляет панелью Remnawave
 # VERSION=3.7.3
 
 set -e
@@ -51,23 +51,23 @@ while [[ $# -gt 0 ]]; do
 done
 
 
-# Fetch IP address from ipinfo.io API
+# Получение IP адреса через API ipinfo.io
 NODE_IP=$(curl -s -4 ifconfig.io)
 
-# If the IPv4 retrieval is empty, attempt to retrieve the IPv6 address
+# Если получение IPv4 пустое, пытаемся получить IPv6 адрес
 if [ -z "$NODE_IP" ]; then
     NODE_IP=$(curl -s -6 ifconfig.io)
 fi
 
-# Set default app name if not provided
+# Установка имени приложения по умолчанию, если не указано
 if [[ "$COMMAND" == "install" || "$COMMAND" == "install-script" ]] && [ -z "$APP_NAME" ]; then
     APP_NAME="remnawave"
 fi
-# Set script name if APP_NAME is not set
+# Установка имени скрипта, если APP_NAME не установлен
 if [ -z "$APP_NAME" ]; then
     # Проверяем, запущен ли скрипт через curl
     if [[ "$0" == *"/dev/fd/"* ]] || [[ "$0" == *"/proc/self/fd/"* ]]; then
-        APP_NAME="remnawave"  # Устанавливаем дефолтное имя
+        APP_NAME="remnawave"  # Устанавливаем имя по умолчанию
     else
         SCRIPT_NAME=$(basename "$0")
         APP_NAME="${SCRIPT_NAME%.*}"
@@ -172,18 +172,18 @@ check_backup_script_version() {
 prompt_backup_script_update() {
     local status=$1
     
-    echo -e "\033[1;33m⚠️  Backup Script Update Required\033[0m"
+    echo -e "\033[1;33m⚠️  Требуется обновление скрипта бэкапа\033[0m"
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 40))\033[0m"
     echo
     
     case $status in
         1)
-            echo -e "\033[38;5;250m📄 Backup script not found\033[0m"
-            echo -e "\033[38;5;244m   A new backup script will be created\033[0m"
+            echo -e "\033[38;5;250m📄 Скрипт бэкапа не найден\033[0m"
+            echo -e "\033[38;5;244m   Будет создан новый скрипт бэкапа\033[0m"
             ;;
         2) 
-            echo -e "\033[38;5;250m📜 Old backup script detected (no version info)\033[0m"
-            echo -e "\033[38;5;244m   Script needs to be updated for compatibility\033[0m"
+            echo -e "\033[38;5;250m📜 Обнаружен старый скрипт бэкапа (без информации о версии)\033[0m"
+            echo -e "\033[38;5;244m   Скрипт нужно обновить для совместимости\033[0m"
             ;;
         3)
             # Безопасное чтение версии с timeout
@@ -193,36 +193,36 @@ prompt_backup_script_update() {
             else
                 script_version=$(head -5 "$BACKUP_SCRIPT_FILE" 2>/dev/null | grep "^BACKUP_SCRIPT_VERSION=" | cut -d'"' -f2 2>/dev/null)
             fi
-            echo -e "\033[38;5;250m🔄 Version mismatch detected\033[0m"
-            echo -e "\033[38;5;244m   Current: ${script_version:-'unknown'} → Latest: $BACKUP_SCRIPT_VERSION\033[0m"
+            echo -e "\033[38;5;250m🔄 Обнаружено несоответствие версий\033[0m"
+            echo -e "\033[38;5;244m   Текущая: ${script_version:-'unknown'} → Последняя: $BACKUP_SCRIPT_VERSION\033[0m"
             ;;
     esac
     
     echo
-    echo -e "\033[1;37m🔧 Improvements in latest version:\033[0m"
-    echo -e "\033[38;5;250m   ✓ Unified backup structure (manual + scheduled)\033[0m"
-    echo -e "\033[38;5;250m   ✓ Improved file compression and handling\033[0m"
-    echo -e "\033[38;5;250m   ✓ Better error handling and logging\033[0m"
-    echo -e "\033[38;5;250m   ✓ Enhanced restore compatibility\033[0m"
+    echo -e "\033[1;37m🔧 Улучшения в последней версии:\033[0m"
+    echo -e "\033[38;5;250m   ✓ Единая структура бэкапа (ручной + запланированный)\033[0m"
+    echo -e "\033[38;5;250m   ✓ Улучшенное сжатие и обработка файлов\033[0m"
+    echo -e "\033[38;5;250m   ✓ Лучшая обработка ошибок и логирование\033[0m"
+    echo -e "\033[38;5;250m   ✓ Улучшенная совместимость восстановления\033[0m"
     echo
     
     if [ "$status" -eq 1 ]; then
-        echo -e "\033[1;32m✅ Creating backup script automatically...\033[0m"
+        echo -e "\033[1;32m✅ Автоматическое создание скрипта бэкапа...\033[0m"
         return 0
     fi
     
-    echo -e "\033[1;37mUpdate backup script now?\033[0m"
-    echo -e "\033[38;5;244m(Recommended - old backups will continue to work)\033[0m"
+    echo -e "\033[1;37mОбновить скрипт бэкапа сейчас?\033[0m"
+    echo -e "\033[38;5;244m(Рекомендуется - старые бэкапы продолжат работать)\033[0m"
     echo
-    read -p "Update backup script? [Y/n]: " -r update_choice
+    read -p "Обновить скрипт бэкапа? [Y/n]: " -r update_choice
     
     case "$update_choice" in
         [nN]|[nN][oO])
-            echo -e "\033[1;33m⚠️  Using old backup script (may cause compatibility issues)\033[0m"
+            echo -e "\033[1;33m⚠️  Используется старый скрипт бэкапа (может вызвать проблемы совместимости)\033[0m"
             return 1
             ;;
         *)
-            echo -e "\033[1;32m✅ Updating backup script...\033[0m"
+            echo -e "\033[1;32m✅ Обновление скрипта бэкапа...\033[0m"
             return 0
             ;;
     esac
@@ -253,14 +253,14 @@ check_system_requirements() {
     # Проверяем свободное место (минимум 2GB для панели)
     local available_space=$(df / | awk 'NR==2 {print $4}')
     if [ "$available_space" -lt 2097152 ]; then  # 2GB в KB
-        colorized_echo red "Error: Insufficient disk space. At least 2GB required for Remnawave Panel."
+        colorized_echo red "Ошибка: Недостаточно места на диске. Для панели Remnawave требуется минимум 2GB."
         errors=$((errors + 1))
     fi
     
     # Проверяем RAM (минимум 1GB)
     local available_ram=$(free -m | awk 'NR==2{print $7}')
     if [ "$available_ram" -lt 512 ]; then
-        colorized_echo yellow "Warning: Low available RAM (${available_ram}MB). Panel performance may be affected."
+        colorized_echo yellow "Предупреждение: Мало доступной RAM (${available_ram}MB). Производительность панели может пострадать."
     fi
     
     # Проверяем архитектуру
@@ -268,7 +268,7 @@ check_system_requirements() {
     case "$arch" in
         'amd64'|'x86_64'|'aarch64'|'arm64') ;;
         *) 
-            colorized_echo red "Error: Unsupported architecture: $arch"
+            colorized_echo red "Ошибка: Неподдерживаемая архитектура: $arch"
             errors=$((errors + 1))
             ;;
     esac
@@ -278,7 +278,7 @@ check_system_requirements() {
 
 check_running_as_root() {
     if [ "$(id -u)" != "0" ]; then
-        colorized_echo red "This command must be run as root."
+        colorized_echo red "Эта команда должна выполняться от root."
         exit 1
     fi
 }
@@ -296,13 +296,13 @@ detect_os() {
     elif [ -f /etc/arch-release ]; then
         OS="Arch"
     else
-        colorized_echo red "Unsupported operating system"
+        colorized_echo red "Неподдерживаемая операционная система"
         exit 1
     fi
 }
 
 detect_and_update_package_manager() {
-    colorized_echo blue "Updating package manager"
+    colorized_echo blue "Обновление менеджера пакетов"
     if [[ "$OS" == "Ubuntu"* ]] || [[ "$OS" == "Debian"* ]]; then
         PKG_MANAGER="apt-get"
         $PKG_MANAGER update -qq >/dev/null 2>&1
@@ -322,7 +322,7 @@ detect_and_update_package_manager() {
         PKG_MANAGER="zypper"
         $PKG_MANAGER refresh --quiet >/dev/null 2>&1
     else
-        colorized_echo red "Unsupported operating system"
+        colorized_echo red "Неподдерживаемая операционная система"
         exit 1
     fi
 }
@@ -334,7 +334,7 @@ detect_compose() {
         COMPOSE='docker-compose'
     else
         if [[ "$OS" == "Amazon"* ]]; then
-            colorized_echo blue "Docker Compose plugin not found. Attempting manual installation..."
+            colorized_echo blue "Плагин Docker Compose не найден. Попытка ручной установки..."
             mkdir -p /usr/libexec/docker/cli-plugins
             curl -SL "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/libexec/docker/cli-plugins/docker-compose >/dev/null 2>&1
             chmod +x /usr/libexec/docker/cli-plugins/docker-compose
@@ -344,13 +344,13 @@ detect_compose() {
 
             if docker compose >/dev/null 2>&1; then
                 COMPOSE='docker compose'
-                colorized_echo green "Docker Compose plugin installed successfully"
+                colorized_echo green "Плагин Docker Compose успешно установлен"
             else
-                colorized_echo red "Failed to install Docker Compose plugin. Please check your setup."
+                colorized_echo red "Не удалось установить плагин Docker Compose. Проверьте настройки."
                 exit 1
             fi
         else
-            colorized_echo red "docker compose not found"
+            colorized_echo red "docker compose не найден"
             exit 1
         fi
     fi
@@ -362,7 +362,7 @@ install_package() {
     fi
 
     PACKAGE=$1
-    colorized_echo blue "Installing $PACKAGE"
+    colorized_echo blue "Установка $PACKAGE"
     if [[ "$OS" == "Ubuntu"* ]] || [[ "$OS" == "Debian"* ]]; then
         $PKG_MANAGER -y -qq install "$PACKAGE" >/dev/null 2>&1
     elif [[ "$OS" == "CentOS"* ]] || [[ "$OS" == "AlmaLinux"* ]] || [[ "$OS" == "Amazon"* ]]; then
@@ -374,27 +374,27 @@ install_package() {
     elif [[ "$OS" == "openSUSE"* ]]; then
         $PKG_MANAGER --quiet install -y "$PACKAGE" >/dev/null 2>&1
     else
-        colorized_echo red "Unsupported operating system"
+        colorized_echo red "Неподдерживаемая операционная система"
         exit 1
     fi
 }
 
 install_docker() {
-    colorized_echo blue "Installing Docker"
+    colorized_echo blue "Установка Docker"
     if [[ "$OS" == "Amazon"* ]]; then
         amazon-linux-extras enable docker >/dev/null 2>&1
         yum install -y docker >/dev/null 2>&1
         systemctl start docker
         systemctl enable docker
-        colorized_echo green "Docker installed successfully on Amazon Linux"
+        colorized_echo green "Docker успешно установлен на Amazon Linux"
     else
         curl -fsSL https://get.docker.com | sh
-        colorized_echo green "Docker installed successfully"
+        colorized_echo green "Docker успешно установлен"
     fi
 }
 
 install_remnawave_script() {  
-    colorized_echo blue "Installing remnawave script"  
+    colorized_echo blue "Установка скрипта remnawave"  
     TARGET_PATH="/usr/local/bin/$APP_NAME"  
       
     if [ ! -d "/usr/local/bin" ]; then  
@@ -406,9 +406,9 @@ install_remnawave_script() {
     chmod 755 $TARGET_PATH  
       
     if [ -f "$TARGET_PATH" ]; then  
-        colorized_echo green "Remnawave script installed successfully at $TARGET_PATH"  
+        colorized_echo green "Скрипт Remnawave успешно установлен в $TARGET_PATH"  
     else  
-        colorized_echo red "Failed to install remnawave script at $TARGET_PATH"  
+        colorized_echo red "Не удалось установить скрипт remnawave в $TARGET_PATH"  
         exit 1  
     fi  
 }
@@ -421,7 +421,7 @@ validate_and_fix_backup_config() {
     
     # Проверяем валидность JSON
     if ! jq . "$BACKUP_CONFIG_FILE" >/dev/null 2>&1; then
-        echo -e "\033[1;33m⚠️  Backup configuration file is corrupted, attempting to recover...\033[0m"
+        echo -e "\033[1;33m⚠️  Файл конфигурации резервного копирования поврежден, пытаемся восстановить...\033[0m"
         
         # Пытаемся извлечь токен из поврежденного файла
         local existing_token=""
@@ -485,12 +485,12 @@ EOF
         
         # Проверяем что новый файл валиден
         if jq . "$BACKUP_CONFIG_FILE" >/dev/null 2>&1; then
-            echo -e "\033[1;32m✅ Backup configuration restored successfully\033[0m"
+            echo -e "\033[1;32m✅ Конфигурация резервного копирования успешно восстановлена\033[0m"
             if [ "$telegram_enabled" = "true" ]; then
-                echo -e "\033[1;36m📱 Telegram settings were preserved from corrupted file\033[0m"
+                echo -e "\033[1;36m📱 Настройки Telegram были сохранены из поврежденного файла\033[0m"
             fi
         else
-            echo -e "\033[1;31m❌ Failed to restore backup configuration\033[0m"
+            echo -e "\033[1;31m❌ Не удалось восстановить конфигурацию резервной копии\033[0m"
             return 1
         fi
     fi
@@ -500,8 +500,8 @@ EOF
 
 ensure_backup_dirs() {
     if [ ! -d "$APP_DIR" ]; then
-        echo -e "\033[1;31m❌ Remnawave is not installed!\033[0m"
-        echo -e "\033[38;5;8m   Run '\033[38;5;15msudo $APP_NAME install\033[38;5;8m' first\033[0m"
+        echo -e "\033[1;31m❌ Remnawave не установлен!\033[0m"
+        echo -e "\033[38;5;8m   Сначала выполните '\033[38;5;15msudo $APP_NAME install\033[38;5;8m'\033[0m"
         return 1
     fi
     
@@ -513,7 +513,7 @@ ensure_backup_dirs() {
     mkdir -p "$APP_DIR/temp" 2>/dev/null || true
     
     if [ ! -f "$BACKUP_CONFIG_FILE" ]; then
-        echo -e "\033[38;5;244m   Creating default backup configuration...\033[0m"
+        echo -e "\033[38;5;244m   Создание конфигурации резервного копирования по умолчанию...\033[0m"
         cat > "$BACKUP_CONFIG_FILE" << EOF
 {
   "app_name": "$APP_NAME",
@@ -548,7 +548,7 @@ ensure_rsync_installed() {
         return 0
     fi
     
-    echo -e "\033[38;5;250m📦 Installing rsync for better backup performance...\033[0m"
+    echo -e "\033[38;5;250m📦 Установка rsync для лучшей производительности бэкапа...\033[0m"
     
     local install_success=false
     
@@ -571,10 +571,10 @@ ensure_rsync_installed() {
     fi
     
     if [ "$install_success" = true ]; then
-        echo -e "\033[1;32m✅ rsync installed successfully\033[0m"
+        echo -e "\033[1;32m✅ rsync установлен успешно\033[0m"
         return 0
     else
-        echo -e "\033[1;33m⚠️  Could not install rsync, will use alternative method\033[0m"
+        echo -e "\033[1;33m⚠️  Не удалось установить rsync, используем альтернативный метод\033[0m"
         return 1
     fi
 }
@@ -602,20 +602,20 @@ schedule_command() {
         help|-h|--help) schedule_help ;;
         menu) schedule_menu ;;
         *) 
-            echo -e "\033[1;31mUnknown command: $1\033[0m"
-            echo -e "\033[38;5;8mUse '\033[38;5;15m$APP_NAME schedule help\033[38;5;8m' for available commands\033[0m"
+            echo -e "\033[1;31mНеизвестная команда: $1\033[0m"
+            echo -e "\033[38;5;8mИспользуйте '\033[38;5;15m$APP_NAME schedule help\033[38;5;8m' для списка команд\033[0m"
             echo
-            echo -e "\033[1;37mAvailable commands:\033[0m"
-            echo -e "   \033[38;5;15msetup\033[0m           Configure backup settings"
-            echo -e "   \033[38;5;15menable\033[0m          Enable scheduler"
-            echo -e "   \033[38;5;15mdisable\033[0m         Disable scheduler"
-            echo -e "   \033[38;5;15mstatus\033[0m          Show scheduler status"
-            echo -e "   \033[38;5;15mtest\033[0m            Test backup creation"
-            echo -e "   \033[38;5;15mtest-telegram\033[0m   Test Telegram delivery"
-            echo -e "   \033[38;5;15mrun\033[0m             Run backup now"
-            echo -e "   \033[38;5;15mlogs\033[0m            View backup logs"
-            echo -e "   \033[38;5;15mcleanup\033[0m         Clean old backups"
-            echo -e "   \033[38;5;15mhelp\033[0m            Show this help"
+            echo -e "\033[1;37mДоступные команды:\033[0m"
+            echo -e "   \033[38;5;15msetup\033[0m           Настроить параметры бэкапа"
+            echo -e "   \033[38;5;15menable\033[0m          Включить планировщик"
+            echo -e "   \033[38;5;15mdisable\033[0m         Отключить планировщик"
+            echo -e "   \033[38;5;15mstatus\033[0m          Показать статус планировщика"
+            echo -e "   \033[38;5;15mtest\033[0m            Тест создания бэкапа"
+            echo -e "   \033[38;5;15mtest-telegram\033[0m   Тест отправки в Telegram"
+            echo -e "   \033[38;5;15mrun\033[0m             Запустить бэкап сейчас"
+            echo -e "   \033[38;5;15mlogs\033[0m            Просмотр логов бэкапа"
+            echo -e "   \033[38;5;15mcleanup\033[0m         Очистить старые бэкапы"
+            echo -e "   \033[38;5;15mhelp\033[0m            Показать эту справку"
             ;;
     esac
 }
@@ -628,72 +628,72 @@ schedule_menu() {
     
     while true; do
         clear
-        echo -e "\033[1;37m📅 Backup Scheduler Management\033[0m"
+        echo -e "\033[1;37m📅 Управление планировщиком бэкапов\033[0m"
         echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 50))\033[0m"
         echo
         
         local status=$(schedule_get_status)
         if [ "$status" = "enabled" ]; then
-            echo -e "\033[1;32m✅ Scheduler Status: ENABLED\033[0m"
+            echo -e "\033[1;32m✅ Статус планировщика: ВКЛЮЧЕН\033[0m"
         else
-            echo -e "\033[1;31m❌ Scheduler Status: DISABLED\033[0m"
+            echo -e "\033[1;31m❌ Статус планировщика: ВЫКЛЮЧЕН\033[0m"
         fi
         
         if [ -f "$BACKUP_CONFIG_FILE" ]; then
-            local schedule=$(jq -r '.schedule // "Not configured"' "$BACKUP_CONFIG_FILE" 2>/dev/null)
+            local schedule=$(jq -r '.schedule // "Не настроено"' "$BACKUP_CONFIG_FILE" 2>/dev/null)
             local telegram_enabled=$(jq -r '.telegram.enabled // false' "$BACKUP_CONFIG_FILE" 2>/dev/null)
             local retention=$(jq -r '.retention.days // 7' "$BACKUP_CONFIG_FILE" 2>/dev/null)
             local compression=$(jq -r '.compression.enabled // true' "$BACKUP_CONFIG_FILE" 2>/dev/null)
             
-            echo -e "\033[38;5;250mSchedule: $schedule\033[0m"
-            echo -e "\033[38;5;250mBackup Type: Full (database + all configs)\033[0m"
-            echo -e "\033[38;5;250mCompression: $([ "$compression" = "true" ] && echo "✅ Enabled" || echo "❌ Disabled")\033[0m"
-            echo -e "\033[38;5;250mTelegram: $([ "$telegram_enabled" = "true" ] && echo "✅ Enabled" || echo "❌ Disabled")\033[0m"
-            echo -e "\033[38;5;250mRetention: $retention days\033[0m"
+            echo -e "\033[38;5;250mРасписание: $schedule\033[0m"
+            echo -e "\033[38;5;250mТип бэкапа: Полный (база данных + все конфиги)\033[0m"
+            echo -e "\033[38;5;250mСжатие: $([ "$compression" = "true" ] && echo "✅ Включено" || echo "❌ Отключено")\033[0m"
+            echo -e "\033[38;5;250mTelegram: $([ "$telegram_enabled" = "true" ] && echo "✅ Включено" || echo "❌ Отключено")\033[0m"
+            echo -e "\033[38;5;250mХранение: $retention дней\033[0m"
         else
-            echo -e "\033[38;5;244mNo configuration found\033[0m"
+            echo -e "\033[38;5;244mКонфигурация не найдена\033[0m"
         fi
         
         # Показываем информацию о логах
         if [ -f "$BACKUP_LOG_FILE" ]; then
             local log_size=$(du -sh "$BACKUP_LOG_FILE" 2>/dev/null | cut -f1)
             local last_entry=$(tail -1 "$BACKUP_LOG_FILE" 2>/dev/null | grep -o '\[.*\]' | head -1 || echo "No entries")
-            echo -e "\033[38;5;250mLog size: $log_size, Last: $last_entry\033[0m"
+            echo -e "\033[38;5;250mРазмер лога: $log_size, Последняя запись: $last_entry\033[0m"
         fi
         
         echo
-        echo -e "\033[1;37m📋 Available Actions:\033[0m"
-        echo -e "   \033[38;5;15m1)\033[0m 🔧 Configure backup settings"
-        echo -e "   \033[38;5;15m2)\033[0m ⚙️  Enable/Disable scheduler"
-        echo -e "   \033[38;5;15m3)\033[0m 🧪 Test backup creation"
-        echo -e "   \033[38;5;15m4)\033[0m 📱 Test Telegram delivery"
-        echo -e "   \033[38;5;15m5)\033[0m 📊 Show scheduler status"
-        echo -e "   \033[38;5;15m6)\033[0m 📋 View backup logs"
-        echo -e "   \033[38;5;15m7)\033[0m 🧹 Cleanup old backups"
-        echo -e "   \033[38;5;15m8)\033[0m ▶️  Run full backup now"
-        echo -e "   \033[38;5;15m9)\033[0m 🔄 Update backup script"
-        echo -e "   \033[38;5;15ma)\033[0m 🧹  Clear logs"
-        echo -e "   \033[38;5;244m0)\033[0m ⬅️  Back to main menu"
+        echo -e "\033[1;37m📋 Доступные действия:\033[0m"
+        echo -e "   \033[38;5;15m1)\033[0m 🔧 Настроить параметры бэкапа"
+        echo -e "   \033[38;5;15m2)\033[0m ⚙️  Включить/Отключить планировщик"
+        echo -e "   \033[38;5;15m3)\033[0m 🧪 Тест создания бэкапа"
+        echo -e "   \033[38;5;15m4)\033[0m 📱 Тест доставки в Telegram"
+        echo -e "   \033[38;5;15m5)\033[0m 📊 Показать статус планировщика"
+        echo -e "   \033[38;5;15m6)\033[0m 📋 Просмотр логов бэкапа"
+        echo -e "   \033[38;5;15m7)\033[0m 🧹 Очистить старые бэкапы"
+        echo -e "   \033[38;5;15m8)\033[0m ▶️  Запустить полный бэкап сейчас"
+        echo -e "   \033[38;5;15m9)\033[0m 🔄 Обновить скрипт бэкапа"
+        echo -e "   \033[38;5;15ma)\033[0m 🧹  Очистить логи"
+        echo -e "   \033[38;5;244m0)\033[0m ⬅️  Назад в главное меню"
         echo
-        echo -e "\033[38;5;8m💡 All scheduled backups include database + configurations\033[0m"
+        echo -e "\033[38;5;8m💡 Все запланированные бэкапы включают базу данных + конфигурации\033[0m"
         echo
         
-        read -p "Select option [0-9,a]: " choice
+        read -p "Выберите опцию [0-9,a]: " choice
         
         case "$choice" in
             1) schedule_setup_menu ;;
             2) schedule_toggle ;;
             3) 
                 schedule_test_backup
-                read -p "Press Enter to continue..."
+                read -p "Нажмите Enter для продолжения..."
                 ;;
             4) 
                 schedule_test_telegram
-                read -p "Press Enter to continue..."
+                read -p "Нажмите Enter для продолжения..."
                 ;;
             5) 
                 schedule_status
-                read -p "Press Enter to continue..."
+                read -p "Нажмите Enter для продолжения..."
                 ;;
             6) schedule_show_logs ;;
             7) schedule_cleanup ;;
@@ -705,7 +705,7 @@ schedule_menu() {
                 return 0  
                 ;;
             *) 
-                echo -e "\033[1;31mInvalid option!\033[0m"
+                echo -e "\033[1;31mНеверная опция!\033[0m"
                 sleep 1
                 ;;
         esac
@@ -715,17 +715,17 @@ schedule_menu() {
 # Новая функция очистки логов
 schedule_clear_logs() {
     echo
-    read -p "Clear all backup logs? [y/N]: " confirm
+    read -p "Очистить все логи бэкапа? [y/N]: " confirm
     
     if [[ $confirm =~ ^[Yy]$ ]]; then
         if [ -f "$BACKUP_LOG_FILE" ]; then
             > "$BACKUP_LOG_FILE"  # Очищаем файл
-            echo -e "\033[1;32m✅ Backup logs cleared\033[0m"
+            echo -e "\033[1;32m✅ Логи бэкапа очищены\033[0m"
         else
-            echo -e "\033[38;5;244mNo log file to clear\033[0m"
+            echo -e "\033[38;5;244mНет файла логов для очистки\033[0m"
         fi
     else
-        echo -e "\033[38;5;250mOperation cancelled\033[0m"
+        echo -e "\033[38;5;250mОперация отменена\033[0m"
     fi
     
     sleep 2
@@ -733,44 +733,44 @@ schedule_clear_logs() {
 
 schedule_update_script() {
     clear
-    echo -e "\033[1;37m🔄 Update Backup Script\033[0m"
+    echo -e "\033[1;37m🔄 Обновление скрипта бэкапа\033[0m"
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 30))\033[0m"
     echo
     
     # Упрощённое обновление - просто пересоздаём скрипт
-    echo -e "\033[1;33m🔄 Updating backup script to latest version...\033[0m"
-    echo -e "\033[38;5;244m   Recreating script with version $BACKUP_SCRIPT_VERSION\033[0m"
+    echo -e "\033[1;33m🔄 Обновление скрипта бэкапа до последней версии...\033[0m"
+    echo -e "\033[38;5;244m   Пересоздание скрипта с версией $BACKUP_SCRIPT_VERSION\033[0m"
     echo
     
     # Создаём новый скрипт
     schedule_create_backup_script
     
     if [ -f "$BACKUP_SCRIPT_FILE" ]; then
-        echo -e "\033[1;32m✅ Backup script updated successfully (v$BACKUP_SCRIPT_VERSION)\033[0m"
-        echo -e "\033[38;5;244m   Script location: $BACKUP_SCRIPT_FILE\033[0m"
+        echo -е "\033[1;32m✅ Скрипт бэкапа успешно обновлен (v$BACKUP_SCRIPT_VERSION)\033[0m"
+        echo -e "\033[38;5;244m   Расположение скрипта: $BACKUP_SCRIPT_FILE\033[0m"
         
         echo
-        echo -e "\033[1;37m🚀 Features in v$BACKUP_SCRIPT_VERSION:\033[0m"
-        echo -e "\033[38;5;250m   ✓ Unified backup structure (compatible with manual backups)\033[0m"
-        echo -e "\033[38;5;250m   ✓ Improved compression and file handling\033[0m"
-        echo -e "\033[38;5;250m   ✓ Better error handling and logging\033[0m"
-        echo -e "\033[38;5;250m   ✓ Enhanced restore compatibility\033[0m"
-        echo -e "\033[38;5;250m   ✓ Automatic version checking\033[0m"
+        echo -e "\033[1;37m🚀 Возможности в v$BACKUP_SCRIPT_VERSION:\033[0m"
+        echo -e "\033[38;5;250m   ✓ Единая структура бэкапа (совместима с ручными бэкапами)\033[0m"
+        echo -e "\033[38;5;250m   ✓ Улучшенное сжатие и обработка файлов\033[0m"
+        echo -e "\033[38;5;250m   ✓ Лучшая обработка ошибок и логирование\033[0m"
+        echo -e "\033[38;5;250m   ✓ Улучшенная совместимость восстановления\033[0m"
+        echo -e "\033[38;5;250m   ✓ Автоматическая проверка версий\033[0m"
         
         # Если scheduler включен, показываем статус
         local status=$(schedule_get_status)
         if [ "$status" = "enabled" ]; then
             echo
-            echo -e "\033[1;37m📋 Scheduler Status: ENABLED\033[0m"
-            echo -e "\033[38;5;250m   Updated script will be used for next scheduled backup\033[0m"
-            echo -e "\033[38;5;244m   No restart required - changes take effect immediately\033[0m"
+            echo -e "\033[1;37m📋 Статус планировщика: ВКЛЮЧЕН\033[0m"
+            echo -e "\033[38;5;250m   Обновленный скрипт будет использоваться для следующего запланированного бэкапа\033[0m"
+            echo -e "\033[38;5;244m   Перезапуск не требуется - изменения вступают в силу немедленно\033[0m"
         fi
     else
-        echo -e "\033[1;31m❌ Failed to update backup script\033[0m"
+        echo -e "\033[1;31m❌ Не удалось обновить скрипт бэкапа\033[0m"
     fi
     
     echo
-    read -p "Press Enter to continue..."
+    read -p "Нажмите Enter для продолжения..."
 }
 
 
@@ -782,35 +782,35 @@ schedule_setup_menu() {
 
     while true; do
         clear
-        echo -e "\033[1;37m🔧 Backup Configuration\033[0m"
+    echo -е "\033[1;37m🔧 Конфигурация бэкапов\033[0m"
         echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 40))\033[0m"
         echo
         
         if [ -f "$BACKUP_CONFIG_FILE" ]; then
-            echo -e "\033[1;37m📋 Current Settings:\033[0m"
+            echo -е "\033[1;37m📋 Текущие настройки:\033[0m"
             local schedule=$(jq -r '.schedule // "Not set"' "$BACKUP_CONFIG_FILE" 2>/dev/null)
             local compression=$(jq -r '.compression.enabled // false' "$BACKUP_CONFIG_FILE" 2>/dev/null)
             local retention=$(jq -r '.retention.days // 7' "$BACKUP_CONFIG_FILE" 2>/dev/null)
             local telegram_enabled=$(jq -r '.telegram.enabled // false' "$BACKUP_CONFIG_FILE" 2>/dev/null)
             
-            printf "   \033[38;5;15m%-15s\033[0m \033[38;5;250m%s\033[0m\n" "Schedule:" "$schedule"
-            printf "   \033[38;5;15m%-15s\033[0m \033[38;5;250m%s\033[0m\n" "Compression:" "$([ "$compression" = "true" ] && echo "Enabled" || echo "Disabled")"
-            printf "   \033[38;5;15m%-15s\033[0m \033[38;5;250m%s days\033[0m\n" "Retention:" "$retention"
-            printf "   \033[38;5;15m%-15s\033[0m \033[38;5;250m%s\033[0m\n" "Telegram:" "$([ "$telegram_enabled" = "true" ] && echo "Enabled (49MB limit)" || echo "Disabled")"
+            printf "   \033[38;5;15m%-15s\033[0m \033[38;5;250m%s\033[0m\n" "Расписание:" "$schedule"
+            printf "   \033[38;5;15m%-15s\033[0m \033[38;5;250m%s\033[0m\n" "Сжатие:" "$([ "$compression" = "true" ] && echo "Включено" || echo "Отключено")"
+            printf "   \033[38;5;15m%-15s\033[0m \033[38;5;250m%s дней\033[0m\n" "Хранение:" "$retention"
+            printf "   \033[38;5;15m%-15s\033[0m \033[38;5;250m%s\033[0m\n" "Telegram:" "$([ "$telegram_enabled" = "true" ] && echo "Включено (лимит 49MB)" || echo "Отключено")"
             echo
         fi
         
-        echo -e "\033[1;37m⚙️  Configuration Options:\033[0m"
-        echo -e "   \033[38;5;15m1)\033[0m ⏰ Set backup schedule"
-        echo -e "   \033[38;5;15m2)\033[0m 🗜️  Configure compression"
-        echo -e "   \033[38;5;15m3)\033[0m 🗂️  Set retention policy"
-        echo -e "   \033[38;5;15m4)\033[0m 📱 Configure Telegram"
-        echo -e "   \033[38;5;15m5)\033[0m 🔄 Reset to defaults"
-        echo -e "   \033[38;5;15m6)\033[0m 🔧 Recreate backup script"
-        echo -e "   \033[38;5;244m0)\033[0m ⬅️  Back"
+    echo -е "\033[1;37m⚙️  Параметры конфигурации:\033[0m"
+        echo -e "   \033[38;5;15m1)\033[0m ⏰ Установить расписание бэкапа"
+        echo -e "   \033[38;5;15m2)\033[0m 🗜️  Настроить сжатие"
+        echo -e "   \033[38;5;15m3)\033[0m 🗂️  Установить политику хранения"
+        echo -e "   \033[38;5;15m4)\033[0m 📱 Настроить Telegram"
+        echo -e "   \033[38;5;15m5)\033[0m 🔄 Сбросить к умолчанию"
+        echo -e "   \033[38;5;15m6)\033[0m 🔧 Пересоздать скрипт бэкапа"
+        echo -e "   \033[38;5;244m0)\033[0m ⬅️  Назад"
         echo
         
-        read -p "Select option [0-6]: " choice
+        read -p "Выберите опцию [0-6]: " choice
         
         case "$choice" in
             1) schedule_configure_schedule ;;
@@ -823,7 +823,7 @@ schedule_setup_menu() {
                 return 0  
                 ;;
             *) 
-                echo -e "\033[1;31mInvalid option!\033[0m"
+                echo -е "\033[1;31mНеверная опция!\033[0m"
                 sleep 1
                 ;;
         esac
@@ -832,24 +832,24 @@ schedule_setup_menu() {
 
 schedule_recreate_script() {
     echo
-    echo -e "\033[1;37m🔧 Recreating Backup Script\033[0m"
+    echo -е "\033[1;37m🔧 Пересоздание скрипта бэкапа\033[0m"
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 35))\033[0m"
     echo
-    echo -e "\033[38;5;250mThis will recreate the backup script with latest version\033[0m"
-    read -p "Continue? [y/N]: " confirm
+    echo -e "\033[38;5;250mБудет пересоздан скрипт бэкапа последней версии\033[0m"
+    read -p "Продолжить? [y/N]: " confirm
     
     if [[ $confirm =~ ^[Yy]$ ]]; then
         # Удаляем старый скрипт
         if [ -f "$BACKUP_SCRIPT_FILE" ]; then
             rm -f "$BACKUP_SCRIPT_FILE"
-            echo -e "\033[38;5;244m   Old script removed\033[0m"
+            echo -e "\033[38;5;244m   Старый скрипт удален\033[0m"
         fi
         
         # Создаем новый
         schedule_create_backup_script
-        echo -e "\033[1;32m✅ Backup script recreated successfully!\033[0m"
+        echo -e "\033[1;32m✅ Скрипт бэкапа успешно пересоздан!\033[0m"
     else
-        echo -e "\033[38;5;250mOperation cancelled\033[0m"
+        echo -e "\033[38;5;250mОперация отменена\033[0m"
     fi
     
     sleep 2
@@ -858,18 +858,18 @@ schedule_recreate_script() {
 
 schedule_configure_schedule() {
     clear
-    echo -e "\033[1;37m⏰ Configure Backup Schedule\033[0m"
+    echo -e "\033[1;37m⏰ Настройка расписания бэкапа\033[0m"
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 35))\033[0m"
     echo
-    echo -e "\033[1;37m📋 Predefined Schedules:\033[0m"
-    echo -e "   \033[38;5;15m1)\033[0m Daily at 2:00 AM"
-    echo -e "   \033[38;5;15m2)\033[0m Daily at 4:00 AM"
-    echo -e "   \033[38;5;15m3)\033[0m Every 12 hours"
-    echo -e "   \033[38;5;15m4)\033[0m Weekly (Sunday 2:00 AM)"
-    echo -e "   \033[38;5;15m5)\033[0m Custom cron expression"
+    echo -е "\033[1;37m📋 Предустановленные расписания:\033[0m"
+    echo -e "   \033[38;5;15m1)\033[0m Ежедневно в 02:00"
+    echo -e "   \033[38;5;15m2)\033[0m Ежедневно в 04:00"
+    echo -e "   \033[38;5;15m3)\033[0m Каждые 12 часов"
+    echo -e "   \033[38;5;15m4)\033[0m Еженедельно (воскресенье 02:00)"
+    echo -e "   \033[38;5;15m5)\033[0m Пользовательское выражение cron"
     echo
     
-    read -p "Select schedule [1-5]: " choice
+    read -p "Выберите расписание [1-5]: " choice
     
     local cron_expression=""
     case "$choice" in
@@ -879,47 +879,47 @@ schedule_configure_schedule() {
         4) cron_expression="0 2 * * 0" ;;
         5) 
             echo
-            echo -e "\033[1;37m⚙️  Custom Cron Expression\033[0m"
-            echo -e "\033[38;5;244mFormat: minute hour day month weekday\033[0m"
-            echo -e "\033[38;5;244mExample: 0 3 * * * (daily at 3:00 AM)\033[0m"
+            echo -е "\033[1;37m⚙️  Пользовательское выражение Cron\033[0m"
+            echo -е "\033[38;5;244mФормат: минута час день месяц день_недели\033[0m"
+            echo -е "\033[38;5;244mПример: 0 3 * * * (ежедневно в 03:00)\033[0m"
             echo
-            read -p "Enter cron expression: " cron_expression
+            read -p "Введите выражение cron: " cron_expression
             
             if ! echo "$cron_expression" | grep -E '^[0-9\*\-\,\/]+ [0-9\*\-\,\/]+ [0-9\*\-\,\/]+ [0-9\*\-\,\/]+ [0-9\*\-\,\/]+$' >/dev/null; then
-                echo -e "\033[1;31m❌ Invalid cron expression!\033[0m"
+                echo -e "\033[1;31m❌ Неверное выражение cron!\033[0m"
                 sleep 2
                 return
             fi
             ;;
-        *) echo -e "\033[1;31mInvalid option!\033[0m"; sleep 1; return ;;
+        *) echo -e "\033[1;31mНеверная опция!\033[0m"; sleep 1; return ;;
     esac
     
     schedule_update_config ".schedule" "\"$cron_expression\""
-    echo -e "\033[1;32m✅ Schedule updated: $cron_expression\033[0m"
+    echo -e "\033[1;32m✅ Расписание обновлено: $cron_expression\033[0m"
     sleep 2
 }
 
 schedule_configure_compression() {
     clear
-    echo -e "\033[1;37m🗜️  Configure Compression\033[0m"
+    echo -e "\033[1;37m🗜️  Настройка сжатия\033[0m"
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 30))\033[0m"
     echo
-    echo -e "\033[38;5;250mCompression reduces backup size but increases CPU usage\033[0m"
+    echo -e "\033[38;5;250mСжатие уменьшает размер бэкапа, но увеличивает нагрузку на CPU\033[0m"
     echo
     
-    read -p "Enable compression? [y/N]: " enable_compression
+    read -p "Включить сжатие? [y/N]: " enable_compression
     
     if [[ $enable_compression =~ ^[Yy]$ ]]; then
         schedule_update_config ".compression.enabled" "true"
         
         echo
-        echo -e "\033[1;37m📊 Compression Level:\033[0m"
-        echo -e "   \033[38;5;15m1)\033[0m Fast (level 1)"
-        echo -e "   \033[38;5;15m2)\033[0m Balanced (level 6)"
-        echo -e "   \033[38;5;15m3)\033[0m Best (level 9)"
+        echo -e "\033[1;37m📊 Уровень сжатия:\033[0m"
+        echo -e "   \033[38;5;15m1)\033[0m Быстро (уровень 1)"
+        echo -e "   \033[38;5;15m2)\033[0m Сбалансированно (уровень 6)"
+        echo -e "   \033[38;5;15m3)\033[0m Лучшее (уровень 9)"
         echo
         
-        read -p "Select compression level [1-3]: " level_choice
+        read -p "Выберите уровень сжатия [1-3]: " level_choice
         
         local compression_level=6
         case "$level_choice" in
@@ -929,10 +929,10 @@ schedule_configure_compression() {
         esac
         
         schedule_update_config ".compression.level" "$compression_level"
-        echo -e "\033[1;32m✅ Compression enabled (level $compression_level)\033[0m"
+        echo -e "\033[1;32m✅ Сжатие включено (уровень $compression_level)\033[0m"
     else
         schedule_update_config ".compression.enabled" "false"
-        echo -e "\033[1;32m✅ Compression disabled\033[0m"
+        echo -e "\033[1;32m✅ Сжатие выключено\033[0m"
     fi
     
     sleep 2
@@ -940,17 +940,17 @@ schedule_configure_compression() {
 
 schedule_configure_retention() {
     clear
-    echo -e "\033[1;37m🗂️  Configure Retention Policy\033[0m"
+    echo -e "\033[1;37m🗂️  Настройка политики хранения\033[0m"
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 35))\033[0m"
     echo
-    echo -e "\033[38;5;250mHow long to keep backup files before automatic deletion\033[0m"
+    echo -e "\033[38;5;250mКак долго хранить файлы бэкапа до автоматического удаления\033[0m"
     echo
     
-    read -p "Retention period in days [7]: " retention_days
+    read -p "Период хранения в днях [7]: " retention_days
     retention_days=${retention_days:-7}
     
     if ! [[ "$retention_days" =~ ^[0-9]+$ ]] || [ "$retention_days" -lt 1 ]; then
-        echo -e "\033[1;31m❌ Invalid number!\033[0m"
+        echo -e "\033[1;31m❌ Неверное число!\033[0m"
         sleep 2
         return
     fi
@@ -958,9 +958,9 @@ schedule_configure_retention() {
     schedule_update_config ".retention.days" "$retention_days"
     
     echo
-    read -p "Keep minimum number of backups regardless of age? [y/N]: " keep_minimum
+    read -p "Хранить минимальное количество бэкапов независимо от возраста? [y/N]: " keep_minimum
     if [[ $keep_minimum =~ ^[Yy]$ ]]; then
-        read -p "Minimum backups to keep [3]: " min_backups
+        read -p "Минимальное количество бэкапов для хранения [3]: " min_backups
         min_backups=${min_backups:-3}
         
         if [[ "$min_backups" =~ ^[0-9]+$ ]] && [ "$min_backups" -ge 1 ]; then
@@ -968,17 +968,17 @@ schedule_configure_retention() {
         fi
     fi
     
-    echo -e "\033[1;32m✅ Retention policy updated: $retention_days days\033[0m"
+    echo -e "\033[1;32m✅ Политика хранения обновлена: $retention_days дней\033[0m"
     sleep 2
 }
 
 schedule_configure_telegram() {
     clear
-    echo -e "\033[1;37m📱 Configure Telegram Integration\033[0m"
+    echo -e "\033[1;37m📱 Настройка интеграции с Telegram\033[0m"
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 40))\033[0m"
     echo
     
-    read -p "Enable Telegram notifications? [y/N]: " enable_telegram
+    read -p "Включить уведомления Telegram? [y/N]: " enable_telegram
     
     if [[ $enable_telegram =~ ^[Yy]$ ]]; then
         schedule_update_config ".telegram.enabled" "true"
@@ -988,26 +988,26 @@ schedule_configure_telegram() {
         schedule_update_config ".telegram.max_file_size" "49"
         schedule_update_config ".telegram.split_large_files" "true"
         
-        echo -e "\033[1;32m✅ Using official Telegram Bot API (49MB file limit)\033[0m"
+        echo -e "\033[1;32m✅ Используется официальный Telegram Bot API (лимит 49MB)\033[0m"
         
         # Bot Token
         echo
-        echo -e "\033[1;37m🤖 Bot Token Configuration\033[0m"
-        echo -e "\033[38;5;244mGet token from @BotFather on Telegram\033[0m"
+        echo -e "\033[1;37m🤖 Настройка Bot Token\033[0m"
+        echo -e "\033[38;5;244mПолучите токен у @BotFather в Telegram\033[0m"
         
         local current_token=$(jq -r '.telegram.bot_token // ""' "$BACKUP_CONFIG_FILE" 2>/dev/null)
         if [ -n "$current_token" ] && [ "$current_token" != "null" ]; then
-            echo -e "\033[38;5;250mCurrent token: ${current_token:0:10}...\033[0m"
-            read -p "Keep current token? [Y/n]: " keep_token
+            echo -e "\033[38;5;250mТекущий токен: ${current_token:0:10}...\033[0m"
+            read -p "Сохранить текущий токен? [Y/n]: " keep_token
             if [[ ! $keep_token =~ ^[Nn]$ ]]; then
                 current_token=""
             fi
         fi
         
         if [ -z "$current_token" ] || [ "$current_token" = "null" ]; then
-            read -p "Enter bot token: " bot_token
+            read -p "Введите токен бота: " bot_token
             if [ -z "$bot_token" ]; then
-                echo -e "\033[1;31m❌ Token is required!\033[0m"
+                echo -e "\033[1;31m❌ Требуется токен!\033[0m"
                 sleep 2
                 return
             fi
@@ -1016,9 +1016,9 @@ schedule_configure_telegram() {
             bot_token_escaped=$(printf '%s' "$bot_token" | sed 's/"/\\"/g')
             
             if schedule_update_config ".telegram.bot_token" "\"$bot_token_escaped\""; then
-                echo -e "\033[1;32m✅ Bot token saved successfully\033[0m"
+                echo -e "\033[1;32m✅ Токен бота успешно сохранен\033[0m"
             else
-                echo -e "\033[1;31m❌ Failed to save bot token\033[0m"
+                echo -e "\033[1;31m❌ Не удалось сохранить токен бота\033[0m"
                 sleep 2
                 return
             fi
@@ -1026,13 +1026,13 @@ schedule_configure_telegram() {
         
         # Chat ID
         echo
-        echo -e "\033[1;37m💬 Chat Configuration\033[0m"
-        echo -e "\033[38;5;244mFor groups: use negative ID (e.g., -1001234567890)\033[0m"
-        echo -e "\033[38;5;244mFor private: use positive ID (e.g., 123456789)\033[0m"
+        echo -e "\033[1;37m💬 Настройка чата\033[0m"
+        echo -e "\033[38;5;244mДля групп: используйте отрицательный ID (например, -1001234567890)\033[0m"
+        echo -e "\033[38;5;244mДля личных чатов: положительный ID (например, 123456789)\033[0m"
         
-        read -p "Enter chat ID: " chat_id
+        read -p "Введите ID чата: " chat_id
         if [ -z "$chat_id" ]; then
-            echo -e "\033[1;31m❌ Chat ID is required!\033[0m"
+            echo -e "\033[1;31m❌ Требуется Chat ID!\033[0m"
             sleep 2
             return
         fi
@@ -1040,22 +1040,22 @@ schedule_configure_telegram() {
         
         # Thread ID (optional)
         echo
-        echo -e "\033[1;37m🧵 Thread Configuration (Optional)\033[0m"
-        echo -e "\033[38;5;244mFor group threads/topics. Leave empty if not using threads.\033[0m"
+        echo -e "\033[1;37m🧵 Настройка темы (опционально)\033[0m"
+        echo -e "\033[38;5;244mДля групповых тем/топиков. Оставьте пустым, если не используете темы.\033[0m"
         
-        read -p "Enter thread ID (optional): " thread_id
+        read -p "Введите ID темы (необязательно): " thread_id
         if [ -n "$thread_id" ]; then
             schedule_update_config ".telegram.thread_id" "\"$thread_id\""
         else
             schedule_update_config ".telegram.thread_id" "null"
         fi
         
-        echo -e "\033[1;32m✅ Telegram integration configured!\033[0m"
-        echo -e "\033[38;5;8m   Files larger than 49MB will be automatically split\033[0m"
-        echo -e "\033[38;5;8m   Use 'Test Telegram' to verify settings\033[0m"
+        echo -e "\033[1;32m✅ Интеграция с Telegram настроена!\033[0m"
+        echo -e "\033[38;5;8m   Файлы больше 49MB будут автоматически разделены\033[0m"
+        echo -e "\033[38;5;8m   Используйте 'Test Telegram' для проверки настроек\033[0m"
     else
         schedule_update_config ".telegram.enabled" "false"
-        echo -e "\033[1;32m✅ Telegram notifications disabled\033[0m"
+        echo -e "\033[1;32m✅ Уведомления Telegram отключены\033[0m"
     fi
     
     sleep 2
@@ -1076,7 +1076,7 @@ schedule_update_config() {
     if jq "$key = $value" "$BACKUP_CONFIG_FILE" > "$temp_file" 2>/dev/null; then
         mv "$temp_file" "$BACKUP_CONFIG_FILE"
     else
-        echo -e "\033[1;31m❌ Failed to update backup configuration\033[0m"
+        echo -e "\033[1;31m❌ Не удалось обновить конфигурацию резервного копирования\033[0m"
         rm -f "$temp_file"
         return 1
     fi
@@ -1088,7 +1088,7 @@ ensure_cron_installed() {
         return 0
     fi
     
-    echo -e "\033[38;5;250m📦 Installing cron service for backup scheduling...\033[0m"
+    echo -e "\033[38;5;250m📦 Установка службы cron для планирования бэкапов...\033[0m"
     
     # Определяем пакетный менеджер и устанавливаем cron
     local install_success=false
@@ -1121,11 +1121,11 @@ ensure_cron_installed() {
     fi
     
     if [ "$install_success" = true ]; then
-        echo -e "\033[1;32m✅ Cron service installed and started successfully\033[0m"
+        echo -e "\033[1;32m✅ Служба cron установлена и запущена успешно\033[0m"
         return 0
     else
-        echo -e "\033[1;31m❌ Could not install cron service automatically\033[0m"
-        echo -e "\033[38;5;244m   Please install manually:\033[0m"
+        echo -e "\033[1;31m❌ Не удалось автоматически установить службу cron\033[0m"
+        echo -e "\033[38;5;244m   Установите вручную:\033[0m"
         if command -v apt-get >/dev/null 2>&1; then
             echo -e "\033[38;5;117m   sudo apt-get install cron\033[0m"
         elif command -v yum >/dev/null 2>&1; then
@@ -1149,52 +1149,52 @@ schedule_toggle() {
     local status=$(schedule_get_status)
     
     if [ "$status" = "enabled" ]; then
-        echo -e "\033[1;33mDisabling scheduler...\033[0m"
+        echo -e "\033[1;33mОтключение планировщика...\033[0m"
         schedule_disable
     else
-        echo -e "\033[1;33mEnabling scheduler...\033[0m"
+        echo -e "\033[1;33mВключение планировщика...\033[0m"
         schedule_enable
     fi
     
     # Add pause to show result before returning to menu
-    read -p "Press Enter to continue..."
+    read -p "Нажмите Enter для продолжения..."
 }
 
 schedule_enable() {
     # Проверяем и устанавливаем cron если необходимо
     if ! ensure_cron_installed; then
-        echo -e "\033[1;31m❌ Cannot enable scheduler without cron service!\033[0m"
+        echo -e "\033[1;31m❌ Нельзя включить планировщик без службы cron!\033[0m"
         sleep 3
         return
     fi
     
     if [ ! -f "$BACKUP_CONFIG_FILE" ]; then
-        echo -e "\033[1;31m❌ No configuration found! Please configure backup settings first.\033[0m"
+        echo -e "\033[1;31m❌ Конфигурация не найдена! Сначала настройте параметры бэкапа.\033[0m"
         sleep 2
         return
     fi
     
     if ! command -v jq >/dev/null 2>&1; then
-        echo -e "\033[1;31m❌ jq is not installed! Please install jq first.\033[0m"
-        echo -e "\033[38;5;244m   Install with: sudo apt-get install jq\033[0m"
+        echo -e "\033[1;31m❌ jq не установлен! Пожалуйста, установите jq.\033[0m"
+        echo -e "\033[38;5;244m   Установите: sudo apt-get install jq\033[0m"
         sleep 3
         return
     fi
     
     local schedule=$(jq -r '.schedule // ""' "$BACKUP_CONFIG_FILE" 2>/dev/null)
     if [ -z "$schedule" ] || [ "$schedule" = "null" ]; then
-        echo -e "\033[1;31m❌ No schedule configured! Please set backup schedule first.\033[0m"
+        echo -e "\033[1;31m❌ Расписание не настроено! Сначала установите расписание бэкапа.\033[0m"
         sleep 2
         return
     fi
 
     # Проверяем и создаём backup скрипт если необходимо
     if [ ! -f "$BACKUP_SCRIPT_FILE" ]; then
-        echo -e "\033[1;33m⚠️  Creating backup script...\033[0m"
+        echo -e "\033[1;33m⚠️  Создание скрипта бэкапа...\033[0m"
         schedule_create_backup_script
     else
         # Простая проверка - если файл есть, но версия может быть старой, обновляем
-        echo -e "\033[1;33m⚠️  Ensuring backup script is up-to-date...\033[0m"
+        echo -e "\033[1;33m⚠️  Обеспечение актуальности скрипта бэкапа...\033[0m"
         schedule_create_backup_script
     fi
 
@@ -1202,11 +1202,11 @@ schedule_enable() {
     
     # Удаляем старую запись для backup-scheduler.sh если есть
     if (crontab -l 2>/dev/null | grep -v "$BACKUP_SCRIPT_FILE"; echo "$cron_entry") | crontab - 2>/dev/null; then
-        echo -e "\033[1;32m✅ Backup scheduler enabled!\033[0m"
-        echo -e "\033[38;5;250mSchedule: $schedule\033[0m"
+        echo -e "\033[1;32m✅ Планировщик бэкапов включен!\033[0m"
+        echo -e "\033[38;5;250mРасписание: $schedule\033[0m"
     else
-        echo -e "\033[1;31m❌ Failed to enable scheduler! Check cron service status.\033[0m"
-        echo -e "\033[38;5;244m   Try: sudo systemctl status cron\033[0m"
+        echo -e "\033[1;31m❌ Не удалось включить планировщик! Проверьте статус службы cron.\033[0m"
+        echo -e "\033[38;5;244m   Попробуйте: sudo systemctl status cron\033[0m"
     fi
     
     sleep 2
@@ -1214,20 +1214,20 @@ schedule_enable() {
 
 schedule_disable() {
     if ! command -v crontab >/dev/null 2>&1; then
-        echo -e "\033[1;33m⚠️  Crontab not available, but scheduler should be disabled\033[0m"
+        echo -e "\033[1;33m⚠️  Crontab недоступен, но планировщик должен быть отключен\033[0m"
         sleep 2
         return
     fi
     
     if crontab -l 2>/dev/null | grep -v "$BACKUP_SCRIPT_FILE" | crontab - 2>/dev/null; then
-        echo -e "\033[1;32m✅ Backup scheduler disabled!\033[0m"
+        echo -e "\033[1;32m✅ Планировщик бэкапов отключен!\033[0m"
     else
         # Попробуем создать пустой crontab если его не было
         if crontab -l 2>/dev/null | wc -l | grep -q "^0$"; then
             echo "" | crontab - 2>/dev/null
-            echo -e "\033[1;32m✅ Backup scheduler disabled (crontab was empty)!\033[0m"
+            echo -e "\033[1;32m✅ Планировщик бэкапов отключен (crontab был пуст)!\033[0m"
         else
-            echo -e "\033[1;33m⚠️  Could not modify crontab, but scheduler should be disabled\033[0m"
+            echo -e "\033[1;33m⚠️  Не удалось изменить crontab, но планировщик должен быть отключен\033[0m"
         fi
     fi
     
@@ -1270,12 +1270,12 @@ check_version_compatibility() {
     local current_script_version="$SCRIPT_VERSION"
     
     if [ ! -f "$backup_metadata" ]; then
-        log_restore_operation "Version Check" "WARNING" "No metadata file found, skipping version check"
+        log_restore_operation "Version Check" "WARNING" "Метаданные не найдены, пропускаем проверку версий"
         return 0
     fi
     
     if ! command -v jq >/dev/null 2>&1; then
-        log_restore_operation "Version Check" "WARNING" "jq not available, skipping version check"
+        log_restore_operation "Version Check" "WARNING" "jq недоступен, пропускаем проверку версий"
         return 0
     fi
     
@@ -1286,7 +1286,7 @@ check_version_compatibility() {
     # Получаем текущую версию панели
     local current_panel_version=$(get_panel_version)
     
-    log_restore_operation "Version Check" "INFO" "Backup script: $backup_script_version, Current: $current_script_version, Backup panel: $backup_panel_version, Current panel: $current_panel_version, Date: $backup_date"
+    log_restore_operation "Version Check" "INFO" "Скрипт бэкапа: $backup_script_version, Текущий: $current_script_version, Панель в бэкапе: $backup_panel_version, Текущая панель: $current_panel_version, Дата: $backup_date"
     
     # Проверка совместимости версии панели (критически важно!)
     if [ "$backup_panel_version" != "unknown" ] && [ "$current_panel_version" != "unknown" ]; then
@@ -1295,41 +1295,41 @@ check_version_compatibility() {
         
         case $panel_compat_result in
             0)
-                echo -e "\033[1;32m✅ Panel version compatibility: Perfect match ($current_panel_version)\033[0m"
-                log_restore_operation "Panel Version Check" "SUCCESS" "Versions match: $current_panel_version"
+                echo -e "\033[1;32m✅ Совместимость версий панели: Идеальное совпадение ($current_panel_version)\033[0m"
+                log_restore_operation "Panel Version Check" "SUCCESS" "Версии совпадают: $current_panel_version"
                 ;;
             1)
-                echo -e "\033[1;33m⚠️  Panel version compatibility: Minor difference\033[0m"
-                echo -e "\033[38;5;244m   Backup panel: $backup_panel_version\033[0m"
-                echo -e "\033[38;5;244m   Current panel: $current_panel_version\033[0m"
-                echo -e "\033[38;5;244m   Restore should work but verify functionality after\033[0m"
-                log_restore_operation "Panel Version Check" "WARNING" "Minor version difference: $backup_panel_version -> $current_panel_version"
+                echo -e "\033[1;33m⚠️  Совместимость версий панели: Незначительное различие\033[0m"
+                echo -e "\033[38;5;244m   Панель в бэкапе: $backup_panel_version\033[0m"
+                echo -e "\033[38;5;244m   Текущая панель: $current_panel_version\033[0m"
+                echo -e "\033[38;5;244m   Восстановление должно работать, но проверьте функциональность после\033[0m"
+                log_restore_operation "Panel Version Check" "WARNING" "Незначительное различие версий: $backup_panel_version -> $current_panel_version"
                 ;;
             3)
-                echo -e "\033[1;31m❌ CRITICAL: Panel version incompatibility detected!\033[0m"
-                echo -e "\033[38;5;244m   Backup panel version: $backup_panel_version\033[0m"
-                echo -e "\033[38;5;244m   Current panel version: $current_panel_version\033[0m"
-                echo -e "\033[1;31m   ⚠️  Restoring this backup may break your panel!\033[0m"
+                echo -e "\033[1;31m❌ КРИТИЧНО: Обнаружена несовместимость версий панели!\033[0m"
+                echo -e "\033[38;5;244m   Версия панели в бэкапе: $backup_panel_version\033[0m"
+                echo -e "\033[38;5;244m   Текущая версия панели: $current_panel_version\033[0m"
+                echo -e "\033[1;31m   ⚠️  Восстановление этого бэкапа может сломать вашу панель!\033[0m"
                 echo
-                echo -e "\033[1;37m🔧 Recommended actions:\033[0m"
-                echo -e "\033[38;5;250m   1. Install Remnawave panel v$backup_panel_version first\033[0m"
-                echo -e "\033[38;5;250m   2. Or create new backup from current v$current_panel_version panel\033[0m"
+                echo -e "\033[1;37m🔧 Рекомендуемые действия:\033[0m"
+                echo -e "\033[38;5;250m   1. Сначала установите панель Remnawave v$backup_panel_version\033[0m"
+                echo -e "\033[38;5;250m   2. Или создайте новый бэкап из текущей панели v$current_panel_version\033[0m"
                 echo
-                read -p "Continue anyway? This is DANGEROUS! [y/N]: " -r force_continue
+                read -p "Продолжить в любом случае? Это ОПАСНО! [y/N]: " -r force_continue
                 if [[ ! $force_continue =~ ^[Yy]$ ]]; then
-                    log_restore_operation "Panel Version Check" "ERROR" "User aborted due to version incompatibility"
-                    echo -e "\033[1;33m⚠️  Restore aborted for safety\033[0m"
+                    log_restore_operation "Panel Version Check" "ERROR" "Пользователь отменил из-за несовместимости версий"
+                    echo -e "\033[1;33m⚠️  Восстановление отменено для безопасности\033[0m"
                     return 2
                 fi
-                log_restore_operation "Panel Version Check" "WARNING" "User forced continue despite incompatibility"
+                log_restore_operation "Panel Version Check" "WARNING" "Пользователь принудительно продолжил несмотря на несовместимость"
                 ;;
         esac
     elif [ "$backup_panel_version" = "unknown" ]; then
-        echo -e "\033[1;33m⚠️  Panel version unknown in backup - cannot verify compatibility\033[0m"
-        log_restore_operation "Panel Version Check" "WARNING" "Unknown backup panel version"
+        echo -e "\033[1;33m⚠️  Версия панели неизвестна в бэкапе - невозможно проверить совместимость\033[0m"
+        log_restore_operation "Panel Version Check" "WARNING" "Неизвестная версия панели в бэкапе"
     elif [ "$current_panel_version" = "unknown" ]; then
-        echo -e "\033[1;33m⚠️  Current panel version unknown - cannot verify compatibility\033[0m"
-        log_restore_operation "Panel Version Check" "WARNING" "Unknown current panel version"
+        echo -e "\033[1;33m⚠️  Текущая версия панели неизвестна - невозможно проверить совместимость\033[0m"
+        log_restore_operation "Panel Version Check" "WARNING" "Неизвестная текущая версия панели"
     fi
     
     # Проверка версии скрипта (менее критично)
@@ -1338,13 +1338,13 @@ check_version_compatibility() {
         local current_major=$(echo "$current_script_version" | cut -d'.' -f1)
         
         if [ "$backup_major" != "$current_major" ]; then
-            log_restore_operation "Script Version Check" "WARNING" "Major version mismatch - backup may be incompatible"
-            echo -e "\033[1;33m⚠️  Script version compatibility warning:\033[0m"
-            echo -e "\033[38;5;244m   Backup script: $backup_script_version\033[0m"
-            echo -e "\033[38;5;244m   Current script: $current_script_version\033[0m"
+            log_restore_operation "Script Version Check" "WARNING" "Несовпадение мажорных версий — бэкап может быть несовместим"
+            echo -e "\033[1;33m⚠️  Предупреждение о совместимости версий скрипта:\033[0m"
+            echo -e "\033[38;5;244m   Скрипт в бэкапе: $backup_script_version\033[0m"
+            echo -e "\033[38;5;244m   Текущий скрипт: $current_script_version\033[0m"
             return 1
         else
-            log_restore_operation "Script Version Check" "INFO" "Minor script version difference, should be compatible"
+            log_restore_operation "Script Version Check" "INFO" "Незначительная разница версий скрипта, должно быть совместимо"
         fi
     fi
     
@@ -1356,7 +1356,7 @@ check_system_resources() {
     local backup_file="$1"
     local target_dir="$2"
     
-    echo -e "\033[38;5;250m📝 Checking system resources...\033[0m"
+    echo -e "\033[38;5;250m📝 Проверка системных ресурсов...\033[0m"
     
     # Размер бэкапа
     local backup_size=0
@@ -1374,18 +1374,18 @@ check_system_resources() {
     if [ "$available_bytes" -lt "$required_space" ] && [ "$backup_size" -gt 0 ]; then
         local backup_mb=$((backup_size / 1024 / 1024))
         local available_mb=$((available_bytes / 1024 / 1024))
-        echo -e "\033[1;31m❌ Insufficient disk space!\033[0m"
-        echo -e "\033[38;5;244m   Required: ~${backup_mb}MB + 50% buffer, Available: ${available_mb}MB\033[0m"
+        echo -e "\033[1;31m❌ Недостаточно места на диске!\033[0m"
+        echo -e "\033[38;5;244m   Требуется: ~${backup_mb}MB + 50% буфер, Доступно: ${available_mb}MB\033[0m"
         return 1
     fi
     
     # Проверка памяти (базовая)
     local available_memory=$(free -m 2>/dev/null | awk 'NR==2{print $7}' || echo "1000")
     if [ "$available_memory" -lt 500 ]; then
-        echo -e "\033[1;33m⚠️  Low available memory (${available_memory}MB), restore may be slow\033[0m"
+        echo -e "\033[1;33m⚠️  Мало доступной памяти (${available_memory}MB), восстановление может быть медленным\033[0m"
     fi
     
-    echo -e "\033[1;32m✅ System resources check passed\033[0m"
+    echo -e "\033[1;32m✅ Проверка системных ресурсов пройдена\033[0m"
     return 0
 }
 
@@ -1397,12 +1397,12 @@ validate_sql_integrity() {
         return 1
     fi
     
-    echo -e "\033[38;5;250m📝 Validating SQL file integrity...\033[0m"
+    echo -e "\033[38;5;250m📝 Проверка целостности SQL файла...\033[0m"
     
     # Проверка размера файла
     local file_size=$(wc -c < "$sql_file" 2>/dev/null || echo "0")
     if [ "$file_size" -lt 100 ]; then
-        echo -e "\033[1;31m❌ SQL file too small (${file_size} bytes)\033[0m"
+        echo -e "\033[1;31m❌ SQL файл слишком мал (${file_size} байт)\033[0m"
         return 1
     fi
     
@@ -1441,24 +1441,24 @@ validate_sql_integrity() {
     
     # Результаты проверки
     if [ "$has_structure" = false ] && [ "$has_data" = false ]; then
-        echo -e "\033[1;31m❌ SQL file appears to contain no valid database commands\033[0m"
+        echo -e "\033[1;31m❌ SQL файл не содержит валидных команд базы данных\033[0m"
         return 1
     fi
     
     if [ "$pg_header_found" = false ] && [ "$command_count" -lt 3 ]; then
-        echo -e "\033[1;33m⚠️  Warning: SQL file may not be a standard PostgreSQL dump\033[0m"
+        echo -e "\033[1;33m⚠️  Предупреждение: SQL файл может не быть стандартным дампом PostgreSQL\033[0m"
     fi
     
     if [ "$remnawave_tables" = true ]; then
-        echo -e "\033[1;32m✅ RemnaWave database tables detected\033[0m"
+        echo -e "\033[1;32m✅ Обнаружены таблицы базы данных RemnaWave\033[0m"
     fi
     
     # Проверка на SQL инъекции и подозрительные команды
     if grep -qi "drop database\|rm -rf\|system\|exec\|eval" "$sql_file" 2>/dev/null; then
-        echo -e "\033[1;33m⚠️  Warning: SQL file contains potentially dangerous commands\033[0m"
+        echo -e "\033[1;33m⚠️  Предупреждение: SQL файл содержит потенциально опасные команды\033[0m"
     fi
     
-    echo -e "\033[1;32m✅ SQL file validation passed\033[0m"
+    echo -e "\033[1;32m✅ Проверка SQL файла пройдена\033[0m"
     return 0
 }
 
@@ -1468,7 +1468,7 @@ validate_extracted_backup() {
     local backup_type="${2:-full}"
     local app_name="$3"
     
-    echo -e "\033[38;5;250m📝 Validating extracted backup...\033[0m"
+    echo -e "\033[38;5;250m📝 Проверка извлеченного бэкапа...\033[0m"
     
     local validation_errors=0
     
@@ -1476,27 +1476,27 @@ validate_extracted_backup() {
     if [ "$backup_type" = "full" ]; then
         # Обязательные файлы: docker-compose.yml и .env
         if [ ! -f "$target_dir/docker-compose.yml" ]; then
-            echo -e "\033[1;31m❌ Critical file missing: docker-compose.yml\033[0m"
+            echo -e "\033[1;31m❌ Отсутствует критический файл: docker-compose.yml\033[0m"
             validation_errors=$((validation_errors + 1))
         else
             # Проверка синтаксиса docker-compose.yml
             if ! docker compose -f "$target_dir/docker-compose.yml" config >/dev/null 2>&1; then
-                echo -e "\033[1;31m❌ Invalid docker-compose.yml syntax\033[0m"
+                echo -e "\033[1;31m❌ Неверный синтаксис docker-compose.yml\033[0m"
                 validation_errors=$((validation_errors + 1))
             fi
         fi
         
         # .env является обязательным для RemnaWave (содержит настройки БД)
         if [ ! -f "$target_dir/.env" ]; then
-            echo -e "\033[1;31m❌ Critical file missing: .env\033[0m"
-            echo -e "\033[38;5;244m   .env file is required for database configuration\033[0m"
+            echo -e "\033[1;31m❌ Отсутствует критический файл: .env\033[0m"
+            echo -e "\033[38;5;244m   Файл .env необходим для конфигурации базы данных\033[0m"
             validation_errors=$((validation_errors + 1))
         else
             # Проверяем что .env содержит необходимые переменные для PostgreSQL
             local required_vars=("POSTGRES_USER" "POSTGRES_PASSWORD" "POSTGRES_DB")
             for var in "${required_vars[@]}"; do
                 if ! grep -q "^${var}=" "$target_dir/.env" 2>/dev/null; then
-                    echo -e "\033[1;33m⚠️  Warning: .env missing variable: $var\033[0m"
+                    echo -e "\033[1;33m⚠️  Предупреждение: в .env отсутствует переменная: $var\033[0m"
                 fi
             done
         fi
@@ -1529,7 +1529,7 @@ validate_extracted_backup() {
     fi
     
     if [ ${#database_files_found[@]} -gt 0 ]; then
-        echo -e "\033[1;32m✅ Database files found: ${database_files_found[*]}\033[0m"
+        echo -e "\033[1;32m✅ Найдены файлы базы данных: ${database_files_found[*]}\033[0m"
         
         # Валидируем найденные файлы БД
         for db_file in "${database_files_found[@]}"; do
@@ -1540,40 +1540,40 @@ validate_extracted_backup() {
                 local temp_sql="/tmp/validate_db_$$.sql"
                 if gunzip -c "$full_db_path" > "$temp_sql" 2>/dev/null; then
                     if ! validate_sql_integrity "$temp_sql"; then
-                        echo -e "\033[1;31m❌ Compressed database file validation failed: $db_file\033[0m"
+                        echo -e "\033[1;31m❌ Не удалось проверить сжатый файл базы данных: $db_file\033[0m"
                         validation_errors=$((validation_errors + 1))
                     fi
                     rm -f "$temp_sql"
                 else
-                    echo -e "\033[1;31m❌ Failed to decompress database file: $db_file\033[0m"
+                    echo -e "\033[1;31m❌ Не удалось распаковать файл базы данных: $db_file\033[0m"
                     validation_errors=$((validation_errors + 1))
                 fi
             else
                 # Обычный SQL файл
                 if ! validate_sql_integrity "$full_db_path"; then
-                    echo -e "\033[1;31m❌ Database file validation failed: $db_file\033[0m"
+                    echo -e "\033[1;31m❌ Не удалось проверить файл базы данных: $db_file\033[0m"
                     validation_errors=$((validation_errors + 1))
                 fi
             fi
         done
     elif [ "$backup_type" = "full" ]; then
-        echo -e "\033[1;33m⚠️  Warning: No database files found in backup\033[0m"
-        echo -e "\033[38;5;244m   Expected files: database.sql, db_backup.sql, or compressed variants\033[0m"
+        echo -e "\033[1;33m⚠️  Предупреждение: В бэкапе не найдены файлы базы данных\033[0m"
+        echo -e "\033[38;5;244m   Ожидаемые файлы: database.sql, db_backup.sql или сжатые варианты\033[0m"
     fi
     
     # Проверка прав доступа
     if [ ! -r "$target_dir" ] || [ ! -w "$target_dir" ]; then
-        echo -e "\033[1;31m❌ Insufficient permissions for target directory\033[0m"
+        echo -e "\033[1;31m❌ Недостаточно прав для целевой директории\033[0m"
         validation_errors=$((validation_errors + 1))
     fi
     
     if [ $validation_errors -eq 0 ]; then
-        echo -e "\033[1;32m✅ Backup validation passed\033[0m"
-        log_restore_operation "Backup Validation" "SUCCESS" "All validation checks passed"
+        echo -e "\033[1;32m✅ Проверка бэкапа пройдена\033[0m"
+        log_restore_operation "Backup Validation" "SUCCESS" "Все проверки валидации пройдены"
         return 0
     else
-        echo -e "\033[1;31m❌ Backup validation failed ($validation_errors errors)\033[0m"
-        log_restore_operation "Backup Validation" "ERROR" "$validation_errors validation errors found"
+        echo -e "\033[1;31m❌ Проверка бэкапа не пройдена ($validation_errors ошибок)\033[0m"
+        log_restore_operation "Backup Validation" "ERROR" "Найдено ошибок валидации: $validation_errors"
         return 1
     fi
 }
@@ -1585,12 +1585,12 @@ create_safety_backup() {
     local backup_dir="$3"
     
     if [ ! -d "$target_dir" ]; then
-        echo -e "\033[38;5;244m   No existing installation found, skipping safety backup\033[0m"
-        log_restore_operation "Safety Backup" "INFO" "No existing installation found"
+        echo -e "\033[38;5;244m   Существующая установка не найдена, пропускаем резервное копирование\033[0m"
+        log_restore_operation "Safety Backup" "INFO" "Существующая установка не найдена"
         return 0
     fi
     
-    echo -e "\033[38;5;250m📝 Creating safety backup before restore...\033[0m"
+    echo -e "\033[38;5;250m📝 Создание резервной копии перед восстановлением...\033[0m"
     
     local safety_backup_dir="$backup_dir/safety_backup_$(date +%Y%m%d_%H%M%S)"
     mkdir -p "$safety_backup_dir"
@@ -1601,7 +1601,7 @@ create_safety_backup() {
         local db_container="${app_name}-db"
         
         if docker compose ps -q "$db_container" 2>/dev/null | grep -q .; then
-            echo -e "\033[38;5;244m   Creating database dump...\033[0m"
+            echo -e "\033[38;5;244m   Создание дампа базы данных...\033[0m"
             
             local postgres_user="postgres"
             local postgres_password="postgres"
@@ -1616,17 +1616,17 @@ create_safety_backup() {
             
             if docker exec -e PGPASSWORD="$postgres_password" "$db_container" \
                 pg_dump -U "$postgres_user" -d "$postgres_db" --clean --create > "$safety_backup_dir/database_safety.sql" 2>/dev/null; then
-                echo -e "\033[1;32m✅ Database safety backup created\033[0m"
-                log_restore_operation "Database Safety Backup" "SUCCESS" "Database dump created"
+                echo -e "\033[1;32m✅ Резервная копия базы данных создана\033[0m"
+                log_restore_operation "Database Safety Backup" "SUCCESS" "Дамп базы данных создан"
             else
-                echo -e "\033[1;33m⚠️  Failed to create database safety backup\033[0m"
-                log_restore_operation "Database Safety Backup" "WARNING" "Failed to create database dump"
+                echo -e "\033[1;33m⚠️  Не удалось создать безопасную резервную копию базы данных\033[0m"
+                log_restore_operation "Database Safety Backup" "WARNING" "Не удалось создать дамп базы данных"
             fi
         fi
     fi
     
     # Копируем важные файлы конфигурации
-    echo -e "\033[38;5;244m   Backing up configuration files...\033[0m"
+    echo -e "\033[38;5;244m   Резервное копирование конфигурационных файлов...\033[0m"
     
     local files_copied=0
     for file in docker-compose.yml .env config.json settings.yml remnawave.conf; do
@@ -1648,8 +1648,8 @@ create_safety_backup() {
     # Сохраняем информацию о safety backup
     echo "$safety_backup_dir" > "/tmp/safety_backup_location_$$"
     
-    echo -e "\033[1;32m✅ Safety backup created ($files_copied items) at: $safety_backup_dir\033[0m"
-    log_restore_operation "Safety Backup" "SUCCESS" "$files_copied items backed up to $safety_backup_dir"
+    echo -e "\033[1;32m✅ Создана резервная копия ($files_copied объектов): $safety_backup_dir\033[0m"
+    log_restore_operation "Safety Backup" "SUCCESS" "$files_copied файлов сохранено в $safety_backup_dir"
     return 0
 }
 
@@ -1659,20 +1659,20 @@ rollback_from_safety_backup() {
     local app_name="$2"
     
     if [ ! -f "/tmp/safety_backup_location_$$" ]; then
-        echo -e "\033[1;31m❌ No safety backup location found for rollback\033[0m"
-        log_restore_operation "Rollback" "ERROR" "No safety backup location found"
+        echo -e "\033[1;31m❌ Путь к резервной копии для отката не найден\033[0m"
+        log_restore_operation "Rollback" "ERROR" "Путь к резервной копии не найден"
         return 1
     fi
     
     local safety_backup_dir=$(cat "/tmp/safety_backup_location_$$")
     
     if [ ! -d "$safety_backup_dir" ]; then
-        echo -e "\033[1;31m❌ Safety backup directory not found: $safety_backup_dir\033[0m"
-        log_restore_operation "Rollback" "ERROR" "Safety backup directory not found"
+        echo -e "\033[1;31m❌ Директория резервной копии не найдена: $safety_backup_dir\033[0m"
+        log_restore_operation "Rollback" "ERROR" "Директория резервной копии не найдена"
         return 1
     fi
     
-    echo -e "\033[38;5;250m📝 Rolling back from safety backup...\033[0m"
+    echo -e "\033[38;5;250m📝 Откат из резервной копии...\033[0m"
     log_restore_operation "Rollback" "STARTED" "Rolling back from $safety_backup_dir"
     
     # Останавливаем сервисы
@@ -1699,7 +1699,7 @@ rollback_from_safety_backup() {
     
     # Восстанавливаем базу данных если есть
     if [ -f "$safety_backup_dir/database_safety.sql" ] && [ -f "$target_dir/docker-compose.yml" ]; then
-        echo -e "\033[38;5;244m   Restoring database from safety backup...\033[0m"
+        echo -e "\033[38;5;244m   Восстановление базы данных из резервной копии...\033[0m"
         
         cd "$target_dir"
         docker compose up -d "${app_name}-db" 2>/dev/null
@@ -1716,19 +1716,19 @@ rollback_from_safety_backup() {
         
         if [ $attempts -lt 15 ]; then
             if docker exec -i "${app_name}-db" psql -U postgres < "$safety_backup_dir/database_safety.sql" >/dev/null 2>&1; then
-                echo -e "\033[1;32m✅ Database rolled back successfully\033[0m"
-                log_restore_operation "Database Rollback" "SUCCESS" "Database restored from safety backup"
+                echo -e "\033[1;32m✅ База данных успешно откачена\033[0m"
+                log_restore_operation "Database Rollback" "SUCCESS" "База данных восстановлена из резервной копии"
             else
-                echo -e "\033[1;33m⚠️  Database rollback had issues\033[0m"
-                log_restore_operation "Database Rollback" "WARNING" "Database rollback had issues"
+                echo -e "\033[1;33m⚠️  При откате базы данных возникли проблемы\033[0m"
+                log_restore_operation "Database Rollback" "WARNING" "При откате базы данных возникли проблемы"
             fi
         fi
         
         docker compose down 2>/dev/null
     fi
     
-    echo -e "\033[1;32m✅ Rollback completed ($files_restored items restored)\033[0m"
-    log_restore_operation "Rollback" "SUCCESS" "$files_restored items restored"
+    echo -e "\033[1;32m✅ Откат завершен ($files_restored элементов восстановлено)\033[0m"
+    log_restore_operation "Rollback" "SUCCESS" "Восстановлено файлов: $files_restored"
     
     # Очищаем временные файлы
     rm -f "/tmp/safety_backup_location_$$"
@@ -1742,7 +1742,7 @@ verify_restore_integrity() {
     local app_name="$2"
     local backup_type="${3:-full}"
     
-    echo -e "\033[38;5;250m📝 Verifying restore integrity...\033[0m"
+    echo -e "\033[38;5;250m📝 Проверка целостности восстановления...\033[0m"
     
     local integrity_score=0
     local max_score=10
@@ -1833,23 +1833,23 @@ verify_restore_integrity() {
     
     # Детальный отчет об обнаруженных проблемах
     if [ ${#issues[@]} -gt 0 ]; then
-        echo -e "\033[38;5;244m   Issues detected:\033[0m"
+        echo -e "\033[38;5;244m   Обнаружены проблемы:\033[0m"
         for issue in "${issues[@]}"; do
             echo -e "\033[38;5;244m   - $issue\033[0m"
         done
     fi
     
     if [ $percentage -ge 80 ]; then
-        echo -e "\033[1;32m✅ Restore integrity check passed: $integrity_score/$max_score ($percentage%)\033[0m"
+        echo -e "\033[1;32m✅ Проверка целостности восстановления пройдена: $integrity_score/$max_score ($percentage%)\033[0m"
         log_restore_operation "Integrity Check" "SUCCESS" "$integrity_score/$max_score ($percentage%)"
         return 0
     elif [ $percentage -ge 60 ]; then
-        echo -e "\033[1;33m⚠️  Restore integrity check warning: $integrity_score/$max_score ($percentage%)\033[0m"
-        log_restore_operation "Integrity Check" "WARNING" "$integrity_score/$max_score ($percentage%) - ${#issues[@]} issues"
+        echo -e "\033[1;33m⚠️  Предупреждение проверки целостности восстановления: $integrity_score/$max_score ($percentage%)\033[0m"
+        log_restore_operation "Integrity Check" "WARNING" "$integrity_score/$max_score ($percentage%) - проблем: ${#issues[@]}"
         return 1
     else
-        echo -e "\033[1;31m❌ Restore integrity check failed: $integrity_score/$max_score ($percentage%)\033[0m"
-        log_restore_operation "Integrity Check" "ERROR" "$integrity_score/$max_score ($percentage%) - ${#issues[@]} issues"
+        echo -e "\033[1;31m❌ Проверка целостности восстановления не пройдена: $integrity_score/$max_score ($percentage%)\033[0m"
+        log_restore_operation "Integrity Check" "ERROR" "$integrity_score/$max_score ($percentage%) - проблем: ${#issues[@]}"
         return 2
     fi
 }
@@ -1885,7 +1885,7 @@ log_message() {
 # Функция для проверки доступности команд
 check_command() {
     if ! command -v "$1" >/dev/null 2>&1; then
-        log_message "ERROR: Required command '$1' not found"
+        log_message "ERROR: Требуемая команда '$1' не найдена"
         exit 1
     fi
 }
@@ -1896,13 +1896,13 @@ check_command jq
 
 # Определяем переменные из конфигурации
 if [ ! -f "$CONFIG_FILE" ]; then
-    log_message "ERROR: Backup configuration not found: $CONFIG_FILE"
+    log_message "ERROR: Конфигурация бэкапа не найдена: $CONFIG_FILE"
     exit 1
 fi
 
 # Проверяем валидность JSON конфигурации
 if ! jq . "$CONFIG_FILE" >/dev/null 2>&1; then
-    log_message "ERROR: Backup configuration file is corrupted: $CONFIG_FILE"
+    log_message "ERROR: Файл конфигурации бэкапа повреждён: $CONFIG_FILE"
     log_message "Please run the main script to recreate configuration"
     exit 1
 fi
@@ -1945,7 +1945,7 @@ fi
 
 db_container="${APP_NAME}-db"
 if ! docker exec "$db_container" pg_isready -U "$postgres_user" >/dev/null 2>&1; then
-    log_message "ERROR: Database container is not ready"
+    log_message "ERROR: Контейнер базы данных не готов"
     rm -rf "$temp_backup_dir"
     exit 1
 fi
@@ -1958,7 +1958,7 @@ if docker exec -e PGPASSWORD="$postgres_password" "$db_container" \
     db_size=$(du -sh "$database_file" | cut -f1)
     log_message "Database exported successfully ($db_size)"
 else
-    log_message "ERROR: Database export failed"
+    log_message "ERROR: Экспорт базы данных не удался"
     rm -rf "$temp_backup_dir"
     exit 1
 fi
@@ -2008,7 +2008,7 @@ else
     # Проверяем что хотя бы docker-compose.yml скопирован
     if [ ! -f "$temp_backup_dir/docker-compose.yml" ]; then
         copy_result=1
-        log_message "ERROR: Critical file docker-compose.yml not found or failed to copy"
+        log_message "ERROR: Критический файл docker-compose.yml не найден или не удалось скопировать"
     fi
 fi
 
@@ -2016,7 +2016,7 @@ if [ $copy_result -eq 0 ]; then
     app_files_count=$(find "$temp_backup_dir" -type f | wc -l)
     log_message "Application files copied successfully ($app_files_count files)"
 else
-    log_message "ERROR: Failed to copy application files"
+    log_message "ERROR: Не удалось скопировать файлы приложения"
     rm -rf "$temp_backup_dir"
     exit 1
 fi
@@ -2079,7 +2079,7 @@ if [ "$COMPRESS_ENABLED" = "true" ]; then
         
         final_backup_file="$BACKUP_DIR/${backup_name}.tar.gz"
     else
-        log_message "ERROR: Backup compression failed"
+        log_message "ERROR: Сжатие бэкапа не удалось"
         rm -rf "$temp_backup_dir"
         exit 1
     fi
@@ -2138,7 +2138,7 @@ if [ "$TELEGRAM_ENABLED" = "true" ];
             if [ $? -eq 0 ]; then
                 log_message "File sent successfully to Telegram"
             else
-                log_message "ERROR: Failed to send file to Telegram"
+                log_message "ERROR: Не удалось отправить файл в Telegram"
             fi
         else
             log_message "Sending backup notification to Telegram (file too large for upload)"
@@ -2161,7 +2161,7 @@ if [ "$TELEGRAM_ENABLED" = "true" ];
             if [ $? -eq 0 ]; then
                 log_message "Backup notification sent successfully to Telegram"
             else
-                log_message "ERROR: Failed to send notification to Telegram"
+                log_message "ERROR: Не удалось отправить уведомление в Telegram"
             fi
         fi
         
@@ -2197,7 +2197,7 @@ rm -rf "$TEMP_BACKUP_ROOT" 2>/dev/null || true
 BACKUP_SCRIPT_EOF
 
     chmod +x "$BACKUP_SCRIPT_FILE"
-    echo -e "\033[1;32m✅ Backup script created: $BACKUP_SCRIPT_FILE\033[0m"
+    echo -e "\033[1;32m✅ Скрипт бэкапа создан: $BACKUP_SCRIPT_FILE\033[0m"
 }
 
 # Добавляем после функции backup_command:
@@ -2240,21 +2240,21 @@ restore_command() {
                 shift
                 ;;
             -h|--help) 
-                echo -e "\033[1;37m🔄 Remnawave Restore System\033[0m"
+                echo -e "\033[1;37m🔄 Система восстановления Remnawave\033[0m"
                 echo
-                echo -e "\033[1;37mUsage:\033[0m"
+        echo -e "\033[1;37mИспользование:\033[0m"
                 echo -e "  \033[38;5;15m$APP_NAME restore\033[0m [\033[38;5;244moptions\033[0m]"
                 echo
-                echo -e "\033[1;37mOptions:\033[0m"
-                echo -e "  \033[38;5;244m--file, -f <path>\033[0m     Restore from specific backup file"
-                echo -e "  \033[38;5;244m--name, -n <name>\033[0m     Set custom app name (default: remnawave)"
-                echo -e "  \033[38;5;244m--path, -p <path>\033[0m     Base installation path (default: /opt)"
-                echo -e "  \033[38;5;244m--database-only\033[0m       Restore only database (requires existing installation)"
-                echo -e "  \033[38;5;244m--skip-install\033[0m        Don't install management script"
-                echo -e "  \033[38;5;244m--force\033[0m               Skip confirmation prompts"
-                echo -e "  \033[38;5;244m--help, -h\033[0m            Show this help"
+                echo -e "\033[1;37mОпции:\033[0m"
+                echo -e "  \033[38;5;244m--file, -f <path>\033[0m     Восстановить из конкретного файла бэкапа"
+                echo -e "  \033[38;5;244m--name, -n <name>\033[0m     Установить пользовательское имя приложения (по умолчанию: remnawave)"
+                echo -e "  \033[38;5;244m--path, -p <path>\033[0m     Базовый путь установки (по умолчанию: /opt)"
+                echo -e "  \033[38;5;244m--database-only\033[0m       Восстановить только базу данных (требует существующую установку)"
+                echo -e "  \033[38;5;244m--skip-install\033[0m        Не устанавливать скрипт управления"
+                echo -e "  \033[38;5;244m--force\033[0m               Пропустить подтверждения"
+                echo -e "  \033[38;5;244m--help, -h\033[0m            Показать эту справку"
                 echo
-                echo -e "\033[1;37mExamples:\033[0m"
+                echo -e "\033[1;37mПримеры:\033[0m"
                 echo -e "  \033[38;5;244m$APP_NAME restore --file backup.tar.gz\033[0m"
                 echo -e "  \033[38;5;244m$APP_NAME restore --file backup.tar.gz --name newpanel\033[0m"
                 echo -e "  \033[38;5;244m$APP_NAME restore --file backup.tar.gz --path /root\033[0m"
@@ -2265,7 +2265,7 @@ restore_command() {
             --) shift; break ;;  # Конец опций
             -*) 
                 echo "Unknown option: $1" >&2
-                echo "Use '$APP_NAME restore --help' for usage information."
+                echo "Используйте '$APP_NAME restore --help' для справки по использованию."
                 exit 1
                 ;;
             *) break ;;  # Позиционные аргументы
@@ -2292,23 +2292,23 @@ restore_interactive_menu() {
     
     while true; do
         clear
-        echo -e "\033[1;37m🔄 Restore from Backup\033[0m"
+        echo -e "\033[1;37m🔄 Восстановление из бэкапа\033[0m"
         echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 40))\033[0m"
         echo
         
         # Показываем текущую конфигурацию
-        echo -e "\033[1;37m⚙️  Restore Configuration:\033[0m"
-        printf "   \033[38;5;15m%-15s\033[0m \033[38;5;250m%s\033[0m\n" "Target name:" "$target_app_name"
-        printf "   \033[38;5;15m%-15s\033[0m \033[38;5;250m%s\033[0m\n" "Target path:" "$target_base_dir/$target_app_name"
-        printf "   \033[38;5;15m%-15s\033[0m \033[38;5;250m%s\033[0m\n" "Restore type:" "$([ "$database_only" = true ] && echo "Database only" || echo "Full system")"
+        echo -e "\033[1;37m⚙️  Конфигурация восстановления:\033[0m"
+        printf "   \033[38;5;15m%-15s\033[0m \033[38;5;250m%s\033[0m\n" "Целевое имя:" "$target_app_name"
+        printf "   \033[38;5;15m%-15s\033[0m \033[38;5;250m%s\033[0m\n" "Целевой путь:" "$target_base_dir/$target_app_name"
+        printf "   \033[38;5;15m%-15s\033[0m \033[38;5;250m%s\033[0m\n" "Тип восстановления:" "$([ "$database_only" = true ] && echo "Только база данных" || echo "Полная система")"
         echo
         
         # Проверяем существование целевой директории
         if [ -d "$target_base_dir/$target_app_name" ]; then
-            echo -e "\033[1;33m⚠️  Target directory already exists!\033[0m"
-            echo -e "\033[38;5;244m   Existing installation will be backed up and replaced\033[0m"
+            echo -e "\033[1;33m⚠️  Целевая директория уже существует!\033[0m"
+            echo -e "\033[38;5;244m   Существующая установка будет сохранена в резервную копию и заменена\033[0m"
         else
-            echo -e "\033[1;32m✅ Target directory is clean\033[0m"
+            echo -e "\033[1;32m✅ Целевая директория чистая\033[0m"
         fi
         echo
         
@@ -2351,13 +2351,13 @@ restore_interactive_menu() {
             echo -e "\033[38;5;244m   • $APP_DIR/backups/\033[0m"
             echo -e "\033[38;5;244m   • /opt/*/backups/\033[0m"
             echo
-            echo -e "\033[1;37m📋 Options:\033[0m"
+            echo -e "\033[1;37m📋 Опции:\033[0m"
             echo -e "   \033[38;5;15m1)\033[0m 📁 Specify custom backup file path"
             echo -e "   \033[38;5;15m2)\033[0m ⚙️  Change restore settings"
             echo -e "   \033[38;5;244m0)\033[0m ⬅️  Back to main menu"
             echo
             
-            read -p "Select option [0-2]: " choice
+            read -p "Выберите опцию [0-2]: " choice
             
             case "$choice" in
                 1) 
@@ -2422,19 +2422,19 @@ restore_interactive_menu() {
                 printf "   \033[38;5;244m%2d)\033[0m %s \033[38;5;244m%-30s\033[0m \033[38;5;244m%s\033[0m \033[38;5;244m%s\033[0m\033[1;31m%s\033[0m\n" \
                     "$index" "$backup_icon" "$backup_name" "$backup_size" "$backup_date" "$compat_note"
             fi
-            printf "      \033[38;5;244m   Source: %s | Type: %s\033[0m\n" "$backup_source" "$backup_type"
+            printf "      \033[38;5;244m   Источник: %s | Тип: %s\033[0m\n" "$backup_source" "$backup_type"
             echo
             index=$((index + 1))
         done
         
-        echo -e "\033[1;37m📋 Options:\033[0m"
+        echo -e "\033[1;37m📋 Опции:\033[0m"
         echo -e "   \033[38;5;15m97)\033[0m 📁 Specify custom backup file path"
         echo -e "   \033[38;5;15m98)\033[0m ⚙️  Change restore settings"
         echo -e "   \033[38;5;15m99)\033[0m 🔄 Refresh backup list"
         echo -e "   \033[38;5;244m0)\033[0m ⬅️  Back to main menu"
         echo
         
-        read -p "Select backup to restore [0-${#backup_files[@]}]: " choice
+        read -p "Выберите бэкап для восстановления [0-${#backup_files[@]}]: " choice
         
         case "$choice" in
             0) return 0 ;;
@@ -2449,7 +2449,7 @@ restore_interactive_menu() {
                 if [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -ge 1 ] && [ "$choice" -le ${#backup_files[@]} ]; then
                     local selected_backup="${backup_files[$((choice - 1))]}"
                     restore_from_backup "$selected_backup" "$target_app_name" "$database_only" "$skip_install" "$force_restore" "$target_base_dir"
-                    read -p "Press Enter to continue..."
+                    read -p "Нажмите Enter для продолжения..."
                 else
                     echo -e "\033[1;31mInvalid option!\033[0m"
                     sleep 1
@@ -2473,16 +2473,16 @@ restore_configure_settings() {
         echo
         
         echo -e "\033[1;37m📋 Current Settings:\033[0m"
-        printf "   \033[38;5;15m1)\033[0m \033[38;5;250mTarget app name: \033[0m\033[1;37m%s\033[0m\n" "$current_target_name"
-        printf "   \033[38;5;15m2)\033[0m \033[38;5;250mTarget path: \033[0m\033[1;37m%s\033[0m\n" "$current_target_base_dir"
-        printf "   \033[38;5;15m3)\033[0m \033[38;5;250mRestore type: \033[0m\033[1;37m%s\033[0m\n" "$([ "$current_database_only" = true ] && echo "Database only" || echo "Full system")"
-        printf "   \033[38;5;15m4)\033[0m \033[38;5;250mSkip script install: \033[0m\033[1;37m%s\033[0m\n" "$([ "$current_skip_install" = true ] && echo "Yes" || echo "No")"
-        printf "   \033[38;5;15m5)\033[0m \033[38;5;250mForce mode: \033[0m\033[1;37m%s\033[0m\n" "$([ "$current_force_restore" = true ] && echo "Enabled" || echo "Disabled")"
+        printf "   \033[38;5;15m1)\033[0m \033[38;5;250mИмя целевого приложения: \033[0m\033[1;37m%s\033[0m\n" "$current_target_name"
+        printf "   \033[38;5;15m2)\033[0m \033[38;5;250mЦелевой путь: \033[0m\033[1;37m%s\033[0m\n" "$current_target_base_dir"
+        printf "   \033[38;5;15m3)\033[0m \033[38;5;250mТип восстановления: \033[0m\033[1;37m%s\033[0m\n" "$([ "$current_database_only" = true ] && echo "Только база данных" || echo "Полная система")"
+        printf "   \033[38;5;15m4)\033[0m \033[38;5;250mПропустить установку скрипта: \033[0m\033[1;37m%s\033[0m\n" "$([ "$current_skip_install" = true ] && echo "Да" || echo "Нет")"
+        printf "   \033[38;5;15m5)\033[0m \033[38;5;250mПринудительный режим: \033[0m\033[1;37m%s\033[0m\n" "$([ "$current_force_restore" = true ] && echo "Включен" || echo "Отключен")"
         echo
         echo -e "   \033[38;5;244m0)\033[0m ⬅️  Back to backup selection"
         echo
         
-        read -p "Select setting to change [0-5]: " choice
+        read -p "Выберите настройку для изменения [0-5]: " choice
         
         case "$choice" in
             1)
@@ -2491,7 +2491,7 @@ restore_configure_settings() {
                 echo -e "\033[38;5;250mCurrent: $current_target_name\033[0m"
                 echo -e "\033[38;5;244mNote: Will be installed to $current_target_base_dir/<app_name>/\033[0m"
                 echo
-                read -p "Enter new app name: " new_name
+                read -p "Введите новое имя приложения: " new_name
                 
                 if [ -n "$new_name" ] && [[ "$new_name" =~ ^[a-zA-Z0-9_-]+$ ]]; then
                     current_target_name="$new_name"
@@ -2507,7 +2507,7 @@ restore_configure_settings() {
                 echo -e "\033[38;5;250mCurrent: $current_target_base_dir\033[0m"
                 echo -e "\033[38;5;244mApp will be installed to: <path>/$current_target_name/\033[0m"
                 echo
-                read -p "Enter new base path: " new_path
+                read -p "Введите новый базовый путь: " new_path
                 
                 if [ -n "$new_path" ]; then
                     # Убираем конечный слеш
@@ -2532,20 +2532,20 @@ restore_configure_settings() {
             4)
                 if [ "$current_skip_install" = true ]; then
                     current_skip_install=false
-                    echo -e "\033[1;32m✅ Management script will be installed\033[0m"
+                    echo -e "\033[1;32m✅ Скрипт управления будет установлен\033[0m"
                 else
                     current_skip_install=true
-                    echo -e "\033[1;32m✅ Management script installation will be skipped\033[0m"
+                    echo -e "\033[1;32m✅ Установка скрипта управления будет пропущена\033[0m"
                 fi
                 sleep 2
                 ;;
             5)
                 if [ "$current_force_restore" = true ]; then
                     current_force_restore=false
-                    echo -e "\033[1;32m✅ Confirmation prompts enabled\033[0m"
+                    echo -e "\033[1;32m✅ Подтверждения включены\033[0m"
                 else
                     current_force_restore=true
-                    echo -e "\033[1;32m✅ Force mode enabled (skip confirmations)\033[0m"
+                    echo -e "\033[1;32m✅ Принудительный режим включен (пропустить подтверждения)\033[0m"
                 fi
                 sleep 2
                 ;;
@@ -2570,17 +2570,17 @@ restore_custom_file() {
     local target_base_dir="$5"
     
     echo
-    echo -e "\033[1;37m📁 Custom Backup File\033[0m"
+    echo -e "\033[1;37m📁 Пользовательский файл бэкапа\033[0m"
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 30))\033[0m"
     echo
-    echo -e "\033[38;5;250mEnter the full path to your backup file.\033[0m"
-    echo -e "\033[38;5;244mSupported formats: .tar.gz, .sql, .sql.gz\033[0m"
+    echo -e "\033[38;5;250mВведите полный путь к файлу бэкапа.\033[0m"
+    echo -e "\033[38;5;244mПоддерживаемые форматы: .tar.gz, .sql, .sql.gz\033[0m"
     echo
     
-    read -p "Backup file path: " -r custom_path
+    read -p "Путь к файлу бэкапа: " -r custom_path
     
     if [ -z "$custom_path" ]; then
-        echo -e "\033[1;31m❌ No path specified!\033[0m"
+        echo -e "\033[1;31m❌ Путь не указан!\033[0m"
         sleep 2
         return
     fi
@@ -2600,7 +2600,7 @@ restore_custom_file() {
 }
 
 check_system_requirements_for_restore() {
-    echo -e "\033[1;37m🔍 Checking System Requirements\033[0m"
+    echo -e "\033[1;37m🔍 Проверка системных требований\033[0m"
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 40))\033[0m"
     echo
     
@@ -2608,7 +2608,7 @@ check_system_requirements_for_restore() {
     local install_needed=()
     
     # Проверка ОС
-    echo -e "\033[38;5;250m📝 Step 1:\033[0m Checking operating system..."
+    echo -e "\033[38;5;250m📝 Шаг 1:\033[0m Проверка операционной системы..."
     if ! command -v lsb_release >/dev/null 2>&1 && ! [ -f /etc/os-release ]; then
         echo -e "\033[1;33m⚠️  Cannot determine OS version\033[0m"
     else
@@ -2622,17 +2622,17 @@ check_system_requirements_for_restore() {
     fi
     
     # Проверка прав root
-    echo -e "\033[38;5;250m📝 Step 2:\033[0m Checking root privileges..."
+    echo -e "\033[38;5;250m📝 Шаг 2:\033[0m Проверка прав root..."
     if [ "$EUID" -ne 0 ]; then
-        echo -e "\033[1;31m❌ Root privileges required!\033[0m"
-        echo -e "\033[38;5;244m   Please run with sudo\033[0m"
+        echo -e "\033[1;31m❌ Требуются права root!\033[0m"
+        echo -e "\033[38;5;244m   Пожалуйста, запустите с sudo\033[0m"
         return 1
     else
-        echo -e "\033[1;32m✅ Root privileges confirmed\033[0m"
+        echo -e "\033[1;32m✅ Права root подтверждены\033[0m"
     fi
     
     # Проверка базовых утилит
-    echo -e "\033[38;5;250m📝 Step 3:\033[0m Checking system utilities..."
+    echo -e "\033[38;5;250m📝 Шаг 3:\033[0m Проверка системных утилит..."
     local basic_tools=("curl" "wget" "tar" "gzip" "jq")
     local missing_basic=()
     
@@ -2650,9 +2650,9 @@ check_system_requirements_for_restore() {
     fi
     
     # Проверка Docker
-    echo -e "\033[38;5;250m📝 Step 4:\033[0m Checking Docker..."
+    echo -e "\033[38;5;250m📝 Шаг 4:\033[0m Проверка Docker..."
     if ! command -v docker >/dev/null 2>&1; then
-        echo -e "\033[1;33m⚠️  Docker not installed\033[0m"
+        echo -e "\033[1;33m⚠️  Docker не установлен\033[0m"
         install_needed+=("docker")
         requirements_met=false
     else
@@ -2661,15 +2661,15 @@ check_system_requirements_for_restore() {
         
         # Проверка запуска Docker
         if ! docker info >/dev/null 2>&1; then
-            echo -e "\033[1;33m⚠️  Docker daemon not running\033[0m"
-            echo -e "\033[38;5;244m   Will attempt to start Docker service\033[0m"
+            echo -e "\033[1;33m⚠️  Демон Docker не запущен\033[0m"
+            echo -e "\033[38;5;244m   Попытка запустить службу Docker\033[0m"
         else
-            echo -e "\033[38;5;244m   ✓ Docker daemon running\033[0m"
+            echo -e "\033[38;5;244m   ✓ Демон Docker запущен\033[0m"
         fi
     fi
     
     # Проверка Docker Compose
-    echo -e "\033[38;5;250m📝 Step 5:\033[0m Checking Docker Compose..."
+    echo -e "\033[38;5;250m📝 Шаг 5:\033[0m Проверка Docker Compose..."
     if ! docker compose version >/dev/null 2>&1; then
         echo -e "\033[1;33m⚠️  Docker Compose V2 not available\033[0m"
         
@@ -2688,25 +2688,25 @@ check_system_requirements_for_restore() {
     fi
     
     # Проверка свободного места
-    echo -e "\033[38;5;250m📝 Step 6:\033[0m Checking disk space..."
+    echo -e "\033[38;5;250m📝 Шаг 6:\033[0m Проверка дискового пространства..."
     local available_space=$(df / | tail -1 | awk '{print $4}')
     local available_gb=$((available_space / 1024 / 1024))
     
     if [ $available_gb -lt 2 ]; then
-        echo -e "\033[1;31m❌ Insufficient disk space: ${available_gb}GB available\033[0m"
-        echo -e "\033[38;5;244m   Minimum 2GB required for restore operation\033[0m"
+        echo -e "\033[1;31m❌ Недостаточно места на диске: доступно ${available_gb}GB\033[0m"
+        echo -e "\033[38;5;244m   Минимум 2GB требуется для операции восстановления\033[0m"
         requirements_met=false
     else
-        echo -e "\033[1;32m✅ Sufficient disk space: ${available_gb}GB available\033[0m"
+        echo -e "\033[1;32m✅ Достаточно места на диске: доступно ${available_gb}GB\033[0m"
     fi
     
     # Проверка сетевого подключения
-    echo -e "\033[38;5;250m📝 Step 7:\033[0m Checking network connectivity..."
+    echo -e "\033[38;5;250m📝 Шаг 7:\033[0m Проверка сетевого подключения..."
     if curl -s --connect-timeout 5 https://registry-1.docker.io/v2/ >/dev/null; then
-        echo -e "\033[1;32m✅ Docker Hub connectivity confirmed\033[0m"
+        echo -e "\033[1;32m✅ Подключение к Docker Hub подтверждено\033[0m"
     else
-        echo -e "\033[1;33m⚠️  Docker Hub connectivity issues\033[0m"
-        echo -e "\033[38;5;244m   This may cause problems downloading Docker images\033[0m"
+        echo -e "\033[1;33m⚠️  Проблемы с подключением к Docker Hub\033[0m"
+        echo -e "\033[38;5;244m   Это может вызвать проблемы при загрузке Docker образов\033[0m"
     fi
     
     # Итоговый результат
@@ -2761,7 +2761,7 @@ install_missing_dependencies() {
         install_with_dnf "${packages[@]}"
     else
         echo -e "\033[1;31m❌ Unsupported package manager!\033[0m"
-        echo -e "\033[38;5;244m   Please install dependencies manually\033[0m"
+            echo -e "\033[38;5;244m   Пожалуйста, установите зависимости вручную\033[0m"
         return 1
     fi
 }
@@ -2777,7 +2777,7 @@ install_with_apt() {
     if apt-get update >/dev/null 2>&1; then
         echo -e "\033[1;32m✅ Package list updated\033[0m"
     else
-        echo -e "\033[1;33m⚠️  Package list update failed, continuing...\033[0m"
+        echo -e "\033[1;33m⚠️  Не удалось обновить список пакетов, продолжаем...\033[0m"
     fi
     
     for package in "${packages[@]}"; do
@@ -2793,7 +2793,7 @@ install_with_apt() {
                     systemctl enable docker 2>/dev/null
                     echo -e "\033[1;32m✅ Docker installed and started\033[0m"
                 else
-                    echo -e "\033[1;31m❌ Docker installation failed\033[0m"
+                    echo -e "\033[1;31m❌ Установка Docker не удалась\033[0m"
                 fi
                 ;;
             "docker-compose")
@@ -2801,16 +2801,16 @@ install_with_apt() {
                 echo -e "\033[1;32m✅ Docker Compose included with Docker\033[0m"
                 ;;
             "jq")
-                apt-get install -y jq >/dev/null 2>&1 && echo -e "\033[1;32m✅ jq installed\033[0m" || echo -e "\033[1;31m❌ jq installation failed\033[0m"
+                apt-get install -y jq >/dev/null 2>&1 && echo -e "\033[1;32m✅ jq установлен\033[0m" || echo -e "\033[1;31m❌ Установка jq не удалась\033[0m"
                 ;;
             "curl")
-                apt-get install -y curl >/dev/null 2>&1 && echo -e "\033[1;32m✅ curl installed\033[0m" || echo -e "\033[1;31m❌ curl installation failed\033[0m"
+                apt-get install -y curl >/dev/null 2>&1 && echo -e "\033[1;32m✅ curl установлен\033[0m" || echo -e "\033[1;31m❌ Установка curl не удалась\033[0m"
                 ;;
             "wget")
-                apt-get install -y wget >/dev/null 2>&1 && echo -e "\033[1;32m✅ wget installed\033[0m" || echo -e "\033[1;31m❌ wget installation failed\033[0m"
+                apt-get install -y wget >/dev/null 2>&1 && echo -e "\033[1;32m✅ wget установлен\033[0m" || echo -e "\033[1;31m❌ Установка wget не удалась\033[0m"
                 ;;
             *)
-                apt-get install -y "$package" >/dev/null 2>&1 && echo -e "\033[1;32m✅ $package installed\033[0m" || echo -e "\033[1;31m❌ $package installation failed\033[0m"
+                apt-get install -y "$package" >/dev/null 2>&1 && echo -e "\033[1;32m✅ $package установлен\033[0m" || echo -e "\033[1;31m❌ Установка $package не удалась\033[0m"
                 ;;
         esac
     done
@@ -2832,7 +2832,7 @@ install_with_yum() {
                 echo -e "\033[1;32m✅ Docker installed\033[0m"
                 ;;
             *)
-                yum install -y "$package" >/dev/null 2>&1 && echo -e "\033[1;32m✅ $package installed\033[0m" || echo -e "\033[1;31m❌ $package installation failed\033[0m"
+                yum install -y "$package" >/dev/null 2>&1 && echo -e "\033[1;32m✅ $package установлен\033[0m" || echo -e "\033[1;31m❌ Установка $package не удалась\033[0m"
                 ;;
         esac
     done
@@ -2854,7 +2854,7 @@ install_with_dnf() {
                 echo -e "\033[1;32m✅ Docker installed\033[0m"
                 ;;
             *)
-                dnf install -y "$package" >/dev/null 2>&1 && echo -e "\033[1;32m✅ $package installed\033[0m" || echo -e "\033[1;31m❌ $package installation failed\033[0m"
+                dnf install -y "$package" >/dev/null 2>&1 && echo -e "\033[1;32m✅ $package установлен\033[0m" || echo -e "\033[1;31m❌ Установка $package не удалась\033[0m"
                 ;;
         esac
     done
@@ -2902,8 +2902,8 @@ restore_from_backup() {
     
     
     if ! check_system_requirements_for_restore; then
-        echo -e "\033[1;31m❌ System requirements check failed!\033[0m"
-        echo -e "\033[38;5;244m   Please resolve the issues above before continuing\033[0m"
+        echo -e "\033[1;31m❌ Проверка системных требований не пройдена!\033[0m"
+        echo -e "\033[38;5;244m   Пожалуйста, устраните проблемы выше перед продолжением\033[0m"
         return 1
     fi
 
@@ -2983,17 +2983,17 @@ restore_from_backup() {
     # Показываем план восстановления
     echo
     echo -e "\033[1;37m📋 Restore Plan:\033[0m"
-    printf "   \033[38;5;15m%-20s\033[0m \033[38;5;250m%s\033[0m\n" "Backup file:" "$(basename "$backup_file")"
-    printf "   \033[38;5;15m%-20s\033[0m \033[38;5;250m%s\033[0m\n" "Backup size:" "$(du -sh "$backup_file" | cut -f1)"
-    printf "   \033[38;5;15m%-20s\033[0m \033[38;5;250m%s\033[0m\n" "Backup type:" "$backup_type"
+    printf "   \033[38;5;15m%-20s\033[0m \033[38;5;250m%s\033[0m\n" "Файл бэкапа:" "$(basename "$backup_file")"
+    printf "   \033[38;5;15m%-20s\033[0m \033[38;5;250m%s\033[0m\n" "Размер бэкапа:" "$(du -sh "$backup_file" | cut -f1)"
+    printf "   \033[38;5;15m%-20s\033[0m \033[38;5;250m%s\033[0m\n" "Тип бэкапа:" "$backup_type"
     if [ -n "$backup_info" ]; then
-        printf "   \033[38;5;15m%-20s\033[0m \033[38;5;250m%s\033[0m\n" "Backup info:" "$backup_info"
+        printf "   \033[38;5;15m%-20s\033[0m \033[38;5;250m%s\033[0m\n" "Информация о бэкапе:" "$backup_info"
     fi
     echo
-    printf "   \033[38;5;15m%-20s\033[0m \033[38;5;250m%s\033[0m\n" "Target name:" "$target_app_name"
-    printf "   \033[38;5;15m%-20s\033[0m \033[38;5;250m%s\033[0m\n" "Target directory:" "$target_dir"
-    printf "   \033[38;5;15m%-20s\033[0m \033[38;5;250m%s\033[0m\n" "Restore type:" "$([ "$database_only" = true ] && echo "Database only" || echo "Full system")"
-    printf "   \033[38;5;15m%-20s\033[0m \033[38;5;250m%s\033[0m\n" "Install script:" "$([ "$skip_install" = true ] && echo "Skip" || echo "Yes")"
+    printf "   \033[38;5;15m%-20s\033[0m \033[38;5;250m%s\033[0m\n" "Целевое имя:" "$target_app_name"
+    printf "   \033[38;5;15m%-20s\033[0m \033[38;5;250m%s\033[0m\n" "Целевая директория:" "$target_dir"
+    printf "   \033[38;5;15m%-20s\033[0m \033[38;5;250m%s\033[0m\n" "Тип восстановления:" "$([ "$database_only" = true ] && echo "Только база данных" || echo "Полная система")"
+    printf "   \033[38;5;15m%-20s\033[0m \033[38;5;250m%s\033[0m\n" "Установить скрипт:" "$([ "$skip_install" = true ] && echo "Пропустить" || echo "Да")"
     
     # Проверка совместимости
     echo
@@ -3059,7 +3059,7 @@ restore_from_backup() {
         read -p "Continue? [y/N]: " -r confirm
         
         if [[ ! $confirm =~ ^[Yy]$ ]]; then
-            echo -e "\033[38;5;250mRestore cancelled\033[0m"
+            echo -e "\033[38;5;250mВосстановление отменено\033[0m"
             return 0
         fi
     fi
@@ -3081,7 +3081,7 @@ restore_from_backup() {
         if tar -czf "$safety_backup_dir/${safety_backup_name}.tar.gz" -C "$(dirname "$target_dir")" "$(basename "$target_dir")" 2>/dev/null; then
             echo -e "\033[1;32m✅ Safety backup created: $safety_backup_dir/${safety_backup_name}.tar.gz\033[0m"
         else
-            echo -e "\033[1;33m⚠️  Safety backup failed, but continuing...\033[0m"
+            echo -e "\033[1;33m⚠️  Резервная копия безопасности не создана, продолжаем...\033[0m"
         fi
     fi
     
@@ -3099,9 +3099,9 @@ restore_from_backup() {
     echo -e "\033[1;37m🎉 Restore Completed!\033[0m"
     echo
     
-    printf "   \033[38;5;15m%-20s\033[0m \033[38;5;250m%s\033[0m\n" "Restored from:" "$(basename "$backup_file")"
-    printf "   \033[38;5;15m%-20s\033[0m \033[38;5;250m%s\033[0m\n" "Target name:" "$target_app_name"
-    printf "   \033[38;5;15m%-20s\033[0m \033[38;5;250m%s\033[0m\n" "Installation path:" "$target_dir"
+    printf "   \033[38;5;15m%-20s\033[0m \033[38;5;250m%s\033[0m\n" "Восстановлено из:" "$(basename "$backup_file")"
+    printf "   \033[38;5;15m%-20s\033[0m \033[38;5;250m%s\033[0m\n" "Целевое имя:" "$target_app_name"
+    printf "   \033[38;5;15m%-20s\033[0m \033[38;5;250m%s\033[0m\n" "Путь установки:" "$target_dir"
     
     # Показываем URL доступа если возможно
     if [ -f "$target_dir/.env" ] && [ "$database_only" = false ]; then
@@ -3111,14 +3111,14 @@ restore_from_backup() {
         echo
         echo -e "\033[1;37m🌐 Panel Access:\033[0m"
         if [ -n "$app_port" ]; then
-            printf "   \033[38;5;15m%-20s\033[0m \033[38;5;117mhttp://%s:%s\033[0m\n" "Panel URL:" "$server_ip" "$app_port"
+            printf "   \033[38;5;15m%-20s\033[0m \033[38;5;117mhttp://%s:%s\033[0m\n" "URL панели:" "$server_ip" "$app_port"
         fi
     fi
     
     echo
     echo -e "\033[38;5;8m💡 Next steps:\033[0m"
     echo -e "\033[38;5;244m   • Check status: sudo $target_app_name status\033[0m"
-    echo -e "\033[38;5;244m   • View logs: sudo $target_app_name logs\033[0m"
+    echo -e "\033[38;5;244m   • Смотреть логи: sudo $target_app_name logs\033[0m"
     echo -e "\033[38;5;244m   • Health check: sudo $target_app_name health\033[0m"
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 50))\033[0m"
 }
@@ -3133,48 +3133,48 @@ restore_full_from_archive() {
     log_restore_operation "Full Restore" "STARTED" "File: $backup_file, Target: $target_dir, App: $target_app_name"
     
     # Step 0: Проверка системных ресурсов
-    echo -e "\033[38;5;250m📝 Step 0:\033[0m Checking system resources..."
+    echo -e "\033[38;5;250m📝 Шаг 0:\033[0m Проверка системных ресурсов..."
     if ! check_system_resources "$backup_file" "$target_dir"; then
-        log_restore_operation "Resource Check" "ERROR" "Insufficient system resources"
+        log_restore_operation "Resource Check" "ERROR" "Недостаточно системных ресурсов"
         return 1
     fi
-    log_restore_operation "Resource Check" "SUCCESS" "System resources verified"
+    log_restore_operation "Resource Check" "SUCCESS" "Системные ресурсы проверены"
     
     # Step 1: Создание safety backup
-    echo -e "\033[38;5;250m📝 Step 1:\033[0m Creating safety backup..."
+    echo -e "\033[38;5;250m📝 Шаг 1:\033[0m Создание резервной копии безопасности..."
     local backup_parent_dir="$(dirname "$target_dir")/backups"
     mkdir -p "$backup_parent_dir"
     
     if ! create_safety_backup "$target_dir" "$target_app_name" "$backup_parent_dir"; then
-        echo -e "\033[1;33m⚠️  Failed to create safety backup, continuing with caution...\033[0m"
-        log_restore_operation "Safety Backup" "WARNING" "Failed to create safety backup"
+        echo -e "\033[1;33m⚠️  Не удалось создать резервную копию безопасности, продолжаем с осторожностью...\033[0m"
+        log_restore_operation "Safety Backup" "WARNING" "Не удалось создать резервную копию"
     else
-        log_restore_operation "Safety Backup" "SUCCESS" "Safety backup created"
+        log_restore_operation "Safety Backup" "SUCCESS" "Резервная копия создана"
     fi
     
     # Step 2: Остановка существующих сервисов
     local services_were_running=false
     if [ -f "$target_dir/docker-compose.yml" ]; then
-        echo -e "\033[38;5;250m📝 Step 2:\033[0m Stopping existing services..."
+        echo -e "\033[38;5;250m📝 Шаг 2:\033[0m Остановка существующих сервисов..."
         
         cd "$target_dir"
         if docker compose ps -q | grep -q .; then
             services_were_running=true
             if docker compose down 2>/dev/null; then
-                echo -e "\033[1;32m✅ Services stopped\033[0m"
-                log_restore_operation "Service Shutdown" "SUCCESS" "All services stopped"
+                echo -e "\033[1;32m✅ Сервисы остановлены\033[0m"
+                log_restore_operation "Service Shutdown" "SUCCESS" "Все сервисы остановлены"
             else
-                echo -e "\033[1;33m⚠️  Failed to stop services, continuing...\033[0m"
-                log_restore_operation "Service Shutdown" "WARNING" "Failed to stop some services"
+                echo -e "\033[1;33m⚠️  Не удалось остановить сервисы, продолжаем...\033[0m"
+                log_restore_operation "Service Shutdown" "WARNING" "Не удалось остановить некоторые сервисы"
             fi
         else
-            echo -e "\033[38;5;244m   No running services found\033[0m"
-            log_restore_operation "Service Shutdown" "INFO" "No running services found"
+            echo -e "\033[38;5;244m   Запущенных сервисов не найдено\033[0m"
+            log_restore_operation "Service Shutdown" "INFO" "Не найдено запущенных сервисов"
         fi
     fi
     
     # Step 3: Извлечение архива
-    echo -e "\033[38;5;250m📝 Step 3:\033[0m Extracting backup to target directory..."
+    echo -e "\033[38;5;250m📝 Шаг 3:\033[0m Извлечение бэкапа в целевую директорию..."
     
     # Удаляем старую директорию если нужно
     if [ -d "$target_dir" ]; then
@@ -3198,8 +3198,8 @@ restore_full_from_archive() {
                 if [ -f "$temp_extract_dir/$backup_dir_name/docker-compose.yml" ]; then
                     # НОВЫЙ ФОРМАТ: файлы приложения в корне бэкапа
                     mv "$temp_extract_dir/$backup_dir_name" "$target_dir"
-                    echo -e "\033[1;32m✅ Backup extracted successfully (unified format)\033[0m"
-                    log_restore_operation "Archive Extraction" "SUCCESS" "Unified format backup extracted"
+                    echo -e "\033[1;32m✅ Бэкап успешно извлечён (унифицированный формат)\033[0m"
+                    log_restore_operation "Archive Extraction" "SUCCESS" "Бэкап единого формата извлечён"
                 elif [ -d "$temp_extract_dir/$backup_dir_name/app" ]; then
                     # СТАРЫЙ ФОРМАТ: приложение в поддиректории app
                     mv "$temp_extract_dir/$backup_dir_name/app" "$target_dir"
@@ -3213,23 +3213,23 @@ restore_full_from_archive() {
                 if [ -f "$temp_extract_dir/$backup_dir_name/install-script.sh" ]; then
                     cp "$temp_extract_dir/$backup_dir_name/install-script.sh" "/tmp/restore_script_$$"
                 fi
-                echo -e "\033[1;32m✅ Backup extracted successfully (legacy format)\033[0m"
-                log_restore_operation "Archive Extraction" "SUCCESS" "Legacy format backup extracted"
+                echo -e "\033[1;32m✅ Бэкап успешно извлечён (устаревший формат)\033[0m"
+                log_restore_operation "Archive Extraction" "SUCCESS" "Бэкап старого формата извлечён"
             else
                 # Очень старый формат - вся директория является приложением
                 mv "$temp_extract_dir/$backup_dir_name" "$target_dir"
-                echo -e "\033[1;32m✅ Backup extracted successfully (legacy format)\033[0m"
-                log_restore_operation "Archive Extraction" "SUCCESS" "Very old format backup extracted"
+                echo -e "\033[1;32m✅ Бэкап успешно извлечён (устаревший формат)\033[0m"
+                log_restore_operation "Archive Extraction" "SUCCESS" "Очень старый формат бэкапа извлечён"
             fi
         else
-            echo -e "\033[1;31m❌ Unexpected backup structure!\033[0m"
-            log_restore_operation "Archive Extraction" "ERROR" "Unexpected backup structure"
+            echo -e "\033[1;31m❌ Неожиданная структура бэкапа!\033[0m"
+            log_restore_operation "Archive Extraction" "ERROR" "Неожиданная структура бэкапа"
             rm -rf "$temp_extract_dir"
             return 1
         fi
     else
-        echo -e "\033[1;31m❌ Failed to extract backup!\033[0m"
-        log_restore_operation "Archive Extraction" "ERROR" "Failed to extract tar archive"
+        echo -e "\033[1;31m❌ Не удалось извлечь бэкап!\033[0m"
+        log_restore_operation "Archive Extraction" "ERROR" "Не удалось извлечь tar-архив"
         rm -rf "$temp_extract_dir"
         return 1
     fi
@@ -3238,24 +3238,24 @@ restore_full_from_archive() {
     
     # Step 4: Проверка совместимости версий (если есть метаданные)
     if [ -f "$target_dir/backup-metadata.json" ]; then
-        echo -e "\033[38;5;250m📝 Step 4a:\033[0m Checking version compatibility..."
+        echo -e "\033[38;5;250m📝 Шаг 4a:\033[0m Проверка совместимости версий..."
         check_version_compatibility "$target_dir/backup-metadata.json"
     fi
     
     # Step 4: Валидация извлеченного бэкапа
-    echo -e "\033[38;5;250m📝 Step 4:\033[0m Validating extracted backup..."
+    echo -e "\033[38;5;250m📝 Шаг 4:\033[0m Проверка извлечённого бэкапа..."
     if ! validate_extracted_backup "$target_dir" "full" "$target_app_name"; then
         echo -e "\033[1;31m❌ Backup validation failed! Rolling back...\033[0m"
-        log_restore_operation "Backup Validation" "ERROR" "Validation failed, initiating rollback"
+        log_restore_operation "Backup Validation" "ERROR" "Валидация не пройдена, запускаем откат"
         rollback_from_safety_backup "$target_dir" "$target_app_name"
         return 1
     else
-        log_restore_operation "Backup Validation" "SUCCESS" "Extracted backup validated"
+        log_restore_operation "Backup Validation" "SUCCESS" "Извлечённый бэкап валидирован"
     fi
     
     # Step 5: Установка управляющего скрипта
     if [ "$skip_install" = false ]; then
-        echo -e "\033[38;5;250m📝 Step 5:\033[0m Installing management script..."
+        echo -e "\033[38;5;250m📝 Шаг 5:\033[0m Установка управляющего скрипта..."
         
         local script_source=""
         
@@ -3282,10 +3282,10 @@ restore_full_from_archive() {
             
             chmod +x "/usr/local/bin/$target_app_name"
             echo -e "\033[1;32m✅ Management script installed: /usr/local/bin/$target_app_name\033[0m"
-            log_restore_operation "Script Installation" "SUCCESS" "Management script installed: /usr/local/bin/$target_app_name"
+            log_restore_operation "Script Installation" "SUCCESS" "Скрипт управления установлен: /usr/local/bin/$target_app_name"
         else
             echo -e "\033[1;33m⚠️  No management script found in backup, skipping installation\033[0m"
-            log_restore_operation "Script Installation" "WARNING" "No management script found in backup"
+            log_restore_operation "Script Installation" "WARNING" "Скрипт управления не найден в бэкапе"
         fi
         
         # Очищаем временный файл
@@ -3293,41 +3293,41 @@ restore_full_from_archive() {
     fi
     
     # Step 6: Запуск и восстановление БД (с расширенной обработкой ошибок)
-    echo -e "\033[38;5;250m📝 Step 6:\033[0m Starting database restore..."
+    echo -e "\033[38;5;250m📝 Шаг 6:\033[0m Запуск восстановления базы данных..."
     if ! restore_database_in_existing_installation "$target_dir" "$target_app_name"; then
         echo -e "\033[1;31m❌ Database restore failed! Rolling back...\033[0m"
-        log_restore_operation "Database Restore" "ERROR" "Database restore failed, initiating rollback"
+        log_restore_operation "Database Restore" "ERROR" "Восстановление базы данных не удалось, выполняется откат"
         rollback_from_safety_backup "$target_dir" "$target_app_name"
         return 1
     else
-        log_restore_operation "Database Restore" "SUCCESS" "Database successfully restored"
+        log_restore_operation "Database Restore" "SUCCESS" "База данных успешно восстановлена"
     fi
     
     # Step 7: Проверка целостности восстановления
-    echo -e "\033[38;5;250m📝 Step 7:\033[0m Performing final integrity check..."
+    echo -e "\033[38;5;250m📝 Шаг 7:\033[0m Финальная проверка целостности..."
     local integrity_result=0
     verify_restore_integrity "$target_dir" "$target_app_name" "full"
     integrity_result=$?
     
     if [ $integrity_result -eq 0 ]; then
         echo -e "\033[1;32m🎉 Full restore completed successfully!\033[0m"
-        log_restore_operation "Full Restore" "SUCCESS" "Restore completed successfully with full integrity"
+        log_restore_operation "Full Restore" "SUCCESS" "Восстановление успешно завершено с полной целостностью"
         # Очищаем safety backup при успешном восстановлении
         if [ -f "/tmp/safety_backup_location_$$" ]; then
             local safety_backup_dir=$(cat "/tmp/safety_backup_location_$$")
             echo -e "\033[38;5;244m   Cleaning up safety backup: $safety_backup_dir\033[0m"
             rm -rf "$safety_backup_dir" 2>/dev/null
             rm -f "/tmp/safety_backup_location_$$"
-            log_restore_operation "Cleanup" "SUCCESS" "Safety backup cleaned up"
+            log_restore_operation "Cleanup" "SUCCESS" "Резервная копия удалена"
         fi
         return 0
     elif [ $integrity_result -eq 1 ]; then
         echo -e "\033[1;33m⚠️  Restore completed with warnings - please check the application\033[0m"
-        log_restore_operation "Full Restore" "WARNING" "Restore completed with integrity warnings"
+        log_restore_operation "Full Restore" "WARNING" "Восстановление завершено с предупреждениями о целостности"
         return 0
     else
         echo -e "\033[1;31m❌ Restore failed integrity check! Rolling back...\033[0m"
-        log_restore_operation "Full Restore" "ERROR" "Restore failed integrity check, rolling back"
+        log_restore_operation "Full Restore" "ERROR" "Восстановление не прошло проверку целостности, выполняется откат"
         rollback_from_safety_backup "$target_dir" "$target_app_name"
         return 1
     fi
@@ -3342,18 +3342,18 @@ restore_database_only() {
     log_restore_operation "Database Only Restore" "STARTED" "File: $backup_file, Type: $backup_type, Target: $target_dir"
     
     # Step 1: Создание safety backup базы данных
-    echo -e "\033[38;5;250m📝 Step 1:\033[0m Creating database safety backup..."
+    echo -e "\033[38;5;250m📝 Шаг 1:\033[0m Создание резервной копии базы данных..."
     local backup_parent_dir="$(dirname "$target_dir")/backups"
     mkdir -p "$backup_parent_dir"
     
     if ! create_safety_backup "$target_dir" "$target_app_name" "$backup_parent_dir"; then
         echo -e "\033[1;33m⚠️  Failed to create safety backup, continuing with caution...\033[0m"
-        log_restore_operation "Safety Backup" "WARNING" "Failed to create safety backup"
+        log_restore_operation "Safety Backup" "WARNING" "Не удалось создать резервную копию"
     else
-        log_restore_operation "Safety Backup" "SUCCESS" "Safety backup created"
+        log_restore_operation "Safety Backup" "SUCCESS" "Резервная копия создана"
     fi
     
-    echo -e "\033[38;5;250m📝 Step 2:\033[0m Preparing database file..."
+    echo -e "\033[38;5;250m📝 Шаг 2:\033[0m Подготовка файла базы данных..."
     
     local database_file=""
     
@@ -3431,41 +3431,41 @@ restore_database_only() {
     
     # Step 3: Валидация файла базы данных
     if [ -n "$database_file" ] && [ -f "$database_file" ]; then
-        echo -e "\033[38;5;250m📝 Step 3:\033[0m Validating database file..."
+        echo -e "\033[38;5;250m📝 Шаг 3:\033[0m Проверка файла базы данных..."
         
         # Используем улучшенную валидацию SQL
         if ! validate_sql_integrity "$database_file"; then
             echo -e "\033[1;31m❌ Database file validation failed! Rolling back...\033[0m"
-            log_restore_operation "SQL Validation" "ERROR" "Database file failed validation"
+            log_restore_operation "SQL Validation" "ERROR" "Файл базы данных не прошёл валидацию"
             rollback_from_safety_backup "$target_dir" "$target_app_name"
             return 1
         fi
         
-        log_restore_operation "SQL Validation" "SUCCESS" "Database file validation passed"
+        log_restore_operation "SQL Validation" "SUCCESS" "Файл базы данных прошёл валидацию"
         echo -e "\033[1;32m✅ Database file validation passed\033[0m"
     else
         echo -e "\033[1;31m❌ Database file not found or inaccessible!\033[0m"
-        log_restore_operation "File Check" "ERROR" "Database file not found or inaccessible"
+        log_restore_operation "File Check" "ERROR" "Файл базы данных не найден или недоступен"
         return 1
     fi
     
     # Step 4: Восстанавливаем БД в существующей установке (с обработкой ошибок)
     if ! restore_database_in_existing_installation "$target_dir" "$target_app_name" "$database_file"; then
         echo -e "\033[1;31m❌ Database restore failed! Rolling back...\033[0m"
-        log_restore_operation "Database Restore" "ERROR" "Database restore failed, initiating rollback"
+        log_restore_operation "Database Restore" "ERROR" "Восстановление базы данных не удалось, выполняется откат"
         rollback_from_safety_backup "$target_dir" "$target_app_name"
         return 1
     fi
     
     # Step 5: Проверка целостности БД
-    echo -e "\033[38;5;250m📝 Step 5:\033[0m Verifying database integrity..."
+    echo -e "\033[38;5;250m📝 Шаг 5:\033[0m Проверка целостности базы данных..."
     local integrity_result=0
     verify_restore_integrity "$target_dir" "$target_app_name" "database"
     integrity_result=$?
     
     if [ $integrity_result -le 1 ]; then
         echo -e "\033[1;32m🎉 Database restore completed successfully!\033[0m"
-        log_restore_operation "Database Only Restore" "SUCCESS" "Database restore completed with integrity check"
+        log_restore_operation "Database Only Restore" "SUCCESS" "Восстановление базы данных завершено с проверкой целостности"
         # Очищаем safety backup при успешном восстановлении
         if [ -f "/tmp/safety_backup_location_$$" ]; then
             local safety_backup_dir=$(cat "/tmp/safety_backup_location_$$")
@@ -3570,14 +3570,14 @@ restore_database_in_existing_installation() {
                 
                 if $decompress_cmd "$full_db_path" > "$temp_sql" 2>/dev/null; then
                     database_file="$temp_sql"
-                    log_restore_operation "Database File" "INFO" "Using compressed $selected_db_file from target directory (decompressed)"
+                    log_restore_operation "Database File" "INFO" "Используется сжатый $selected_db_file из целевой директории (распакован)"
                     echo -e "\033[38;5;244m   Found compressed database file: $selected_db_file (decompressed)\033[0m"
                 else
                     echo -e "\033[1;33m⚠️  Failed to decompress $selected_db_file\033[0m"
                 fi
             else
                 database_file="$full_db_path"
-                log_restore_operation "Database File" "INFO" "Using $selected_db_file from target directory"
+                log_restore_operation "Database File" "INFO" "Используется $selected_db_file из целевой директории"
                 echo -e "\033[38;5;244m   Found database file: $selected_db_file\033[0m"
             fi
         fi
@@ -3624,8 +3624,8 @@ restore_database_in_existing_installation() {
             attempts=$((attempts + 1))
             
             if [ $attempts -eq $max_attempts ]; then
-                echo -e "\033[1;31m❌ Database failed to start after $max_attempts attempts!\033[0m"
-                echo -e "\033[38;5;244m   Check logs: docker compose logs ${target_app_name}-db\033[0m"
+                echo -e "\033[1;31m❌ База данных не запустилась после $max_attempts попыток!\033[0m"
+                echo -e "\033[38;5;244m   Проверьте логи: docker compose logs ${target_app_name}-db\033[0m"
                 if [ -f "$db_startup_log" ]; then
                     echo -e "\033[38;5;244m   Startup errors:\033[0m"
                     head -10 "$db_startup_log" | sed 's/^/     /'
@@ -3723,14 +3723,14 @@ EOF
         
         if [ "$table_count" -gt 0 ]; then
             echo -e "\033[1;32m✅ Database restored successfully ($table_count tables)\033[0m"
-            log_restore_operation "Database Import" "SUCCESS" "$table_count tables restored"
+            log_restore_operation "Database Import" "SUCCESS" "Восстановлено таблиц: $table_count"
         else
             echo -e "\033[1;33m⚠️  Database restore completed but no tables found\033[0m"
-            log_restore_operation "Database Import" "WARNING" "Restore completed but no tables found"
+            log_restore_operation "Database Import" "WARNING" "Восстановление завершено, но таблицы не найдены"
         fi
     else
         echo -e "\033[1;31m❌ Database restore failed!\033[0m"
-        log_restore_operation "Database Import" "ERROR" "Database restore failed"
+        log_restore_operation "Database Import" "ERROR" "Восстановление базы данных не удалось"
         
         # Показываем детали ошибки если доступны
         if [ -f "$restore_errors" ] && [ -s "$restore_errors" ]; then
@@ -3815,9 +3815,9 @@ schedule_test_backup() {
     echo
     
     if ! is_remnawave_up; then
-        echo -e "\033[1;31m❌ Remnawave services are not running!\033[0m"
+        echo -e "\033[1;31m❌ Сервисы Remnawave не запущены!\033[0m"
         echo -e "\033[38;5;8m   Start services first with 'sudo $APP_NAME up'\033[0m"
-        read -p "Press Enter to continue..."
+        read -p "Нажмите Enter для продолжения..."
         return
     fi
     
@@ -3825,7 +3825,7 @@ schedule_test_backup() {
         return 1
     fi
     
-    echo -e "\033[38;5;250mCreating test backup...\033[0m"
+    echo -e "\033[38;5;250mСоздание тестового бэкапа...\033[0m"
     
     # Проверяем версию backup скрипта
     check_backup_script_version
@@ -3835,7 +3835,7 @@ schedule_test_backup() {
         echo
         if prompt_backup_script_update $version_status; then
             schedule_create_backup_script
-            echo -e "\033[1;32m✅ Backup script updated successfully\033[0m"
+            echo -e "\033[1;32m✅ Скрипт бэкапа успешно обновлен\033[0m"
             echo
         fi
     fi
@@ -3845,7 +3845,7 @@ schedule_test_backup() {
     fi
     
     if [ ! -f "$BACKUP_CONFIG_FILE" ]; then
-        echo -e "\033[1;33m⚠️  No backup configuration found. Creating default...\033[0m"
+        echo -e "\033[1;33m⚠️  Конфигурация бэкапа не найдена. Создаю стандартную...\033[0m"
         schedule_reset_config 
     fi
     
@@ -3854,10 +3854,10 @@ schedule_test_backup() {
         echo -e "\033[38;5;250mCheck $APP_DIR/backups for the backup file\033[0m"
     else
         echo -e "\033[1;31m❌ Test backup failed!\033[0m"
-        echo -e "\033[38;5;8m   Check logs: $BACKUP_LOG_FILE\033[0m"
+        echo -e "\033[38;5;8m   Проверьте логи: $BACKUP_LOG_FILE\033[0m"
     fi
     
-    read -p "Press Enter to continue..."
+    read -p "Нажмите Enter для продолжения..."
 }
 
 schedule_test_telegram() {
@@ -3868,14 +3868,14 @@ schedule_test_telegram() {
     
     if [ ! -f "$BACKUP_CONFIG_FILE" ]; then
         echo -e "\033[1;31m❌ No configuration found!\033[0m"
-        read -p "Press Enter to continue..."
+        read -p "Нажмите Enter для продолжения..."
         return
     fi
     
     local telegram_enabled=$(jq -r '.telegram.enabled // false' "$BACKUP_CONFIG_FILE" 2>/dev/null)
     if [ "$telegram_enabled" != "true" ]; then
         echo -e "\033[1;31m❌ Telegram integration is disabled!\033[0m"
-        read -p "Press Enter to continue..."
+        read -p "Нажмите Enter для продолжения..."
         return
     fi
     
@@ -3899,14 +3899,14 @@ schedule_test_telegram() {
     local response=$(curl -s -X POST "$api_url/sendMessage" -d "$params")
     
     if echo "$response" | jq -e '.ok' >/dev/null 2>&1; then
-        echo -e "\033[1;32m✅ Test message sent successfully!\033[0m"
+        echo -e "\033[1;32m✅ Тестовое сообщение успешно отправлено!\033[0m"
         echo -e "\033[38;5;250mCheck your Telegram for the test message\033[0m"
     else
-        echo -e "\033[1;31m❌ Failed to send test message!\033[0m"
+        echo -e "\033[1;31m❌ Не удалось отправить тестовое сообщение!\033[0m"
         echo -e "\033[38;5;244mResponse: $(echo "$response" | jq -r '.description // "Unknown error"')\033[0m"
     fi
     
-    read -p "Press Enter to continue..."
+    read -p "Нажмите Enter для продолжения..."
 }
 
 schedule_status() {
@@ -3941,7 +3941,7 @@ schedule_status() {
         local cron_line=$(crontab -l 2>/dev/null | grep "$BACKUP_SCRIPT_FILE")
         if [ -n "$cron_line" ]; then
             local schedule=$(echo "$cron_line" | awk '{print $1" "$2" "$3" "$4" "$5}')
-            echo -e "\033[38;5;250mSchedule: $schedule\033[0m"
+            echo -e "\033[38;5;250mРасписание: $schedule\033[0m"
         fi
         
         if command -v crontab >/dev/null && [ -n "$cron_line" ]; then
@@ -4001,7 +4001,7 @@ schedule_status() {
 
     if [ ! -d "$backup_directory" ]; then
         echo -e "\033[38;5;244m   Backup directory not found: $backup_directory\033[0m"
-        echo -e "\033[38;5;244m   Run a backup to create the directory\033[0m"
+        echo -e "\033[38;5;244m   Запустите бэкап для создания директории\033[0m"
     else
 
         local backup_files=""
@@ -4072,37 +4072,37 @@ schedule_status() {
             -name "remnawave_db_*.sql.xz" \
         \) 2>/dev/null | wc -l)
         
-        printf "   \033[38;5;15m%-20s\033[0m \033[38;5;250m%s\033[0m\n" "Total backups:" "$total_backups"
-        printf "   \033[38;5;15m%-20s\033[0m \033[38;5;250m%s\033[0m\n" "Scheduled backups:" "$scheduled_backups"
-        printf "   \033[38;5;15m%-20s\033[0m \033[38;5;250m%s\033[0m\n" "Manual backups:" "$manual_backups"
+        printf "   \033[38;5;15m%-20s\033[0m \033[38;5;250m%s\033[0m\n" "Всего бэкапов:" "$total_backups"
+        printf "   \033[38;5;15m%-20s\033[0m \033[38;5;250m%s\033[0m\n" "Запланированные бэкапы:" "$scheduled_backups"
+        printf "   \033[38;5;15m%-20s\033[0m \033[38;5;250m%s\033[0m\n" "Ручные бэкапы:" "$manual_backups"
         
 
         local backup_dir_size=$(du -sh "$backup_directory" 2>/dev/null | cut -f1)
-        printf "   \033[38;5;15m%-20s\033[0m \033[38;5;250m%s\033[0m\n" "Total size:" "$backup_dir_size"
+        printf "   \033[38;5;15m%-20s\033[0m \033[38;5;250m%s\033[0m\n" "Общий размер:" "$backup_dir_size"
     else
-        printf "   \033[38;5;15m%-20s\033[0m \033[38;5;250m%s\033[0m\n" "Total backups:" "0"
-        printf "   \033[38;5;15m%-20s\033[0m \033[38;5;250m%s\033[0m\n" "Scheduled backups:" "0"
-        printf "   \033[38;5;15m%-20s\033[0m \033[38;5;250m%s\033[0m\n" "Manual backups:" "0"
-        printf "   \033[38;5;15m%-20s\033[0m \033[38;5;250m%s\033[0m\n" "Total size:" "0B"
+        printf "   \033[38;5;15m%-20s\033[0m \033[38;5;250m%s\033[0m\n" "Всего бэкапов:" "0"
+        printf "   \033[38;5;15m%-20s\033[0m \033[38;5;250m%s\033[0m\n" "Запланированные бэкапы:" "0"
+        printf "   \033[38;5;15m%-20s\033[0m \033[38;5;250m%s\033[0m\n" "Ручные бэкапы:" "0"
+        printf "   \033[38;5;15m%-20s\033[0m \033[38;5;250m%s\033[0m\n" "Общий размер:" "0B"
     fi
     
-    read -p "Press Enter to continue..."
+    read -p "Нажмите Enter для продолжения..."
 }
 
 
 schedule_show_logs() {
     clear
-    echo -e "\033[1;37m📋 Backup Logs\033[0m"
+    echo -е "\033[1;37m📋 Логи бэкапа\033[0m"
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 20))\033[0m"
     echo
     
     if [ -f "$BACKUP_LOG_FILE" ]; then
 
         local log_size=$(du -sh "$BACKUP_LOG_FILE" 2>/dev/null | cut -f1)
-        echo -e "\033[38;5;250mLog file: $(basename "$BACKUP_LOG_FILE") ($log_size)\033[0m"
-        echo -e "\033[38;5;250mLocation: $BACKUP_LOG_FILE\033[0m"
+        echo -e "\033[38;5;250mФайл лога: $(basename "$BACKUP_LOG_FILE") ($log_size)\033[0m"
+        echo -e "\033[38;5;250mПуть: $BACKUP_LOG_FILE\033[0m"
         echo
-        echo -e "\033[38;5;250mLast 30 log entries:\033[0m"
+        echo -e "\033[38;5;250mПоследние 30 записей:\033[0m"
         echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 50))\033[0m"
         
         tail -30 "$BACKUP_LOG_FILE" | while IFS= read -r line; do
@@ -4123,44 +4123,44 @@ schedule_show_logs() {
         
         echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 50))\033[0m"
         echo
-        echo -e "\033[38;5;244m💡 Commands:\033[0m"
-        echo -e "\033[38;5;244m   View full log: tail -f $BACKUP_LOG_FILE\033[0m"
-        echo -e "\033[38;5;244m   Clear log: > $BACKUP_LOG_FILE\033[0m"
+        echo -e "\033[38;5;244m💡 Команды:\033[0m"
+        echo -e "\033[38;5;244m   Смотреть полный лог: tail -f $BACKUP_LOG_FILE\033[0m"
+        echo -e "\033[38;5;244m   Очистить лог: > $BACKUP_LOG_FILE\033[0m"
     else
-        echo -e "\033[38;5;244mNo log file found at: $BACKUP_LOG_FILE\033[0m"
-        echo -e "\033[38;5;244mLogs will be created after first backup run\033[0m"
+        echo -e "\033[38;5;244mФайл лога не найден по пути: $BACKUP_LOG_FILE\033[0m"
+        echo -e "\033[38;5;244mЛоги появятся после первого запуска бэкапа\033[0m"
     fi
     
     echo
-    read -p "Press Enter to continue..."
+    read -p "Нажмите Enter для продолжения..."
 }
 
 schedule_run_backup() {
     clear
-    echo -e "\033[1;37m▶️  Manual Full Backup Run\033[0m"
+    echo -e "\033[1;37m▶️  Ручной запуск полного бэкапа\033[0m"
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 35))\033[0m"
     echo
     
     if ! is_remnawave_up; then
-        echo -e "\033[1;31m❌ Remnawave services are not running!\033[0m"
-        read -p "Press Enter to continue..."
+        echo -e "\033[1;31m❌ Сервисы Remnawave не запущены!\033[0m"
+        read -p "Нажмите Enter для продолжения..."
         return
     fi
     
-    echo -e "\033[1;37m📦 Backup Type: Full System Backup\033[0m"
-    echo -e "\033[38;5;250m   ✓ PostgreSQL Database (complete dump)\033[0m"
-    echo -e "\033[38;5;250m   ✓ Environment files (.env, .env.subscription)\033[0m"
-    echo -e "\033[38;5;250m   ✓ Docker Compose configuration\033[0m"
-    echo -e "\033[38;5;250m   ✓ All additional config files (*.json, *.yml, etc.)\033[0m"
-    echo -e "\033[38;5;250m   ✓ Configuration directories (certs, custom, etc.)\033[0m"
+    echo -e "\033[1;37m📦 Тип бэкапа: Полный системный бэкап\033[0m"
+    echo -e "\033[38;5;250m   ✓ База PostgreSQL (полный дамп)\033[0m"
+    echo -e "\033[38;5;250m   ✓ Файлы окружения (.env, .env.subscription)\033[0m"
+    echo -e "\033[38;5;250m   ✓ Конфигурация Docker Compose\033[0m"
+    echo -e "\033[38;5;250m   ✓ Все доп. конфиги (*.json, *.yml и т. п.)\033[0m"
+    echo -e "\033[38;5;250m   ✓ Каталоги конфигурации (certs, custom и др.)\033[0m"
     echo
-    echo -e "\033[38;5;250m🏃‍♂️ Running backup now...\033[0m"
+    echo -e "\033[38;5;250m🏃‍♂️ Запуск бэкапа...\033[0m"
     echo
 
     # Создаем/обновляем backup скрипт
     if [ ! -f "$BACKUP_SCRIPT_FILE" ]; then
         schedule_create_backup_script
-        echo -e "\033[1;32m✅ Backup script created\033[0m"
+        echo -e "\033[1;32m✅ Скрипт бэкапа создан\033[0m"
         echo
     fi
     
@@ -4182,10 +4182,10 @@ schedule_run_backup() {
     echo "=============================================" >> "$BACKUP_LOG_FILE"
     if [ $exit_code -eq 0 ]; then
         echo "[$(date '+%Y-%m-%d %H:%M:%S')] MANUAL FULL BACKUP COMPLETED SUCCESSFULLY" >> "$BACKUP_LOG_FILE"
-        echo -e "\033[1;32m🎉 Manual full backup completed successfully!\033[0m"
+        echo -e "\033[1;32m🎉 Ручной полный бэкап успешно завершён!\033[0m"
     else
         echo "[$(date '+%Y-%m-%d %H:%M:%S')] MANUAL FULL BACKUP FAILED" >> "$BACKUP_LOG_FILE"
-        echo -e "\033[1;31m❌ Manual full backup failed!\033[0m"
+        echo -e "\033[1;31m❌ Ручной полный бэкап завершился с ошибкой!\033[0m"
     fi
     echo "=============================================" >> "$BACKUP_LOG_FILE"
     echo "" >> "$BACKUP_LOG_FILE"
@@ -4194,7 +4194,7 @@ schedule_run_backup() {
     echo -e "\033[1;37m📋 Backup Information:\033[0m"
     echo -e "\033[38;5;250m   Type: Full system backup (database + all configs)\033[0m"
     echo -e "\033[38;5;250m   Location: $APP_DIR/backups/\033[0m"
-    echo -e "\033[38;5;250m   Logs: $BACKUP_LOG_FILE\033[0m"
+    echo -e "\033[38;5;250m   Логи: $BACKUP_LOG_FILE\033[0m"
     
     local latest_backup=$(ls -t "$APP_DIR/backups"/remnawave_scheduled_*.{tar.gz,sql} 2>/dev/null | head -1)
     if [ -n "$latest_backup" ]; then
@@ -4203,7 +4203,7 @@ schedule_run_backup() {
     fi
     
     echo
-    read -p "Press Enter to continue..."
+    read -p "Нажмите Enter для продолжения..."
 }
 
 schedule_cleanup() {
@@ -4217,7 +4217,7 @@ schedule_cleanup() {
     if [ ! -d "$backup_directory" ]; then
         echo -e "\033[38;5;244mBackup directory not found: $backup_directory\033[0m"
         echo -e "\033[38;5;244mNo backups to clean\033[0m"
-        read -p "Press Enter to continue..."
+        read -p "Нажмите Enter для продолжения..."
         return
     fi
 
@@ -4230,24 +4230,24 @@ schedule_cleanup() {
     fi
     
     echo -e "\033[1;37m📋 Cleanup Configuration:\033[0m"
-    printf "   \033[38;5;15m%-20s\033[0m \033[38;5;250m%s days\033[0m\n" "Retention period:" "$retention_days"
-    printf "   \033[38;5;15m%-20s\033[0m \033[38;5;250m%s files\033[0m\n" "Minimum to keep:" "$min_backups"
+    printf "   \033[38;5;15m%-20s\033[0m \033[38;5;250m%s дней\033[0m\n" "Период хранения:" "$retention_days"
+    printf "   \033[38;5;15m%-20s\033[0m \033[38;5;250m%s файлов\033[0m\n" "Минимум для хранения:" "$min_backups"
     echo
 
     local all_backups=$(ls -t "$backup_directory"/remnawave_*.tar.gz "$backup_directory"/remnawave_*.sql.gz "$backup_directory"/remnawave_*.sql 2>/dev/null)
     local total_files=$(echo "$all_backups" | grep -c . 2>/dev/null || echo "0")
     
     echo -e "\033[1;37m📊 Current Status:\033[0m"
-    printf "   \033[38;5;15m%-20s\033[0m \033[38;5;250m%s\033[0m\n" "Total backup files:" "$total_files"
+    printf "   \033[38;5;15m%-20s\033[0m \033[38;5;250m%s\033[0m\n" "Всего файлов бэкапа:" "$total_files"
     
     if [ "$total_files" -eq 0 ]; then
         echo -e "\033[38;5;244mNo backup files found in $backup_directory\033[0m"
         echo -e "\033[38;5;244mNothing to clean\033[0m"
-        read -p "Press Enter to continue..."
+        read -p "Нажмите Enter для продолжения..."
         return
     fi
     local dir_size=$(du -sh "$backup_directory" 2>/dev/null | cut -f1)
-    printf "   \033[38;5;15m%-20s\033[0m \033[38;5;250m%s\033[0m\n" "Directory size:" "$dir_size"
+    printf "   \033[38;5;15m%-20s\033[0m \033[38;5;250m%s\033[0m\n" "Размер директории:" "$dir_size"
     echo
     local old_files=""
     local old_count=0
@@ -4321,14 +4321,14 @@ schedule_cleanup() {
     if [ "$old_count" -eq 0 ] || [ -z "$old_files" ]; then
         echo -e "\033[1;32m✅ No files to delete\033[0m"
         echo -e "\033[38;5;250mAll backups are within retention period or protected by minimum count\033[0m"
-        read -p "Press Enter to continue..."
+        read -p "Нажмите Enter для продолжения..."
         return
     fi
     
 
     echo -e "\033[1;37m📋 Cleanup Summary:\033[0m"
-    printf "   \033[38;5;15m%-20s\033[0m \033[38;5;250m%s\033[0m\n" "Files to delete:" "$old_count"
-    printf "   \033[38;5;15m%-20s\033[0m \033[38;5;250m%s\033[0m\n" "Files to keep:" "$remaining_count"
+    printf "   \033[38;5;15m%-20s\033[0m \033[38;5;250m%s\033[0m\n" "Файлов к удалению:" "$old_count"
+    printf "   \033[38;5;15m%-20s\033[0m \033[38;5;250m%s\033[0m\n" "Файлов к сохранению:" "$remaining_count"
     
     # Простой подсчет размера без сложных операций
     local delete_size=0
@@ -4352,7 +4352,7 @@ schedule_cleanup() {
     rm -f "$temp_file"
     
     if [ "$delete_size_human" != "Unknown" ]; then
-        printf "   \033[38;5;15m%-20s\033[0m \033[38;5;250m%s\033[0m\n" "Space to free:" "$delete_size_human"
+        printf "   \033[38;5;15m%-20s\033[0m \033[38;5;250m%s\033[0m\n" "Место для освобождения:" "$delete_size_human"
     fi
     
     echo
@@ -4394,7 +4394,7 @@ schedule_cleanup() {
     fi
     
     echo
-    read -p "Press Enter to continue..."
+    read -p "Нажмите Enter для продолжения..."
 }
 
 schedule_reset_config() {
@@ -4436,21 +4436,21 @@ EOF
 # Справка
 schedule_help() {
     clear
-    echo -e "\033[1;37m📚 Backup Scheduler Help\033[0m"
+    echo -e "\033[1;37m📚 Справка планировщика бэкапов\033[0m"
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 30))\033[0m"
     echo
     echo -e "\033[1;37mCommands:\033[0m"
-    printf "   \033[38;5;15m%-15s\033[0m %s\n" "setup" "🔧 Configure backup settings"
-    printf "   \033[38;5;15m%-15s\033[0m %s\n" "enable" "✅ Enable scheduler"
-    printf "   \033[38;5;15m%-15s\033[0m %s\n" "disable" "❌ Disable scheduler"
-    printf "   \033[38;5;15m%-15s\033[0m %s\n" "status" "📊 Show status"
-    printf "   \033[38;5;15m%-15s\033[0m %s\n" "test" "🧪 Test backup creation"
-    printf "   \033[38;5;15m%-15s\033[0m %s\n" "test-telegram" "📱 Test Telegram delivery"
-    printf "   \033[38;5;15m%-15s\033[0m %s\n" "run" "▶️  Run backup now"
-    printf "   \033[38;5;15m%-15s\033[0m %s\n" "logs" "📋 View logs"
-    printf "   \033[38;5;15m%-15s\033[0m %s\n" "cleanup" "🧹 Clean old backups"
+    printf "   \033[38;5;15m%-15s\033[0m %s\n" "setup" "🔧 Настроить параметры бэкапа"
+    printf "   \033[38;5;15m%-15s\033[0m %s\n" "enable" "✅ Включить планировщик"
+    printf "   \033[38;5;15m%-15s\033[0m %s\n" "disable" "❌ Отключить планировщик"
+    printf "   \033[38;5;15m%-15s\033[0m %s\n" "status" "📊 Показать статус"
+    printf "   \033[38;5;15m%-15s\033[0m %s\n" "test" "🧪 Тест создания бэкапа"
+    printf "   \033[38;5;15m%-15s\033[0m %s\n" "test-telegram" "📱 Тест доставки в Telegram"
+    printf "   \033[38;5;15m%-15s\033[0m %s\n" "run" "▶️  Запустить бэкап сейчас"
+    printf "   \033[38;5;15m%-15s\033[0m %s\n" "logs" "📋 Просмотр логов"
+    printf "   \033[38;5;15m%-15s\033[0m %s\n" "cleanup" "🧹 Очистить старые бэкапы"
     echo
-    read -p "Press Enter to continue..."
+    read -p "Нажмите Enter для продолжения..."
 }
 
 generate_random_string() {
@@ -4471,13 +4471,13 @@ validate_port() {
     
     # Проверяем, что порт не зарезервирован системой
     if [ "$port" -lt 1024 ] && [ "$(id -u)" != "0" ]; then
-        colorized_echo yellow "Warning: Port $port requires root privileges"
+        colorized_echo yellow "Предупреждение: Порт $port требует привилегий root"
     fi
     
     # Проверяем на конфликт с известными сервисами
     case "$port" in
         22|80|443|53|25|110|143|993|995)
-            colorized_echo yellow "Warning: Port $port is commonly used by system services"
+            colorized_echo yellow "Предупреждение: Порт $port обычно используется системными сервисами"
             ;;
     esac
     
@@ -4492,14 +4492,14 @@ get_occupied_ports() {
     elif command -v netstat &>/dev/null; then
         ports=$(netstat -tuln 2>/dev/null | awk 'NR>2 {print $4}' | grep -Eo '[0-9]+$' | sort -n | uniq)
     else
-        colorized_echo yellow "Installing network tools for port checking..."
+        colorized_echo yellow "Установка сетевых утилит для проверки портов..."
         detect_os
         if install_package net-tools; then
             if command -v netstat &>/dev/null; then
                 ports=$(netstat -tuln 2>/dev/null | awk 'NR>2 {print $4}' | grep -Eo '[0-9]+$' | sort -n | uniq)
             fi
         else
-            colorized_echo yellow "Could not install net-tools. Skipping port conflict check."
+            colorized_echo yellow "Не удалось установить net-tools. Пропускаем проверку конфликтов портов."
             return 1
         fi
     fi
@@ -4562,82 +4562,82 @@ install_remnawave() {
     # Check if default ports are occupied and ask for alternatives if needed
     APP_PORT=$DEFAULT_APP_PORT
     if is_port_occupied "$APP_PORT"; then
-        colorized_echo yellow "Default APP_PORT $APP_PORT is already in use."
+        colorized_echo yellow "Порт по умолчанию APP_PORT $APP_PORT уже занят."
         while true; do
             read -p "Enter an alternative APP_PORT: " -r APP_PORT
             if [[ "$APP_PORT" -ge 1 && "$APP_PORT" -le 65535 ]]; then
                 if is_port_occupied "$APP_PORT"; then
-                    colorized_echo red "Port $APP_PORT is already in use. Please enter another port."
+                    colorized_echo red "Порт $APP_PORT уже занят. Введите другой порт."
                 else
                     break
                 fi
             else
-                colorized_echo red "Invalid port. Please enter a port between 1 and 65535."
+                colorized_echo red "Недопустимый порт. Введите значение от 1 до 65535."
             fi
         done
     fi
 
     METRICS_PORT=$DEFAULT_METRICS_PORT
     if is_port_occupied "$METRICS_PORT"; then
-        colorized_echo yellow "Default METRICS_PORT $METRICS_PORT is already in use."
+        colorized_echo yellow "Порт по умолчанию METRICS_PORT $METRICS_PORT уже занят."
         while true; do
             read -p "Enter an alternative METRICS_PORT: " -r METRICS_PORT
             if [[ "$METRICS_PORT" -ge 1 && "$METRICS_PORT" -le 65535 ]]; then
                 if is_port_occupied "$METRICS_PORT"; then
-                    colorized_echo red "Port $METRICS_PORT is already in use. Please enter another port."
+                    colorized_echo red "Порт $METRICS_PORT уже занят. Введите другой порт."
                 else
                     break
                 fi
             else
-                colorized_echo red "Invalid port. Please enter a port between 1 and 65535."
+                colorized_echo red "Недопустимый порт. Введите значение от 1 до 65535."
             fi
         done
     fi
 
     SUB_PAGE_PORT=$DEFAULT_SUB_PAGE_PORT
     if is_port_occupied "$SUB_PAGE_PORT"; then
-        colorized_echo yellow "Default subscription page port $SUB_PAGE_PORT is already in use."
+        colorized_echo yellow "Порт страницы подписки по умолчанию $SUB_PAGE_PORT уже занят."
         while true; do
             read -p "Enter an alternative subscription page port: " -r SUB_PAGE_PORT
             if [[ "$SUB_PAGE_PORT" -ge 1 && "$SUB_PAGE_PORT" -le 65535 ]]; then
                 if is_port_occupied "$SUB_PAGE_PORT"; then
-                    colorized_echo red "Port $SUB_PAGE_PORT is already in use. Please enter another port."
+                    colorized_echo red "Порт $SUB_PAGE_PORT уже занят. Введите другой порт."
                 else
                     break
                 fi
             else
-                colorized_echo red "Invalid port. Please enter a port between 1 and 65535."
+                colorized_echo red "Недопустимый порт. Введите значение от 1 до 65535."
             fi
         done
     fi
 
     DB_PORT=$DEFAULT_DB_PORT
     if is_port_occupied "$DB_PORT"; then
-        colorized_echo yellow "Default DB_PORT $DB_PORT is already in use."
+        colorized_echo yellow "Порт БД по умолчанию DB_PORT $DB_PORT уже занят."
         while true; do
             read -p "Enter an alternative DB_PORT: " -r DB_PORT
             if [[ "$DB_PORT" -ge 1 && "$DB_PORT" -le 65535 ]]; then
                 if is_port_occupied "$DB_PORT"; then
-                    colorized_echo red "Port $DB_PORT is already in use. Please enter another port."
+                    colorized_echo red "Порт $DB_PORT уже занят. Введите другой порт."
                 else
                     break
                 fi
             else
-                colorized_echo red "Invalid port. Please enter a port between 1 and 65535."
+                colorized_echo red "Недопустимый порт. Введите значение от 1 до 65535."
             fi
         done
     fi
 
     # Ask for domain names
     while true; do
-        read -p "Enter the panel domain (e.g., panel.example.com or * for any domain): " -r FRONT_END_DOMAIN
+        read -p "Введите домен панели (например, panel.example.com или * для любого домена): " -r FRONT_END_DOMAIN
         FRONT_END_DOMAIN=$(sanitize_domain "$FRONT_END_DOMAIN")
         if [[ "$FRONT_END_DOMAIN" == http* ]]; then
-            colorized_echo red "Please enter only the domain without http:// or https://"
+            colorized_echo red "Введите только домен без http:// или https://"
         elif [[ -z "$FRONT_END_DOMAIN" ]]; then
-            colorized_echo red "Domain cannot be empty"
+            colorized_echo red "Домен не может быть пустым"
         elif ! validate_domain "$FRONT_END_DOMAIN" && [[ "$FRONT_END_DOMAIN" != "*" ]]; then
-            colorized_echo red "Invalid domain format. Domain should not contain slashes or spaces."
+            colorized_echo red "Неверный формат домена. Домен не должен содержать слешей или пробелов."
         else
             break
         fi
@@ -4645,28 +4645,28 @@ install_remnawave() {
 
     # Ask for subscription page domain and prefix
     while true; do
-        read -p "Enter the subscription page domain (e.g., sub-link.example.com): " -r SUB_DOMAIN
+        read -p "Введите домен страницы подписки (например, sub-link.example.com): " -r SUB_DOMAIN
         SUB_DOMAIN=$(sanitize_domain "$SUB_DOMAIN")
         if [[ "$SUB_DOMAIN" == http* ]]; then
-            colorized_echo red "Please enter only the domain without http:// or https://"
+            colorized_echo red "Введите только домен без http:// или https://"
         elif [[ -z "$SUB_DOMAIN" ]]; then
-            colorized_echo red "Domain cannot be empty"
+            colorized_echo red "Домен не может быть пустым"
         elif [[ "$SUB_DOMAIN" == */* ]]; then
-            colorized_echo red "Invalid domain format. Domain should not contain slashes."
+            colorized_echo red "Неверный формат домена. Домен не должен содержать слешей."
         elif ! validate_domain "$SUB_DOMAIN"; then
-            colorized_echo red "Invalid domain format. Domain should not contain slashes or spaces."
+            colorized_echo red "Неверный формат домена. Домен не должен содержать слешей или пробелов."
         else
             break
         fi
     done
 
     while true; do
-        read -p "Enter the subscription page prefix (default: sub): " -r CUSTOM_SUB_PREFIX
+        read -p "Введите префикс страницы подписки (по умолчанию: sub): " -r CUSTOM_SUB_PREFIX
         if [[ -z "$CUSTOM_SUB_PREFIX" ]]; then
             CUSTOM_SUB_PREFIX="sub"
             break
         elif ! validate_prefix "$CUSTOM_SUB_PREFIX"; then
-            colorized_echo red "Invalid prefix format. Prefix should contain only letters, numbers, and hyphens."
+            colorized_echo red "Неверный формат префикса. Разрешены только буквы, цифры и дефисы."
         else
             break
         fi
@@ -4676,18 +4676,18 @@ install_remnawave() {
     SUB_PUBLIC_DOMAIN="${SUB_DOMAIN}/${CUSTOM_SUB_PREFIX}"
 
     # Ask for META_TITLE and META_DESCRIPTION
-    read -p "Enter the META_TITLE for subscription page (default: 'Remnawave VPN - Your Subscription Page'): " -r META_TITLE
+    read -p "Введите META_TITLE для страницы подписки (по умолчанию: 'Remnawave VPN - Ваша страница подписки'): " -r META_TITLE
     if [[ -z "$META_TITLE" ]]; then
-        META_TITLE="Remnawave VPN - Your Subscription Page"
+        META_TITLE="Remnawave VPN - Ваша страница подписки"
     fi
 
-    read -p "Enter the META_DESCRIPTION for subscription page (default: 'Remnawave VPN - The best VPN service'): " -r META_DESCRIPTION
+    read -p "Введите META_DESCRIPTION для страницы подписки (по умолчанию: 'Remnawave VPN - Лучший VPN-сервис'): " -r META_DESCRIPTION
     if [[ -z "$META_DESCRIPTION" ]]; then
-        META_DESCRIPTION="Remnawave VPN - The best VPN service"
+        META_DESCRIPTION="Remnawave VPN - Лучший VPN-сервис"
     fi
 
     # Ask about Telegram integration
-    read -p "Do you want to enable Telegram notifications? (y/n): " -r enable_telegram
+    read -p "Включить уведомления Telegram? (y/n): " -r enable_telegram
     IS_TELEGRAM_NOTIFICATIONS_ENABLED=false
     TELEGRAM_BOT_TOKEN=""
     TELEGRAM_NOTIFY_USERS_CHAT_ID=""
@@ -4699,53 +4699,53 @@ install_remnawave() {
 
     if [[ "$enable_telegram" =~ ^[Yy]$ ]]; then
         IS_TELEGRAM_NOTIFICATIONS_ENABLED=true
-        read -p "Enter your Telegram Bot Token: " -r TELEGRAM_BOT_TOKEN
-        read -p "Enter your Users Notify Chat ID: " -r TELEGRAM_NOTIFY_USERS_CHAT_ID
-        read -p "Enter your Nodes Notify Chat ID (default: same as Users Notify Chat ID): " -r TELEGRAM_NOTIFY_NODES_CHAT_ID
+        read -p "Введите Telegram Bot Token: " -r TELEGRAM_BOT_TOKEN
+        read -p "Введите Chat ID для уведомлений пользователей: " -r TELEGRAM_NOTIFY_USERS_CHAT_ID
+        read -p "Введите Chat ID для уведомлений нод (по умолчанию: как у пользователей): " -r TELEGRAM_NOTIFY_NODES_CHAT_ID
         if [[ -z "$TELEGRAM_NOTIFY_NODES_CHAT_ID" ]]; then
             TELEGRAM_NOTIFY_NODES_CHAT_ID="$TELEGRAM_NOTIFY_USERS_CHAT_ID"
         fi
-        read -p "Enter your Users Notify Thread ID (optional): " -r TELEGRAM_NOTIFY_USERS_THREAD_ID
-        read -p "Enter your Nodes Notify Thread ID (optional): " -r TELEGRAM_NOTIFY_NODES_THREAD_ID
+        read -p "Введите Thread ID для уведомлений пользователей (опционально): " -r TELEGRAM_NOTIFY_USERS_THREAD_ID
+        read -p "Введите Thread ID для уведомлений нод (опционально): " -r TELEGRAM_NOTIFY_NODES_THREAD_ID
         if [[ -z "$TELEGRAM_NOTIFY_NODES_THREAD_ID" ]]; then
             TELEGRAM_NOTIFY_NODES_THREAD_ID="$TELEGRAM_NOTIFY_USERS_THREAD_ID"
         fi
         
         # CRM Notification settings
-        read -p "Enter your CRM Notify Chat ID (default: same as Nodes Notify Chat ID): " -r TELEGRAM_NOTIFY_CRM_CHAT_ID
+        read -p "Введите Chat ID для уведомлений CRM (по умолчанию: как у нод): " -r TELEGRAM_NOTIFY_CRM_CHAT_ID
         if [[ -z "$TELEGRAM_NOTIFY_CRM_CHAT_ID" ]]; then
             TELEGRAM_NOTIFY_CRM_CHAT_ID="$TELEGRAM_NOTIFY_NODES_CHAT_ID"
         fi
-        read -p "Enter your CRM Notify Thread ID (default: same as Nodes Notify Thread ID): " -r TELEGRAM_NOTIFY_CRM_THREAD_ID
+        read -p "Введите Thread ID для уведомлений CRM (по умолчанию: как у нод): " -r TELEGRAM_NOTIFY_CRM_THREAD_ID
         if [[ -z "$TELEGRAM_NOTIFY_CRM_THREAD_ID" ]]; then
             TELEGRAM_NOTIFY_CRM_THREAD_ID="$TELEGRAM_NOTIFY_NODES_THREAD_ID"
         fi
     fi
 
     # Ask about Telegram OAuth authorization
-    read -p "Do you want to enable Telegram OAuth login for admin panel? (y/n): " -r enable_telegram_oauth
+    read -p "Включить Telegram OAuth вход для админ-панели? (y/n): " -r enable_telegram_oauth
     TELEGRAM_OAUTH_ENABLED=false
     TELEGRAM_OAUTH_ADMIN_IDS=""
 
     if [[ "$enable_telegram_oauth" =~ ^[Yy]$ ]]; then
         TELEGRAM_OAUTH_ENABLED=true
         while true; do
-            read -p "Enter Telegram Admin IDs (comma-separated, digits only, e.g. 123456789,987654321): " -r input_ids
+            read -p "Введите Telegram Admin ID (через запятую, только цифры, напр. 123456789,987654321): " -r input_ids
             input_ids=$(echo "$input_ids" | tr -d ' ')
             if [[ "$input_ids" =~ ^[0-9]+(,[0-9]+)*$ ]]; then
                 TELEGRAM_OAUTH_ADMIN_IDS="[$input_ids]"
                 break
             else
-                colorized_echo red "Invalid format! Please enter comma-separated numeric IDs only (no spaces)."
+                colorized_echo red "Неверный формат! Введите только числовые ID через запятую (без пробелов)."
             fi
         done
 
         if [[ -z "$TELEGRAM_BOT_TOKEN" ]]; then
-            colorized_echo yellow "You have not provided a Telegram Bot Token yet. Enter Bot Token for OAuth to work (leave empty to skip): " -r TELEGRAM_BOT_TOKEN
+            colorized_echo yellow "Вы еще не указали Telegram Bot Token. Введите токен, чтобы OAuth работал (оставьте пустым, чтобы пропустить): " -r TELEGRAM_BOT_TOKEN
         fi
 
         if [[ -z "$TELEGRAM_BOT_TOKEN" ]]; then
-            colorized_echo red "Bot token is required for Telegram OAuth. OAuth will be disabled."
+            colorized_echo red "Для Telegram OAuth требуется токен бота. OAuth будет отключен."
             TELEGRAM_OAUTH_ENABLED=false
             TELEGRAM_OAUTH_ADMIN_IDS=""
         fi
@@ -4757,7 +4757,7 @@ install_remnawave() {
         BACKEND_IMAGE_TAG="dev"
     fi
 
-    colorized_echo blue "Generating .env file"
+    colorized_echo blue "Генерация файла .env"
     cat > "$ENV_FILE" <<EOL
 ### APP ###
 APP_PORT=$APP_PORT
@@ -4843,11 +4843,11 @@ HWID_DEVICE_LIMIT_ENABLED=false
 HWID_FALLBACK_DEVICE_LIMIT=10
 HWID_MAX_DEVICES_ANNOUNCE="You have reached the maximum number of devices for your subscription."
 EOL
-    colorized_echo green "Environment file saved in $ENV_FILE"
+    colorized_echo green "Файл окружения сохранен в $ENV_FILE"
 
 SUB_ENV_FILE="$APP_DIR/.env.subscription"
 
-colorized_echo blue "Generating .env.subscription for subscription-page"
+colorized_echo blue "Генерация .env.subscription для страницы подписки"
 cat > "$SUB_ENV_FILE" <<EOL
 ### Remnawave Panel URL, can be http://remnawave:3000 or https://panel.example.com
 REMNAWAVE_PANEL_URL=http://${APP_NAME}:${APP_PORT}
@@ -4871,10 +4871,10 @@ META_DESCRIPTION="$META_DESCRIPTION"
 #CADDY_AUTH_API_TOKEN=
 
 EOL
-colorized_echo green "Subscription environment saved in $SUB_ENV_FILE"
+colorized_echo green "Файл окружения подписки сохранен в $SUB_ENV_FILE"
 
     # Create app-config.json for subscription page with app and instruction links
-colorized_echo blue "Generating static app-config.json file"
+colorized_echo blue "Генерация статического файла app-config.json"
 cat > "$APP_CONFIG_FILE" <<'EOL'
 
 {
@@ -5272,10 +5272,10 @@ cat > "$APP_CONFIG_FILE" <<'EOL'
 
 
 EOL
-colorized_echo green "Static instruction file saved in $APP_CONFIG_FILE"
+colorized_echo green "Статический файл инструкций сохранен в $APP_CONFIG_FILE"
 
 
-    colorized_echo blue "Generating docker-compose.yml file"
+    colorized_echo blue "Генерация файла docker-compose.yml"
     cat > "$COMPOSE_FILE" <<EOL
 services:
     remnawave-db:
@@ -5396,19 +5396,19 @@ volumes:
       external: false
       name: ${APP_NAME}-redis-data
 EOL
-    colorized_echo green "Docker Compose file saved in $COMPOSE_FILE"
+    colorized_echo green "Файл Docker Compose сохранен в $COMPOSE_FILE"
 }
 
 uninstall_remnawave_script() {
     if [ -f "/usr/local/bin/$APP_NAME" ]; then
-        colorized_echo yellow "Removing remnawave script"
+        colorized_echo yellow "Удаление скрипта remnawave"
         rm "/usr/local/bin/$APP_NAME"
     fi
 }
 
 uninstall_remnawave() {
     if [ -d "$APP_DIR" ]; then
-        colorized_echo yellow "Removing directory: $APP_DIR"
+        colorized_echo yellow "Удаление директории: $APP_DIR"
         rm -r "$APP_DIR"
     fi
 }
@@ -5416,7 +5416,7 @@ uninstall_remnawave() {
 uninstall_remnawave_docker_images() {
     images=$(docker images | grep remnawave | awk '{print $3}')
     if [ -n "$images" ]; then
-        colorized_echo yellow "Removing Docker images of remnawave"
+        colorized_echo yellow "Удаление Docker-образов remnawave"
         for image in $images; do
             if docker rmi "$image" >/dev/null 2>&1; then
                 colorized_echo yellow "Image $image removed"
@@ -5428,7 +5428,7 @@ uninstall_remnawave_docker_images() {
 uninstall_remnawave_volumes() {
     volumes=$(docker volume ls | grep "${APP_NAME}" | awk '{print $2}')
     if [ -n "$volumes" ]; then
-        colorized_echo yellow "Removing Docker volumes of remnawave"
+        colorized_echo yellow "Удаление Docker-томов remnawave"
         for volume in $volumes; do
             if docker volume rm "$volume" >/dev/null 2>&1; then
                 colorized_echo yellow "Volume $volume removed"
@@ -5456,7 +5456,7 @@ follow_remnawave_logs() {
 update_remnawave_script() {
     colorized_echo blue "Updating remnawave script"
     curl -sSL $SCRIPT_URL | install -m 755 /dev/stdin /usr/local/bin/$APP_NAME
-    colorized_echo green "Remnawave script updated successfully"
+    colorized_echo green "Скрипт remnawave успешно обновлен"
 }
 
 update_remnawave() {
@@ -5468,7 +5468,7 @@ backup_command() {
     detect_compose  
     
     if ! is_remnawave_installed; then
-        colorized_echo red "Remnawave not installed!"
+        colorized_echo red "Remnawave не установлен!"
         exit 1
     fi
 
@@ -5493,27 +5493,27 @@ backup_command() {
             -h|--help) 
                 echo -e "\033[1;37m💾 Remnawave Backup System\033[0m"
                 echo
-                echo -e "\033[1;37mUsage:\033[0m"
+                echo -e "\033[1;37mИспользование:\033[0m"
                 echo -e "  \033[38;5;15m$APP_NAME backup\033[0m [\033[38;5;244moptions\033[0m]"
                 echo
-                echo -e "\033[1;37mOptions:\033[0m"
-                echo -e "  \033[38;5;244m--no-compress\033[0m       Create uncompressed backup (default: compressed)"
-                echo -e "  \033[38;5;244m--data-only\033[0m         Backup database only (no configs)"
-                echo -e "  \033[38;5;244m--include-configs\033[0m   Force include configuration files (default)"
-                echo -e "  \033[38;5;244m--help, -h\033[0m          Show this help"
+                echo -e "\033[1;37mОпции:\033[0m"
+                echo -e "  \033[38;5;244m--no-compress\033[0m       Создать несжатый бэкап (по умолчанию: сжатый)"
+                echo -e "  \033[38;5;244m--data-only\033[0m         Бэкап только базы данных (без конфигов)"
+                echo -e "  \033[38;5;244m--include-configs\033[0m   Включить файлы конфигурации (по умолчанию)"
+                echo -e "  \033[38;5;244m--help, -h\033[0m          Показать эту справку"
                 echo
-                echo -e "\033[1;37mExamples:\033[0m"
-                echo -e "  \033[38;5;15m$APP_NAME backup\033[0m                           \033[38;5;8m# Full backup (default)\033[0m"
-                echo -e "  \033[38;5;15m$APP_NAME backup --compress\033[0m                \033[38;5;8m# Compressed full backup\033[0m"
-                echo -e "  \033[38;5;15m$APP_NAME backup --data-only\033[0m               \033[38;5;8m# Database only\033[0m"
-                echo -e "  \033[38;5;15m$APP_NAME backup --data-only --compress\033[0m    \033[38;5;8m# Compressed database only\033[0m"
+                echo -e "\033[1;37mПримеры:\033[0m"
+                echo -е "  \033[38;5;15m$APP_NAME backup\033[0m                           \033[38;5;8m# Полный бэкап (по умолчанию)\033[0m"
+                echo -e "  \033[38;5;15m$APP_NAME backup --compress\033[0m                \033[38;5;8m# Сжатый полный бэкап\033[0m"
+                echo -e "  \033[38;5;15m$APP_NAME backup --data-only\033[0m               \033[38;5;8m# Только база данных\033[0m"
+                echo -e "  \033[38;5;15m$APP_NAME backup --data-only --compress\033[0m    \033[38;5;8m# Сжатая только база данных\033[0m"
                 echo
-                echo -e "\033[38;5;8mDefault: Full backup includes database + configuration files\033[0m"
+                echo -e "\033[38;5;8mПо умолчанию: полный бэкап включает базу и конфигурационные файлы\033[0m"
                 exit 0
                 ;;
             *) 
-                echo "Unknown option: $1" >&2
-                echo "Use '$APP_NAME backup --help' for usage information."
+                echo "Неизвестная опция: $1" >&2
+                echo "Используйте '$APP_NAME backup --help' для справки по использованию."
                 exit 1
                 ;;
         esac
@@ -5521,21 +5521,21 @@ backup_command() {
     done
     
     if [ ! -f "$ENV_FILE" ]; then
-        colorized_echo red ".env file not found!"
+        colorized_echo red "Файл .env не найден!"
         exit 1
     fi
 
     # Проверяем, что база данных запущена
     if ! is_remnawave_up; then
-        colorized_echo red "Remnawave services are not running!"
-        echo -e "\033[38;5;8m   Run '\033[38;5;15msudo $APP_NAME up\033[38;5;8m' first\033[0m"
+        colorized_echo red "Сервисы Remnawave не запущены!"
+        echo -e "\033[38;5;8m   Сначала выполните '\033[38;5;15msudo $APP_NAME up\033[38;5;8m'\033[0m"
         exit 1
     fi
 
     # Проверяем, что контейнер базы данных доступен
     local db_container="${APP_NAME}-db"
     if ! docker ps --format "{{.Names}}" | grep -q "^${db_container}$"; then
-        colorized_echo red "Database container '$db_container' not found or not running!"
+        colorized_echo red "Контейнер базы данных '$db_container' не найден или не запущен!"
         exit 1
     fi
 
@@ -5549,7 +5549,7 @@ backup_command() {
     POSTGRES_DB=${POSTGRES_DB:-postgres}
 
     if [ -z "$POSTGRES_PASSWORD" ]; then
-        colorized_echo red "POSTGRES_PASSWORD not found in .env file!"
+        colorized_echo red "POSTGRES_PASSWORD не найден в файле .env!"
         exit 1
     fi
 
@@ -5568,28 +5568,28 @@ backup_command() {
         local backup_dir="$BACKUP_DIR/$backup_name"
         mkdir -p "$backup_dir"
         
-        echo -e "\033[1;37m💾 Creating full system backup...\033[0m"
+        echo -e "\033[1;37m💾 Создание полного системного бэкапа...\033[0m"
         echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 50))\033[0m"
         
         # Создаем дамп базы данных
-        echo -e "\033[38;5;250m📝 Step 1:\033[0m Exporting database..."
+        echo -e "\033[38;5;250m📝 Шаг 1:\033[0m Экспорт базы данных..."
         if docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" "$db_container" \
             pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -F p --verbose > "$backup_dir/database.sql" 2>/dev/null; then
             local db_size=$(du -sh "$backup_dir/database.sql" | cut -f1)
-            echo -e "\033[1;32m✅ Database exported successfully ($db_size)\033[0m"
+            echo -e "\033[1;32m✅ База данных успешно экспортирована ($db_size)\033[0m"
         else
-            echo -e "\033[1;31m❌ Database export failed!\033[0m"
+            echo -e "\033[1;31m❌ Ошибка экспорта базы данных!\033[0m"
             rm -rf "$backup_dir"
             exit 1
         fi
         
         # Универсальное копирование конфигурационных файлов
-        echo -e "\033[38;5;250m📝 Step 2:\033[0m Including configuration files..."
+        echo -e "\033[38;5;250m📝 Шаг 2:\033[0m Включение конфигурационных файлов..."
         
         local config_count=0
         
         # Копируем основные конфигурационные файлы прямо в корень бэкапа
-        echo -e "\033[38;5;244m   Copying main configuration files...\033[0m"
+        echo -e "\033[38;5;244m   Копирование основных конфигурационных файлов...\033[0m"
         for config_file in "$ENV_FILE" "$SUB_ENV_FILE" "$COMPOSE_FILE"; do
             if [ -f "$config_file" ]; then
                 local filename=$(basename "$config_file")
@@ -5600,7 +5600,7 @@ backup_command() {
         done
         
         # Копируем дополнительные конфигурационные файлы по расширениям
-        echo -e "\033[38;5;244m   Scanning for additional config files...\033[0m"
+        echo -e "\033[38;5;244m   Поиск дополнительных конфигурационных файлов...\033[0m"
         local extensions=("json" "yml" "yaml" "toml" "ini" "conf" "config" "cfg")
         
         for ext in "${extensions[@]}"; do
@@ -5618,7 +5618,7 @@ backup_command() {
         done
         
         # Копируем важные директории с конфигурациями
-        echo -e "\033[38;5;244m   Checking for configuration directories...\033[0m"
+        echo -e "\033[38;5;244m   Проверка каталогов конфигурации...\033[0m"
         local config_dirs=("certs" "certificates" "ssl" "configs" "config" "custom" "themes" "plugins")
         
         for dir_name in "${config_dirs[@]}"; do
@@ -5632,7 +5632,7 @@ backup_command() {
         done
         
         # Создаем метаданные
-        echo -e "\033[38;5;250m📝 Step 3:\033[0m Creating backup metadata..."
+        echo -e "\033[38;5;250m📝 Шаг 3:\033[0m Создание метаданных бэкапа..."
         
         # Получаем версию панели
         local panel_version=$(get_panel_version)
@@ -5698,27 +5698,27 @@ Only use if automatic restore fails or for custom scenarios.
 New Installation:
 1. Download: curl -Ls https://raw.githubusercontent.com/Spakieone/Remna/main/remnawave.sh
 2. Install script: sudo bash remnawave.sh @ install-script --name $APP_NAME
-3. Create directory: sudo mkdir -p $APP_DIR
+3. Создать директорию: sudo mkdir -p $APP_DIR
 4. Extract: tar -xzf $(basename "$backup_path")
 5. Copy all configs: sudo cp -r $(basename "$backup_path" .tar.gz)/* $APP_DIR/
 6. Set permissions: sudo chown -R root:root $APP_DIR
-7. Start services: sudo $APP_NAME up -d
+7. Запустить сервисы: sudo $APP_NAME up -d
 8. Wait for DB: sleep 15
 9. Clear DB: docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" ${APP_NAME}-db psql -U $POSTGRES_USER -d $POSTGRES_DB -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
 10. Restore DB: cat $(basename "$backup_path" .tar.gz)/database.sql | docker exec -i -e PGPASSWORD="$POSTGRES_PASSWORD" ${APP_NAME}-db psql -U $POSTGRES_USER -d $POSTGRES_DB
-11. Restart: sudo $APP_NAME restart
+11. Перезапуск: sudo $APP_NAME restart
 
 Existing Installation:
-1. Stop: sudo $APP_NAME down
+1. Остановить: sudo $APP_NAME down
 2. Safety backup: sudo $APP_NAME backup --data-only
 3. Extract: tar -xzf $(basename "$backup_path")
 4. Clear DB: docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" ${APP_NAME}-db psql -U $POSTGRES_USER -d $POSTGRES_DB -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
 5. Restore DB: cat $(basename "$backup_path" .tar.gz)/database.sql | docker exec -i -e PGPASSWORD="$POSTGRES_PASSWORD" ${APP_NAME}-db psql -U $POSTGRES_USER -d $POSTGRES_DB
-6. Start: sudo $APP_NAME up
+6. Запустить: sudo $APP_NAME up
 
-⚠️  IMPORTANT: Target system must have compatible Remnawave Panel version ($panel_version)
+⚠️  ВАЖНО: Целевая система должна иметь совместимую версию Remnawave Panel ($panel_version)
 
-Generated by Remnawave Management CLI v$SCRIPT_VERSION
+Сгенерировано Remnawave Management CLI v$SCRIPT_VERSION
 EOF
         
         echo -e "\033[1;32m✅ Configuration files included ($config_count items)\033[0m"
@@ -5853,24 +5853,24 @@ EOF
         echo -e "\033[38;5;244mNew installation:\033[0m"
         echo -e "\033[38;5;244m1. Download: curl -Ls https://raw.githubusercontent.com/Spakieone/Remna/main/remnawave.sh\033[0m"
         echo -e "\033[38;5;244m2. Install script: sudo bash remnawave.sh @ install-script --name $APP_NAME\033[0m"
-        echo -e "\033[38;5;244m3. Create directory: sudo mkdir -p $APP_DIR\033[0m"
+        echo -e "\033[38;5;244m3. Создать директорию: sudo mkdir -p $APP_DIR\033[0m"
         if [ "$compress" = true ]; then
             echo -e "\033[38;5;244m4. Extract: tar -xzf \"$(basename "$backup_path")\"\033[0m"
             echo -e "\033[38;5;244m5. Copy all configs: sudo cp -r $(basename "$backup_path" .tar.gz)/* $APP_DIR/\033[0m"
             echo -e "\033[38;5;244m6. Set permissions: sudo chown -R root:root $APP_DIR\033[0m"
-            echo -e "\033[38;5;244m7. Start services: sudo $APP_NAME up -d\033[0m"
+            echo -e "\033[38;5;244m7. Запустить сервисы: sudo $APP_NAME up -d\033[0m"
             echo -e "\033[38;5;244m8. Wait for DB: sleep 15\033[0m"
             echo -e "\033[38;5;244m9. Clear DB: docker exec -e PGPASSWORD=\"$POSTGRES_PASSWORD\" ${APP_NAME}-db psql -U $POSTGRES_USER -d $POSTGRES_DB -c \"DROP SCHEMA public CASCADE; CREATE SCHEMA public;\"\033[0m"
             echo -e "\033[38;5;244m10. Restore DB: cat $(basename "$backup_path" .tar.gz)/database.sql | docker exec -i -e PGPASSWORD=\"$POSTGRES_PASSWORD\" ${APP_NAME}-db psql -U $POSTGRES_USER -d $POSTGRES_DB\033[0m"
-            echo -e "\033[38;5;244m11. Restart: sudo $APP_NAME restart\033[0m"
+            echo -e "\033[38;5;244m11. Перезапуск: sudo $APP_NAME restart\033[0m"
         else
             echo -e "\033[38;5;244m4. Copy all configs: sudo cp -r $(basename "$backup_path")/* $APP_DIR/\033[0m"
             echo -e "\033[38;5;244m5. Set permissions: sudo chown -R root:root $APP_DIR\033[0m"
-            echo -e "\033[38;5;244m6. Start services: sudo $APP_NAME up -d\033[0m"
+            echo -e "\033[38;5;244m6. Запустить сервисы: sudo $APP_NAME up -d\033[0m"
             echo -e "\033[38;5;244m7. Wait for DB: sleep 15\033[0m"
             echo -e "\033[38;5;244m8. Clear DB: docker exec -e PGPASSWORD=\"$POSTGRES_PASSWORD\" ${APP_NAME}-db psql -U $POSTGRES_USER -d $POSTGRES_DB -c \"DROP SCHEMA public CASCADE; CREATE SCHEMA public;\"\033[0m"
             echo -e "\033[38;5;244m9. Restore DB: cat $(basename "$backup_path")/database.sql | docker exec -i -e PGPASSWORD=\"$POSTGRES_PASSWORD\" ${APP_NAME}-db psql -U $POSTGRES_USER -d $POSTGRES_DB\033[0m"
-            echo -e "\033[38;5;244m10. Restart: sudo $APP_NAME restart\033[0m"
+            echo -e "\033[38;5;244m10. Перезапуск: sudo $APP_NAME restart\033[0m"
         fi
     else
         echo -e "\033[1;33m⚠️  Database-only backup - configuration files not included\033[0m"
@@ -5882,15 +5882,15 @@ EOF
         echo
         echo -e "\033[1;37m🛠️  MANUAL METHOD:\033[0m"
         if [ "$compress" = true ]; then
-            echo -e "\033[38;5;244m1. Stop: sudo $APP_NAME down\033[0m"
+            echo -e "\033[38;5;244m1. Остановить: sudo $APP_NAME down\033[0m"
             echo -e "\033[38;5;244m2. Clear DB: docker exec -e PGPASSWORD=\"$POSTGRES_PASSWORD\" ${APP_NAME}-db psql -U $POSTGRES_USER -d $POSTGRES_DB -c \"DROP SCHEMA public CASCADE; CREATE SCHEMA public;\"\033[0m"
             echo -e "\033[38;5;244m3. Restore: zcat \"$(basename "$backup_path")\" | docker exec -i -e PGPASSWORD=\"$POSTGRES_PASSWORD\" ${APP_NAME}-db psql -U $POSTGRES_USER -d $POSTGRES_DB\033[0m"
-            echo -e "\033[38;5;244m4. Start: sudo $APP_NAME up\033[0m"
+            echo -e "\033[38;5;244m4. Запустить: sudo $APP_NAME up\033[0m"
         else
-            echo -e "\033[38;5;244m1. Stop: sudo $APP_NAME down\033[0m"
+            echo -e "\033[38;5;244m1. Остановить: sudo $APP_NAME down\033[0m"
             echo -e "\033[38;5;244m2. Clear DB: docker exec -e PGPASSWORD=\"$POSTGRES_PASSWORD\" ${APP_NAME}-db psql -U $POSTGRES_USER -d $POSTGRES_DB -c \"DROP SCHEMA public CASCADE; CREATE SCHEMA public;\"\033[0m"
             echo -e "\033[38;5;244m3. Restore: cat \"$(basename "$backup_path")\" | docker exec -i -e PGPASSWORD=\"$POSTGRES_PASSWORD\" ${APP_NAME}-db psql -U $POSTGRES_USER -d $POSTGRES_DB\033[0m"
-            echo -e "\033[38;5;244m4. Start: sudo $APP_NAME up\033[0m"
+            echo -e "\033[38;5;244m4. Запустить: sudo $APP_NAME up\033[0m"
         fi
     fi
     echo
@@ -5910,12 +5910,12 @@ monitor_command() {
     check_running_as_root
     
     if ! is_remnawave_installed; then
-        echo -e "\033[1;31m❌ Remnawave not installed!\033[0m"
+        echo -e "\033[1;31m❌ Remnawave не установлен!\033[0m"
         return 1
     fi
     
     if ! is_remnawave_up; then
-        echo -e "\033[1;31m❌ Remnawave services are not running!\033[0m"
+        echo -e "\033[1;31m❌ Сервисы Remnawave не запущены!\033[0m"
         echo -e "\033[38;5;8m   Use 'sudo $APP_NAME up' to start services\033[0m"
         return 1
     fi
@@ -6009,7 +6009,7 @@ monitor_command() {
 
         if [[ "${BASH_SOURCE[1]}" =~ "main_menu" ]] || [[ "$0" =~ "$APP_NAME" ]] && [[ "$1" != "--no-pause" ]]; then
         echo
-        read -p "Press Enter to continue..."
+        read -p "Нажмите Enter для продолжения..."
     fi
 }
 
@@ -6080,11 +6080,11 @@ install_command() {
     follow_remnawave_logs
 
     colorized_echo green "==================================================="
-    colorized_echo green "Remnawave Panel has been installed successfully!"
+    colorized_echo green "Панель Remnawave успешно установлена!"
     colorized_echo green "Panel URL (local access only): http://127.0.0.1:$APP_PORT"
     colorized_echo green "Subscription Page URL (local access only): http://127.0.0.1:$SUB_PAGE_PORT"
     colorized_echo green "==================================================="
-    colorized_echo yellow "IMPORTANT: These URLs are only accessible from the server itself."
+    colorized_echo yellow "ВАЖНО: Эти URL доступны только с самого сервера."
     colorized_echo yellow "You must set up a reverse proxy to make them accessible from the internet."
     colorized_echo yellow "Configure your reverse proxy to point to:"
     colorized_echo yellow "Panel domain: $FRONT_END_DOMAIN -> 127.0.0.1:$APP_PORT"
@@ -6095,7 +6095,7 @@ install_command() {
 uninstall_command() {
     check_running_as_root
     if ! is_remnawave_installed; then
-        colorized_echo red "Remnawave not installed!"
+        colorized_echo red "Remnawave не установлен!"
         exit 1
     fi
 
@@ -6123,10 +6123,10 @@ uninstall_command() {
 
 up_command() {
     help() {
-        colorized_echo red "Usage: remnawave up [options]"
-        echo "OPTIONS:"
-        echo "  -h, --help        display this help message"
-        echo "  -n, --no-logs     do not follow logs after starting"
+        colorized_echo red "Использование: remnawave up [опции]"
+        echo "ОПЦИИ:"
+        echo "  -h, --help        показать эту справку"
+        echo "  -n, --no-logs     не показывать логи после старта"
     }
 
     local no_logs=false
@@ -6137,7 +6137,7 @@ up_command() {
             -h|--help) 
                 echo -e "\033[1;37m▶️  up\033[0m - Start all Remnawave services"
                 echo
-                echo -e "\033[1;37mUsage:\033[0m"
+                echo -е "\033[1;37mИспользование:\033[0m"
                 echo -e "  \033[38;5;15m$APP_NAME\033[0m \033[38;5;250mup\033[0m [\033[38;5;244m--no-logs\033[0m]"
                 echo
                 echo -e "\033[1;37mOptions:\033[0m"
@@ -6146,8 +6146,8 @@ up_command() {
                 exit 0
                 ;;
             *) 
-                echo "Error: Invalid option: $1" >&2
-                echo "Use '$APP_NAME up --help' for usage information."
+                echo "Ошибка: Неверная опция: $1" >&2
+                echo "Используйте '$APP_NAME up --help' для справки по использованию."
                 exit 1
                 ;;
         esac
@@ -6156,14 +6156,14 @@ up_command() {
     
 
     if ! is_remnawave_installed; then
-        colorized_echo red "Remnawave not installed!"
+        colorized_echo red "Remnawave не установлен!"
         exit 1
     fi
 
     detect_compose
 
     if is_remnawave_up; then
-        colorized_echo red "Remnawave already up"
+        colorized_echo red "Remnawave уже запущен"
         exit 1
     fi
 
@@ -6175,14 +6175,14 @@ up_command() {
 
 down_command() {
     if ! is_remnawave_installed; then
-        colorized_echo red "Remnawave not installed!"
+        colorized_echo red "Remnawave не установлен!"
         exit 1
     fi
 
     detect_compose
 
     if ! is_remnawave_up; then
-        colorized_echo red "Remnawave already down"
+        colorized_echo red "Remnawave уже остановлен"
         exit 1
     fi
 
@@ -6191,10 +6191,10 @@ down_command() {
 
 restart_command() {
     help() {
-        colorized_echo red "Usage: remnawave restart [options]"
-        echo "OPTIONS:"
-        echo "  -h, --help        display this help message"
-        echo "  -n, --no-logs     do not follow logs after starting"
+        colorized_echo red "Использование: remnawave restart [опции]"
+        echo "ОПЦИИ:"
+        echo "  -h, --help        показать эту справку"
+        echo "  -n, --no-logs     не показывать логи после старта"
     }
 
     local no_logs=false
@@ -6202,13 +6202,13 @@ restart_command() {
         case "$1" in
             -n|--no-logs) no_logs=true ;;
             -h|--help) help; exit 0 ;;
-            *) echo "Error: Invalid option: $1" >&2; help; exit 0 ;;
+            *) echo "Ошибка: Неверная опция: $1" >&2; help; exit 0 ;;
         esac
         shift
     done
 
     if ! is_remnawave_installed; then
-        colorized_echo red "Remnawave not installed!"
+        colorized_echo red "Remnawave не установлен!"
         exit 1
     fi
 
@@ -6231,23 +6231,23 @@ health_check_command() {
     
     # Проверка установки
     if ! is_remnawave_installed; then
-        echo -e "\033[1;31m❌ Panel not installed\033[0m"
+        echo -e "\033[1;31m❌ Панель не установлена\033[0m"
         return 1
     fi
     
     # Проверка Docker
     if ! command -v docker >/dev/null; then
-        echo -e "\033[1;31m❌ Docker not installed\033[0m"
+        echo -e "\033[1;31m❌ Docker не установлен\033[0m"
         issues=$((issues + 1))
     else
         echo -e "\033[1;32m✅ Docker installed\033[0m"
         
         # Проверка статуса Docker daemon
         if ! docker info >/dev/null 2>&1; then
-            echo -e "\033[1;31m❌ Docker daemon not running\033[0m"
+            echo -e "\033[1;31m❌ Демон Docker не запущен\033[0m"
             issues=$((issues + 1))
         else
-            echo -e "\033[1;32m✅ Docker daemon running\033[0m"
+            echo -e "\033[1;32m✅ Демон Docker запущен\033[0m"
         fi
     fi
     
@@ -6515,7 +6515,7 @@ status_command() {
     echo
     
     # Показываем использование ресурсов основного контейнера
-    echo -e "\033[1;37m💾 Resource Usage:\033[0m"
+    echo -e "\033[1;37m💾 Использование ресурсов:\033[0m"
     local main_stats=$(docker stats --no-stream --format "{{.CPUPerc}}\t{{.MemUsage}}" "${APP_NAME}" 2>/dev/null || echo "N/A\tN/A")
     local cpu_perc=$(echo "$main_stats" | cut -f1)
     local mem_usage=$(echo "$main_stats" | cut -f2)
@@ -6589,7 +6589,7 @@ status_command() {
     fi
     if [[ "${BASH_SOURCE[1]}" =~ "main_menu" ]] || [[ "$0" =~ "$APP_NAME" ]] && [[ "$1" != "--no-pause" ]]; then
         echo
-        read -p "Press Enter to continue..."
+        read -p "Нажмите Enter для продолжения..."
     fi
 }
 
@@ -6598,12 +6598,12 @@ logs_command() {
     detect_compose
     
     if ! is_remnawave_installed; then
-        colorized_echo red "Remnawave not installed!"
+        colorized_echo red "Remnawave не установлен!"
         return 1
     fi
 
     if ! is_remnawave_up; then
-        colorized_echo red "Remnawave services are not running!"
+        colorized_echo red "Сервисы Remnawave не запущены!"
         colorized_echo yellow "   Run 'sudo $APP_NAME up' first"
         return 1
     fi
@@ -6618,7 +6618,7 @@ logs_menu() {
         echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 40))\033[0m"
         echo
         
-        echo -e "\033[1;37m📊 Log Options:\033[0m"
+        echo -e "\033[1;37m📊 Опции логов:\033[0m"
         echo -e "   \033[38;5;15m1)\033[0m 📱 Follow all logs (real-time)"
         echo -e "   \033[38;5;15m2)\033[0m 📄 Show last 100 lines"
         echo -e "   \033[38;5;15m3)\033[0m 🔍 Show specific service logs"
@@ -6626,7 +6626,7 @@ logs_menu() {
         echo -e "   \033[38;5;244m0)\033[0m ⬅️  Back"
         echo
         
-        read -p "Select option [0-4]: " choice
+        read -p "Выберите опцию [0-4]: " choice
         
         case "$choice" in
             1) show_live_logs ;;
@@ -6708,7 +6708,7 @@ show_service_logs() {
         $COMPOSE -f "$COMPOSE_FILE" logs --tail=100 "$service_name"
         
         echo
-        read -p "Press Enter to continue..."
+        read -p "Нажмите Enter для продолжения..."
     done
 }
 
@@ -6727,7 +6727,7 @@ show_error_logs() {
 update_command() {
     check_running_as_root
     if ! is_remnawave_installed; then
-        echo -e "\033[1;31m❌ Remnawave not installed!\033[0m"
+        echo -e "\033[1;31m❌ Remnawave не установлен!\033[0m"
         echo -e "\033[38;5;8m   Run '\033[38;5;15msudo $APP_NAME install\033[38;5;8m' first\033[0m"
         exit 1
     fi
@@ -6824,7 +6824,7 @@ update_command() {
             echo -e "\033[38;5;244m   Update activity detected\033[0m"
         fi
     else
-        echo -e "\033[1;32m✅ All images are already up to date\033[0m"
+        echo -e "\033[1;32m✅ Все образы уже актуальны\033[0m"
         echo
         echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 50))\033[0m"
         echo -e "\033[1;37m🎉 No updates available!\033[0m"
@@ -6885,7 +6885,7 @@ update_command() {
     
     echo
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 50))\033[0m"
-    echo -e "\033[1;37m🎉 Remnawave updated successfully!\033[0m"
+    echo -e "\033[1;37m🎉 Remnawave успешно обновлен!\033[0m"
     
     # Показываем итоговую информацию
     if [ "$was_running" = true ]; then
@@ -6902,7 +6902,7 @@ edit_command() {
     if [ -f "$COMPOSE_FILE" ]; then
         $EDITOR "$COMPOSE_FILE"
     else
-        colorized_echo red "Compose file not found at $COMPOSE_FILE"
+        colorized_echo red "Файл compose не найден по пути $COMPOSE_FILE"
         exit 1
     fi
 }
@@ -6913,7 +6913,7 @@ edit_env_command() {
     if [ -f "$ENV_FILE" ]; then
         $EDITOR "$ENV_FILE"
     else
-        colorized_echo red "Environment file not found at $ENV_FILE"
+        colorized_echo red "Файл окружения не найден по пути $ENV_FILE"
         exit 1
     fi
 }
@@ -6924,14 +6924,14 @@ edit_env_sub_command() {
     if [ -f "$SUB_ENV_FILE" ]; then
         $EDITOR "$SUB_ENV_FILE"
     else
-        colorized_echo red "Environment file not found at $SUB_ENV_FILE"
+        colorized_echo red "Файл окружения подписки не найден по пути $SUB_ENV_FILE"
         exit 1
     fi
 }
 
 console_command() {
         if ! is_remnawave_installed; then
-            colorized_echo red "Remnawave not installed!"
+            colorized_echo red "Remnawave не установлен!"
             exit 1
         fi
     
@@ -6947,7 +6947,7 @@ console_command() {
 
 pm2_monitor() {
         if ! is_remnawave_installed; then
-            colorized_echo red "Remnawave not installed!"
+            colorized_echo red "Remnawave не установлен!"
             exit 1
         fi
     
@@ -7037,7 +7037,7 @@ main_menu() {
                 
                 # Показываем использование ресурсов
                 echo
-                echo -e "\033[1;37m💾 Resource Usage:\033[0m"
+    echo -e "\033[1;37m💾 Использование ресурсов:\033[0m"
                 
                 # CPU и Memory
                 local cpu_usage=$(top -bn1 | grep "Cpu(s)" | awk '{print $2}' | cut -d'%' -f1 2>/dev/null || echo "N/A")
@@ -7045,14 +7045,14 @@ main_menu() {
                 local mem_used=$(echo "$mem_info" | awk '{print $3}' 2>/dev/null || echo "N/A")
                 local mem_total=$(echo "$mem_info" | awk '{print $2}' 2>/dev/null || echo "N/A")
                 
-                printf "   \033[38;5;15m%-15s\033[0m \033[38;5;250m%s%%\033[0m\n" "CPU Usage:" "$cpu_usage"
-                printf "   \033[38;5;15m%-15s\033[0m \033[38;5;250m%s / %s\033[0m\n" "Memory Usage:" "$mem_used" "$mem_total"
+                printf "   \033[38;5;15m%-15s\033[0m \033[38;5;250m%s%%\033[0m\n" "CPU:" "$cpu_usage"
+                printf "   \033[38;5;15m%-15s\033[0m \033[38;5;250m%s / %s\033[0m\n" "Память:" "$mem_used" "$mem_total"
                 
                 # Дисковое пространство
                 local disk_usage=$(df -h "$APP_DIR" 2>/dev/null | tail -1 | awk '{print $5}' | sed 's/%//' 2>/dev/null || echo "N/A")
                 local disk_available=$(df -h "$APP_DIR" 2>/dev/null | tail -1 | awk '{print $4}' 2>/dev/null || echo "N/A")
                 
-                printf "   \033[38;5;15m%-15s\033[0m \033[38;5;250m%s%% used, %s available\033[0m\n" "Disk Usage:" "$disk_usage" "$disk_available"
+                printf "   \033[38;5;15m%-15s\033[0m \033[38;5;250m%s%% использовано, %s доступно\033[0m\n" "Диск:" "$disk_usage" "$disk_available"
                 
                 # Информация о бэкапах
                 if [ -f "$BACKUP_CONFIG_FILE" ]; then
@@ -7134,25 +7134,25 @@ main_menu() {
         read -p "$(echo -e "\033[1;37mВыберите опцию [0-16]:\033[0m ")" choice
 
         case "$choice" in
-            1) install_command; read -p "Press Enter to continue..." ;;
-            2) update_command; read -p "Press Enter to continue..." ;;
-            3) uninstall_command; read -p "Press Enter to continue..." ;;
-            4) up_command; read -p "Press Enter to continue..." ;;
-            5) down_command; read -p "Press Enter to continue..." ;;
-            6) restart_command; read -p "Press Enter to continue..." ;;
-            7) status_command; read -p "Press Enter to continue..." ;;
+            1) install_command; read -p "Нажмите Enter для продолжения..." ;;
+            2) update_command; read -p "Нажмите Enter для продолжения..." ;;
+            3) uninstall_command; read -p "Нажмите Enter для продолжения..." ;;
+            4) up_command; read -p "Нажмите Enter для продолжения..." ;;
+            5) down_command; read -p "Нажмите Enter для продолжения..." ;;
+            6) restart_command; read -p "Нажмите Enter для продолжения..." ;;
+            7) status_command; read -p "Нажмите Enter для продолжения..." ;;
             8) logs_command ;;
             9) monitor_command ;;
-            10) health_check_command; read -p "Press Enter to continue..." ;;
-            11) backup_command; read -p "Press Enter to continue..." ;;
+            10) health_check_command; read -p "Нажмите Enter для продолжения..." ;;
+            11) backup_command; read -p "Нажмите Enter для продолжения..." ;;
             12) schedule_menu ;;
-            13) restore_command; read -p "Press Enter to continue..." ;;  
+            13) restore_command; read -p "Нажмите Enter для продолжения..." ;;  
             14) edit_command_menu ;;  
             15) console_command ;;
             16) pm2_monitor ;;
             0) clear; exit 0 ;;
             *) 
-                echo -e "\033[1;31mInvalid option!\033[0m"
+                echo -e "\033[1;31mНеверная опция!\033[0m"
                 sleep 1
                 ;;
         esac
@@ -7172,15 +7172,15 @@ edit_command_menu() {
         echo -e "   \033[38;5;244m0)\033[0m ⬅️  Back"
         echo
         
-        read -p "Select option [0-3]: " choice
+        read -p "Выберите опцию [0-3]: " choice
         
         case "$choice" in
-            1) edit_command; read -p "Press Enter to continue..." ;;
-            2) edit_env_command; read -p "Press Enter to continue..." ;;
-            3) edit_env_sub_command; read -p "Press Enter to continue..." ;;
+            1) edit_command; read -p "Нажмите Enter для продолжения..." ;;
+            2) edit_env_command; read -p "Нажмите Enter для продолжения..." ;;
+            3) edit_env_sub_command; read -p "Нажмите Enter для продолжения..." ;;
             0) return 0 ;;
             *) 
-                echo -e "\033[1;31mInvalid option!\033[0m"
+                echo -e "\033[1;31mНеверная опция!\033[0m"
                 sleep 1
                 ;;
         esac
@@ -7188,10 +7188,10 @@ edit_command_menu() {
 }
 
 usage() {
-    echo -e "\033[1;37m⚡ $APP_NAME\033[0m \033[38;5;8mPanel Management CLI\033[0m \033[38;5;244mv$SCRIPT_VERSION\033[0m"
+    echo -e "\033[1;37m⚡ $APP_NAME\033[0m \033[38;5;8mCLI управления панелью\033[0m \033[38;5;244mv$SCRIPT_VERSION\033[0m"
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 60))\033[0m"
     echo
-    echo -e "\033[1;37m🎯 Installation & Updates:\033[0m"
+    echo -e "\033[1;37m🎯 Установка и обновления:\033[0m"
     printf "   \033[38;5;15m%-18s\033[0m %s\n" "install" "🛠️  Install Remnawave panel"
     printf "   \033[38;5;15m%-18s\033[0m %s\n" "update" "⬆️  Update to latest version"
     printf "   \033[38;5;15m%-18s\033[0m %s\n" "uninstall" "🗑️  Remove panel completely"
@@ -7245,7 +7245,7 @@ usage() {
     fi
 
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 60))\033[0m"
-    echo -e "\033[1;37m📖 Examples:\033[0m"
+    echo -e "\033[1;37m📖 Примеры:\033[0m"
     echo -e "\033[38;5;244m   sudo $APP_NAME install --name mypanel\033[0m"
     echo -e "\033[38;5;244m   sudo $APP_NAME schedule setup\033[0m"
     echo -e "\033[38;5;244m   sudo $APP_NAME backup --compress\033[0m"
@@ -7362,14 +7362,14 @@ command_help() {
             echo -e "\033[1;37m📖 Install Command Help\033[0m"
             echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 30))\033[0m"
             echo
-            echo -e "\033[1;37mUsage:\033[0m"
+            echo -e "\033[1;37mИспользование:\033[0m"
             echo -e "   \033[38;5;15m$APP_NAME install [options]\033[0m"
             echo
-            echo -e "\033[1;37mOptions:\033[0m"
+            echo -e "\033[1;37mОпции:\033[0m"
             echo -e "   \033[38;5;15m--name <name>\033[0m    Custom installation name"
             echo -e "   \033[38;5;15m--dev\033[0m            Use development branch"
             echo
-            echo -e "\033[1;37mExamples:\033[0m"
+            echo -e "\033[1;37mПримеры:\033[0m"
             echo -e "   \033[38;5;244m$APP_NAME install\033[0m"
             echo -e "   \033[38;5;244m$APP_NAME install --name mypanel\033[0m"
             echo -e "   \033[38;5;244m$APP_NAME install --dev\033[0m"
@@ -7378,68 +7378,68 @@ command_help() {
             echo -e "\033[1;37m📖 Schedule Command Help\033[0m"
             echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 30))\033[0m"
             echo
-            echo -e "\033[1;37mUsage:\033[0m"
+            echo -e "\033[1;37mИспользование:\033[0m"
             echo -e "   \033[38;5;15m$APP_NAME schedule [action]\033[0m"
             echo
             echo -e "\033[1;37mActions:\033[0m"
             echo -e "   \033[38;5;15msetup\033[0m           Configure backup settings"
             echo -e "   \033[38;5;15menable\033[0m          Enable scheduler"
             echo -e "   \033[38;5;15mdisable\033[0m         Disable scheduler"
-            echo -e "   \033[38;5;15mstatus\033[0m          Show scheduler status"
-            echo -e "   \033[38;5;15mtest\033[0m            Test backup creation"
-            echo -e "   \033[38;5;15mtest-telegram\033[0m   Test Telegram delivery"
-            echo -e "   \033[38;5;15mrun\033[0m             Run backup now"
-            echo -e "   \033[38;5;15mlogs\033[0m            View backup logs"
-            echo -e "   \033[38;5;15mcleanup\033[0m         Clean old backups"
+            echo -e "   \033[38;5;15mstatus\033[0m          Показать статус планировщика"
+            echo -e "   \033[38;5;15mtest\033[0m            Тестовое создание бэкапа"
+            echo -e "   \033[38;5;15mtest-telegram\033[0m   Тест отправки в Telegram"
+            echo -e "   \033[38;5;15mrun\033[0m             Запустить бэкап сейчас"
+            echo -e "   \033[38;5;15mlogs\033[0m            Просмотр логов бэкапа"
+            echo -e "   \033[38;5;15mcleanup\033[0m         Очистка старых бэкапов"
             echo
-            echo -e "\033[1;37mFeatures:\033[0m"
-            echo -e "   \033[38;5;250m• Automated database backups\033[0m"
-            echo -e "   \033[38;5;250m• Telegram notifications with file splitting\033[0m"
-            echo -e "   \033[38;5;250m• Configurable retention policies\033[0m"
-            echo -e "   \033[38;5;250m• Compression options\033[0m"
-            echo -e "   \033[38;5;250m• Thread support for group chats\033[0m"
+            echo -e "\033[1;37mВозможности:\033[0m"
+            echo -e "   \033[38;5;250m• Автоматические бэкапы базы данных\033[0m"
+            echo -e "   \033[38;5;250m• Уведомления в Telegram с разбиением файлов\033[0m"
+            echo -e "   \033[38;5;250m• Настраиваемая политика хранения\033[0m"
+            echo -e "   \033[38;5;250m• Варианты сжатия\033[0m"
+            echo -e "   \033[38;5;250m• Поддержка веток (thread) в групповых чатах\033[0m"
             ;;
 
         backup)
-            echo -e "\033[1;37m📖 Backup Command Help\033[0m"
+            echo -e "\033[1;37m📖 Справка по команде backup\033[0m"
             echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 30))\033[0m"
             echo
-            echo -e "\033[1;37mUsage:\033[0m"
+            echo -е "\033[1;37mИспользование:\033[0m"
             echo -e "   \033[38;5;15m$APP_NAME backup [options]\033[0m"
             echo
-            echo -e "\033[1;37mOptions:\033[0m"
-            echo -e "   \033[38;5;15m--compress\033[0m       Create compressed backup"
-            echo -e "   \033[38;5;15m--output <dir>\033[0m   Specify output directory"
+            echo -e "\033[1;37mОпции:\033[0m"
+            echo -e "   \033[38;5;15m--compress\033[0m       Создать сжатый бэкап"
+            echo -e "   \033[38;5;15m--output <dir>\033[0m   Указать выходную директорию"
             echo
-            echo -e "\033[1;37mNote:\033[0m"
-            echo -e "   \033[38;5;250mFor automated backups with Telegram delivery,\033[0m"
-            echo -e "   \033[38;5;250muse '\033[38;5;15m$APP_NAME schedule\033[38;5;250m' command instead.\033[0m"
+            echo -e "\033[1;37mПримечание:\033[0m"
+            echo -e "   \033[38;5;250mДля автоматических бэкапов с отправкой в Telegram\033[0m"
+            echo -e "   \033[38;5;250mиспользуйте команду '\033[38;5;15m$APP_NAME schedule\033[38;5;250m'.\033[0m"
             ;;
         monitor)
-            echo -e "\033[1;37m📖 Monitor Command Help\033[0m"
+            echo -e "\033[1;37m📖 Справка по команде monitor\033[0m"
             echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 30))\033[0m"
             echo
-            echo -e "\033[1;37mDescription:\033[0m"
+            echo -e "\033[1;37mОписание:\033[0m"
             echo -e "   \033[38;5;250mReal-time system monitoring dashboard\033[0m"
             echo
-            echo -e "\033[1;37mDisplays:\033[0m"
+            echo -e "\033[1;37mОтображает:\033[0m"
             echo -e "   \033[38;5;250m• CPU and Memory usage\033[0m"
             echo -e "   \033[38;5;250m• Docker container stats\033[0m"
             echo -e "   \033[38;5;250m• Network I/O\033[0m"
             echo -e "   \033[38;5;250m• Disk usage\033[0m"
             echo -e "   \033[38;5;250m• Service health status\033[0m"
             echo
-            echo -e "\033[1;37mControls:\033[0m"
-            echo -e "   \033[38;5;250mPress \033[38;5;15mCtrl+C\033[38;5;250m to exit\033[0m"
+            echo -e "\033[1;37mУправление:\033[0m"
+            echo -e "   \033[38;5;250mНажмите \033[38;5;15mCtrl+C\033[38;5;250m для выхода\033[0m"
             ;;
         health)
-            echo -e "\033[1;37m📖 Health Command Help\033[0m"
+            echo -e "\033[1;37m📖 Справка по команде health\033[0m"
             echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 30))\033[0m"
             echo
-            echo -e "\033[1;37mDescription:\033[0m"
+            echo -e "\033[1;37mОписание:\033[0m"
             echo -e "   \033[38;5;250mComprehensive system health diagnostics\033[0m"
             echo
-            echo -e "\033[1;37mChecks:\033[0m"
+            echo -e "\033[1;37mПроверяет:\033[0m"
             echo -e "   \033[38;5;250m• Service availability\033[0m"
             echo -e "   \033[38;5;250m• Database connectivity\033[0m"
             echo -e "   \033[38;5;250m• Port accessibility\033[0m"
@@ -7448,17 +7448,17 @@ command_help() {
             echo -e "   \033[38;5;250m• Configuration validation\033[0m"
             ;;
         *)
-            echo -e "\033[1;37m📖 Command Help\033[0m"
+            echo -e "\033[1;37m📖 Справка по командам\033[0m"
             echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 20))\033[0m"
             echo
-            echo -e "\033[1;31mUnknown command: $cmd\033[0m"
+            echo -e "\033[1;31mНеизвестная команда: $cmd\033[0m"
             echo
-            echo -e "\033[1;37mAvailable commands:\033[0m"
+            echo -e "\033[1;37mДоступные команды:\033[0m"
             echo -e "   \033[38;5;250minstall, update, uninstall, up, down, restart\033[0m"
             echo -e "   \033[38;5;250mstatus, logs, monitor, health, backup, schedule\033[0m"
             echo -e "   \033[38;5;250medit, edit-env, console, pm2-monitor\033[0m"
             echo
-            echo -e "\033[38;5;8mUse '\033[38;5;15m$APP_NAME help\033[38;5;8m' for full usage\033[0m"
+            echo -e "\033[38;5;8mИспользуйте '\033[38;5;15m$APP_NAME help\033[38;5;8m' для подробной справки\033[0m"
             ;;
     esac
 }

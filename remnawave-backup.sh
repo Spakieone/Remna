@@ -67,7 +67,7 @@ read_env_var() {
 }
 
 if [ -f "$COMPOSE_PATH/.env" ]; then
-    echo -e "${GREEN}✔ .env file found at $COMPOSE_PATH. Using it for DB connection.${NC}"
+    echo -e "${GREEN}✔ Найден файл .env в $COMPOSE_PATH. Использую для подключения к БД.${NC}"
     USE_ENV=true
     POSTGRES_USER=$(read_env_var "POSTGRES_USER" "$COMPOSE_PATH/.env")
     POSTGRES_PASSWORD=$(read_env_var "POSTGRES_PASSWORD" "$COMPOSE_PATH/.env")
@@ -78,49 +78,49 @@ if [ -f "$COMPOSE_PATH/.env" ]; then
     
     # Проверяем что все необходимые переменные заданы
     if [ -z "$POSTGRES_USER" ]; then
-        echo -e "${RED}✖ Error: POSTGRES_USER not found or empty in .env file!${NC}"
+        echo -e "${RED}✖ Ошибка: POSTGRES_USER не найден или пуст в .env!${NC}"
         exit 1
     fi
     if [ -z "$POSTGRES_DB" ]; then
-        echo -e "${RED}✖ Error: POSTGRES_DB not found or empty in .env file!${NC}"
+        echo -e "${RED}✖ Ошибка: POSTGRES_DB не найден или пуст в .env!${NC}"
         exit 1
     fi
     if [ -z "$POSTGRES_PASSWORD" ]; then
-        echo -e "${RED}✖ Error: POSTGRES_PASSWORD not found or empty in .env file!${NC}"
+        echo -e "${RED}✖ Ошибка: POSTGRES_PASSWORD не найден или пуст в .env!${NC}"
         exit 1
     fi
     
-    echo -e "${BLUE}Using database config: User=$POSTGRES_USER, DB=$POSTGRES_DB${NC}"
+    echo -e "${BLUE}Использую настройки БД: Пользователь=$POSTGRES_USER, База=$POSTGRES_DB${NC}"
 else
-    echo -e "${YELLOW}⚠ .env file not found at $COMPOSE_PATH.${NC}"
-    echo -e "${BLUE}You’ll need to enter DB connection details manually.${NC}"
+    echo -e "${YELLOW}⚠ Файл .env не найден по пути $COMPOSE_PATH.${NC}"
+    echo -е "${BLUE}Вам нужно ввести параметры подключения к БД вручную.${NC}"
     USE_ENV=false
-    prompt_input "${YELLOW}Enter POSTGRES_USER${NC}" POSTGRES_USER "postgres"
-    prompt_input "${YELLOW}Enter POSTGRES_PASSWORD${NC}" POSTGRES_PASSWORD ""
-    prompt_input "${YELLOW}Enter POSTGRES_DB${NC}" POSTGRES_DB "postgres"
+    prompt_input "${YELLOW}Введите POSTGRES_USER${NC}" POSTGRES_USER "postgres"
+    prompt_input "${YELLOW}Введите POSTGRES_PASSWORD${NC}" POSTGRES_PASSWORD ""
+    prompt_input "${YELLOW}Введите POSTGRES_DB${NC}" POSTGRES_DB "postgres"
 fi
 
 DB_CONTAINER=$(docker ps --filter "name=remnawave-db" --format "{{.Names}}")
 if [ -z "$DB_CONTAINER" ]; then
-    echo -e "${RED}✖ Error: Database container 'remnawave-db' not found!${NC}"
-    echo -e "${BLUE}Please enter the correct container name for the database:${NC}"
-    prompt_input "${YELLOW}Enter DB container name${NC}" DB_CONTAINER "remnawave-db"
+    echo -e "${RED}✖ Ошибка: Контейнер БД 'remnawave-db' не найден!${NC}"
+    echo -e "${BLUE}Укажите корректное имя контейнера базы данных:${NC}"
+    prompt_input "${YELLOW}Введите имя контейнера БД${NC}" DB_CONTAINER "remnawave-db"
 fi
 
-echo -e "${YELLOW}📡 Telegram Settings:${NC}"
-prompt_input "${BLUE}Enter Telegram Bot Token (from @BotFather)${NC}" TELEGRAM_BOT_TOKEN ""
-prompt_input "${BLUE}Enter Telegram Chat/Channel ID (e.g., -1001234567890)${NC}" TELEGRAM_CHAT_ID ""
-prompt_input "${BLUE}Enter Telegram Topic ID (optional, press Enter to skip)${NC}" TELEGRAM_TOPIC_ID ""
+echo -e "${YELLOW}📡 Настройки Telegram:${NC}"
+prompt_input "${BLUE}Введите токен бота Telegram (от @BotFather)${NC}" TELEGRAM_BOT_TOKEN ""
+prompt_input "${BLUE}Введите ID чата/канала (например, -1001234567890)${NC}" TELEGRAM_CHAT_ID ""
+prompt_input "${BLUE}Введите ID темы (опционально, Enter чтобы пропустить)${NC}" TELEGRAM_TOPIC_ID ""
 
 if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
-    echo -e "${RED}✖ Error: Telegram Bot Token and Chat ID are required!${NC}"
+    echo -e "${RED}✖ Ошибка: Нужны токен бота и ID чата Telegram!${NC}"
     exit 1
 fi
 
 BACKUP_SCRIPT="$COMPOSE_PATH/backup.sh"
 cat << EOF > "$BACKUP_SCRIPT"
 #!/bin/bash
-cd "$COMPOSE_PATH" || { echo "Error: Could not change to $COMPOSE_PATH"; exit 1; }
+cd "$COMPOSE_PATH" || { echo "Ошибка: Не удалось перейти в $COMPOSE_PATH"; exit 1; }
 TELEGRAM_BOT_TOKEN="$TELEGRAM_BOT_TOKEN"
 TELEGRAM_CHAT_ID="$TELEGRAM_CHAT_ID"
 TELEGRAM_TOPIC_ID="$TELEGRAM_TOPIC_ID"
@@ -136,7 +136,7 @@ mkdir -p "\$BACKUP_DIR"
 export PGPASSWORD="\$POSTGRES_PASSWORD"
 docker exec "\$DB_CONTAINER" pg_dump -U "\$POSTGRES_USER" -d "\$POSTGRES_DB" > "\$BACKUP_DIR/db_backup.sql"
 if [ \$? -ne 0 ]; then
-    echo "Error: Failed to create database backup"
+    echo "Ошибка: Не удалось создать бэкап базы данных"
     unset PGPASSWORD
     exit 1
 fi
@@ -151,7 +151,7 @@ cp -r "$COMPOSE_PATH/." "\$TEMP_ARCHIVE_DIR/"
 mv "\$BACKUP_DIR/db_backup.sql" "\$TEMP_ARCHIVE_DIR/db_backup.sql"
 tar -czvf "\$ARCHIVE_NAME" -C "\$TEMP_ARCHIVE_DIR" .
 if [ \$? -ne 0 ]; then
-    echo "Error: Failed to create archive"
+    echo "Ошибка: Не удалось создать архив"
     rm -rf "\$TEMP_ARCHIVE_DIR"
     exit 1
 fi
@@ -183,7 +183,7 @@ fi
 
 cat << 'EOF' >> "$BACKUP_SCRIPT"
 ARCHIVE_SIZE=$(du -m "$ARCHIVE_NAME" | cut -f1)
-MESSAGE=$(printf "🔔 Remnawave Backup\n📅 Date: %s\n📦 Archive contents:\n%s" "$BACKUP_DATE" "$CONTENTS")
+MESSAGE=$(printf "🔔 Бэкап Remnawave\n📅 Дата: %s\n📦 Состав архива:\n%s" "$BACKUP_DATE" "$CONTENTS")
 send_telegram() {
     local file="$1"
     local caption="$2"
@@ -193,34 +193,34 @@ send_telegram() {
     eval "$curl_cmd"
 }
 if [ "$ARCHIVE_SIZE" -gt "$MAX_SIZE_MB" ]; then
-    echo "Archive size ($ARCHIVE_SIZE MB) exceeds $MAX_SIZE_MB MB, splitting into parts..."
+    echo "Размер архива ($ARCHIVE_SIZE MB) превышает $MAX_SIZE_MB MB, выполняю разбиение..."
     split -b 49m "$ARCHIVE_NAME" "$BACKUP_DIR/part_"
     PARTS=("$BACKUP_DIR"/part_*)
     PART_COUNT=${#PARTS[@]}
     for i in "${!PARTS[@]}"; do
         PART_FILE="${PARTS[$i]}"
         PART_NUM=$((i + 1))
-        PART_MESSAGE=$(printf "🔔 Remnawave Backup (Part %d of %d)\n📅 Date: %s\n📦 Archive contents:\n\n%s" "$PART_NUM" "$PART_COUNT" "$BACKUP_DATE" "$CONTENTS")
+        PART_MESSAGE=$(printf "🔔 Бэкап Remnawave (Часть %d из %d)\n📅 Дата: %s\n📦 Состав архива:\n\n%s" "$PART_NUM" "$PART_COUNT" "$BACKUP_DATE" "$CONTENTS")
         send_telegram "$PART_FILE" "$PART_MESSAGE"
         if [ $? -ne 0 ] || grep -q '"ok":false' telegram_response.json; then
-            echo "Error sending part $PART_NUM:"
+            echo "Ошибка отправки части $PART_NUM:"
             cat telegram_response.json
             exit 1
         fi
-        echo "Part $PART_NUM of $PART_COUNT sent successfully"
+        echo "Часть $PART_NUM из $PART_COUNT успешно отправлена"
     done
 else
     send_telegram "$ARCHIVE_NAME" "$MESSAGE"
     if [ $? -ne 0 ]; then
-        echo "Error sending archive to Telegram"
+        echo "Ошибка отправки архива в Telegram"
         cat telegram_response.json
         exit 1
     fi
     if grep -q '"ok":false' telegram_response.json; then
-        echo "Telegram returned an error:"
+        echo "Telegram вернул ошибку:"
         cat telegram_response.json
     else
-        echo "Archive successfully sent to Telegram"
+        echo "Архив успешно отправлен в Telegram"
     fi
 fi
 rm -rf "$BACKUP_DIR"
@@ -231,8 +231,8 @@ EOF
 chmod +x "$BACKUP_SCRIPT"
 
 echo -e "${GREEN}====================================================${NC}"
-echo -e "${GREEN}   Backup script created successfully at: $BACKUP_SCRIPT${NC}"
+echo -e "${GREEN}   Скрипт бэкапа успешно создан: $BACKUP_SCRIPT${NC}"
 echo -e "${GREEN}====================================================${NC}"
-echo -e "${BLUE}To run it, use: ${YELLOW}$BACKUP_SCRIPT${NC}"
-echo -e "${BLUE}To add to crontab, run '${YELLOW}crontab -e${BLUE}' and add, e.g.:${NC}"
+echo -e "${BLUE}Для запуска используйте: ${YELLOW}$BACKUP_SCRIPT${NC}"
+echo -e "${BLUE}Чтобы добавить в crontab, выполните '${YELLOW}crontab -e${BLUE}' и добавьте, например:${NC}"
 echo -e "${YELLOW}0 */2 * * * $BACKUP_SCRIPT${NC}"

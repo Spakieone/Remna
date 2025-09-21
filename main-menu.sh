@@ -21,8 +21,8 @@ show_header() {
 # Главное меню
 show_main_menu() {
     show_header
-    echo -e "${GREEN}1.${NC} Управление панелью"
-    echo -e "${GREEN}2.${NC} Управление узлами"
+    echo -e "${GREEN}1.${NC} Управление Remnawave"
+    echo -e "${GREEN}2.${NC} Управление RemnaNode"
     echo -e "${GREEN}3.${NC} Инструменты Reality"
     echo -e "${GREEN}4.${NC} Сетевые инструменты"
     echo -e "${GREEN}5.${NC} Установка Node Exporter"

@@ -236,7 +236,7 @@ validate_domain_dns() {
     local propagation_count=0
     
     for dns_server in "${dns_servers[@]}"; do
-        echo -е "${GRAY}   Проверка через $dns_server...${NC}"
+        echo -e "${GRAY}   Проверка через $dns_server...${NC}"
         local remote_a=$(dig @"$dns_server" +short A "$domain" 2>/dev/null | head -1)
         
         if [ -n "$remote_a" ] && [[ "$remote_a" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
@@ -271,10 +271,10 @@ validate_domain_dns() {
     # Check if port 80 is free (will be used by Caddy)
     echo -e "${GRAY}   Проверка доступности порта 80...${NC}"
     if ss -tlnp | grep -q ":80 "; then
-        echo -е "${YELLOW}   ⚠️  Порт 80 занят${NC}"
-        echo -е "${GRAY}      Этот порт будет использоваться Caddy для HTTP-редиректов${NC}"
+        echo -e "${YELLOW}   ⚠️  Порт 80 занят${NC}"
+        echo -e "${GRAY}      Этот порт будет использоваться Caddy для HTTP-редиректов${NC}"
         local port80_occupied=$(ss -tlnp | grep ":80 " | head -1)
-        echo -е "${GRAY}      Текущий: $port80_occupied${NC}"
+        echo -e "${GRAY}      Текущий: $port80_occupied${NC}"
     else
         echo -e "${GREEN}   ✅ Порт 80 свободен для Caddy${NC}"
     fi
@@ -356,7 +356,7 @@ install_command() {
         echo -e "${YELLOW}🗑️  Удаление существующей установки...${NC}"
         stop_services
         rm -rf "$APP_DIR"
-        echo -е "${GREEN}✅ Существующая установка удалена${NC}"
+        echo -e "${GREEN}✅ Существующая установка удалена${NC}"
         echo
     fi
 
@@ -603,7 +603,7 @@ EOF
     echo
     
     if download_template "$selected_template"; then
-        echo -е "${GREEN}✅ Случайный шаблон успешно установлен${NC}"
+        echo -e "${GREEN}✅ Случайный шаблон успешно установлен${NC}"
         installed_template="$selected_name template"
     else
         echo -e "${YELLOW}⚠️  Не удалось скачать шаблон, создаю запасной${NC}"
@@ -705,7 +705,7 @@ show_current_template_info() {
     echo
     
     if [ ! -d "$HTML_DIR" ] || [ ! "$(ls -A "$HTML_DIR" 2>/dev/null)" ]; then
-        echo -е "${GRAY}   Шаблон не установлен${NC}"
+        echo -e "${GRAY}   Шаблон не установлен${NC}"
         return
     fi
     
@@ -1537,7 +1537,7 @@ up_command() {
     cd "$APP_DIR"
     
     if docker compose up -d; then
-        echo -е "${GREEN}✅ Сервисы Caddy успешно запущены${NC}"
+        echo -e "${GREEN}✅ Сервисы Caddy успешно запущены${NC}"
     else
         echo -e "${RED}❌ Не удалось запустить сервисы Caddy${NC}"
         return 1
@@ -1726,7 +1726,7 @@ logs_size_command() {
         return 1
     fi
     
-    echo -е "${WHITE}📊 Размеры логов${NC}"
+    echo -e "${WHITE}📊 Размеры логов${NC}"
     echo -e "${GRAY}$(printf '─%.0s' $(seq 1 25))${NC}"
     echo
     
@@ -2291,19 +2291,19 @@ main_menu() {    # Auto-check for updates on first run
         echo -e "   ${WHITE}5)${NC} 📊 Статус сервиса"
         echo
 
-        echo -е "${WHITE}🎨 Управление сайтом:${NC}"
+        echo -e "${WHITE}🎨 Управление сайтом:${NC}"
         echo -e "   ${WHITE}6)${NC} 🎨 Шаблоны сайтов"
         echo -e "   ${WHITE}7)${NC} 📖 Руководство по настройке"
         echo
 
-        echo -е "${WHITE}📝 Логи и мониторинг:${NC}"
+        echo -e "${WHITE}📝 Логи и мониторинг:${NC}"
         echo -e "   ${WHITE}8)${NC} 📝 Просмотреть логи"
         echo -e "   ${WHITE}9)${NC} 📊 Размеры логов"
         echo -e "   ${WHITE}10)${NC} 🧹 Очистить логи"
         echo -e "   ${WHITE}11)${NC} ✏️  Редактировать конфигурацию"
         echo
 
-        echo -е "${WHITE}🗑️  Обслуживание:${NC}"
+        echo -e "${WHITE}🗑️  Обслуживание:${NC}"
         echo -e "   ${WHITE}12)${NC} 🗑️  Удалить Caddy"
         echo -e "   ${WHITE}13)${NC} 🔄 Проверить обновления"
         echo

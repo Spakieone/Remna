@@ -162,11 +162,33 @@ fi
 
 # Download and install
 cd /tmp
+# Чистим возможные предыдущие архивы той же версии, чтобы избежать суффикса .2
+rm -f "node_exporter-${LATEST_VERSION#v}."*.tar.gz 2>/dev/null || true
 wget "https://github.com/prometheus/node_exporter/releases/download/${LATEST_VERSION}/node_exporter-${LATEST_VERSION#v}.${ARCH_SUFFIX}.tar.gz"
 
 tar xzf "node_exporter-${LATEST_VERSION#v}.${ARCH_SUFFIX}.tar.gz"
-cp "node_exporter-${LATEST_VERSION#v}.${ARCH_SUFFIX}/node_exporter" /usr/local/bin/
-chmod +x /usr/local/bin/node_exporter
+
+# Безопасная замена бинарника (обходит ошибку "Text file busy")
+SRC_DIR="node_exporter-${LATEST_VERSION#v}.${ARCH_SUFFIX}"
+TARGET_BIN="/usr/local/bin/node_exporter"
+NEW_BIN="${TARGET_BIN}.new"
+cp "${SRC_DIR}/node_exporter" "${NEW_BIN}"
+chmod 0755 "${NEW_BIN}"
+
+# Если сервис запущен, пометим для перезапуска после замены
+SERVICE_WAS_RUNNING=false
+if systemctl is-active --quiet node_exporter 2>/dev/null; then
+  SERVICE_WAS_RUNNING=true
+fi
+
+# Пытаемся атомарно подменить бинарь
+if mv -f "${NEW_BIN}" "${TARGET_BIN}" 2>/dev/null; then
+  :
+else
+  # Если не удалось (редко), останавливаем и повторяем
+  systemctl stop node_exporter 2>/dev/null || true
+  mv -f "${NEW_BIN}" "${TARGET_BIN}"
+fi
 
 # Create systemd service
 cat > /etc/systemd/system/node_exporter.service << 'EOF'
@@ -193,6 +215,11 @@ chown root:root /usr/local/bin/node_exporter 2>/dev/null || true
 systemctl daemon-reload
 systemctl enable node_exporter
 systemctl start node_exporter
+
+# Перезапускаем если ранее был запущен и был апдейт
+if [ "$SERVICE_WAS_RUNNING" = true ]; then
+  systemctl restart node_exporter || systemctl start node_exporter
+fi
 
 # Cleanup
 rm -rf /tmp/node_exporter-*

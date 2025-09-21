@@ -1,3 +1,15 @@
+install_tblocker_command() {
+    echo -e "\033[1;37m🛡️  Установка tBlocker\033[0m"
+    echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 40))\033[0m"
+    local script_name="install-tblocker.sh"
+    if [ -f "script/scripts-main/$script_name" ]; then
+        bash "script/scripts-main/$script_name"
+    else
+        echo -e "\033[38;5;244mСкачивание $script_name с GitHub...\033[0m"
+        bash <(curl -fsSL "https://raw.githubusercontent.com/Spakieone/Remna/main/$script_name")
+    fi
+}
+
 #!/usr/bin/env bash
 # Version: 3.2.2
 set -e
@@ -2107,7 +2119,7 @@ usage() {
         local node_port=$(grep "APP_PORT=" "$ENV_FILE" | cut -d'=' -f2 2>/dev/null || echo "")
         if [ -n "$node_port" ]; then
             echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 55))\033[0m"
-            echo -e "\033[1;37m🌐 Доступ к узлу:\033[0m \033[38;5;117m$NODE_IP:$node_port\033[0m"
+            echo -e "\033[1;37m🌐 Доступ к RemnaNode:\033[0m \033[38;5;117m$NODE_IP:$node_port\033[0m"
         fi
     fi
 
@@ -2144,7 +2156,7 @@ show_version() {
 main_menu() {
     while true; do
         clear
-        echo -e "\033[1;37m🚀 Управление узлом $APP_NAME\033[0m \033[38;5;244mv$SCRIPT_VERSION\033[0m"
+        echo -e "\033[1;37m🚀 Управление RemnaNode $APP_NAME\033[0m \033[38;5;244mv$SCRIPT_VERSION\033[0m"
         echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 55))\033[0m"
         echo
         
@@ -2162,7 +2174,7 @@ main_menu() {
             if is_remnanode_up; then
                 menu_status="Запущен"
                 status_color="\033[1;32m"
-                echo -e "${status_color}✅ Статус узла: ЗАПУЩЕН\033[0m"
+                echo -e "${status_color}✅ Статус RemnaNode: ЗАПУЩЕН\033[0m"
                 
                 # Показываем информацию о подключении
                 if [ -n "$node_port" ]; then
@@ -2171,6 +2183,27 @@ main_menu() {
                     printf "   \033[38;5;15m%-12s\033[0m \033[38;5;117m%s\033[0m\n" "IP адрес:" "$NODE_IP"
                     printf "   \033[38;5;15m%-12s\033[0m \033[38;5;117m%s\033[0m\n" "Порт:" "$node_port"
                     printf "   \033[38;5;15m%-12s\033[0m \033[38;5;117m%s:%s\033[0m\n" "Полный URL:" "$NODE_IP" "$node_port"
+
+                    # Краткий статус tBlocker и iptables в одну строку
+                    local tb_exists=false tb_active=false ipt_label="" tb_label=""
+                    if systemctl list-unit-files 2>/dev/null | grep -q '^tblocker\.service' || \
+                       [ -f "/etc/systemd/system/tblocker.service" ] || [ -f "/lib/systemd/system/tblocker.service" ]; then
+                        tb_exists=true
+                        if systemctl is-active --quiet tblocker 2>/dev/null; then
+                            tb_active=true
+                        fi
+                    fi
+                    if $tb_exists; then
+                        if $tb_active; then tb_label="\033[1;32mЗапущен\033[0m"; else tb_label="\033[1;33mОстановлен\033[0m"; fi
+                    else
+                        tb_label="\033[38;5;244mНе установлен\033[0m"
+                    fi
+                    if command -v iptables >/dev/null 2>&1 && iptables -L -n >/dev/null 2>&1; then
+                        ipt_label="\033[1;32mАктивен\033[0m"
+                    else
+                        ipt_label="\033[1;33mНедоступен\033[0m"
+                    fi
+                    echo -e "\033[1;37m🛡️  Firewall (iptables) и tBlocker:\033[0m tBlocker: ${tb_label} | iptables: ${ipt_label}"
                 fi
                 
                 # Проверяем Xray-core
@@ -2182,6 +2215,42 @@ main_menu() {
                     echo -e "\033[1;32m✅ $xray_version\033[0m"
                 else
                     echo -e "\033[1;33m⚠️  Не установлен\033[0m"
+                fi
+
+                # Блок: tBlocker и iptables
+                echo
+                echo -e "\033[1;37m🛡️  Сетевой экран:\033[0m"
+                # tBlocker статус
+                local tb_exists=false
+                if systemctl list-unit-files 2>/dev/null | grep -q '^tblocker\.service'; then
+                    tb_exists=true
+                elif [ -f "/etc/systemd/system/tblocker.service" ] || [ -f "/lib/systemd/system/tblocker.service" ]; then
+                    tb_exists=true
+                fi
+                if $tb_exists; then
+                    if systemctl is-active --quiet tblocker 2>/dev/null; then
+                        printf "   \033[38;5;15m%-12s\033[0m \033[1;32m✅ Запущен\033[0m\n" "tBlocker:"
+                    else
+                        printf "   \033[38;5;15m%-12s\033[0m \033[1;33m⏹️  Остановлен\033[0m\n" "tBlocker:"
+                    fi
+                else
+                    printf "   \033[38;5;15m%-12s\033[0m \033[38;5;244mНе установлен\033[0m\n" "tBlocker:"
+                fi
+                # iptables статус
+                if command -v iptables >/dev/null 2>&1; then
+                    if iptables -L -n >/dev/null 2>&1; then
+                        local tb_chains
+                        tb_chains=$(iptables -S 2>/dev/null | grep -i 'tblocker' | wc -l | tr -d '\n')
+                        if [ "$tb_chains" != "0" ]; then
+                            printf "   \033[38;5;15m%-12s\033[0m \033[1;32m✅ Активен\033[0m (цепочек tBlocker: %s)\n" "iptables:" "$tb_chains"
+                        else
+                            printf "   \033[38;5;15m%-12s\033[0m \033[1;32m✅ Активен\033[0m\n" "iptables:"
+                        fi
+                    else
+                        printf "   \033[38;5;15m%-12s\033[0m \033[1;33m⚠️  Недоступен\033[0m\n" "iptables:"
+                    fi
+                else
+                    printf "   \033[38;5;15m%-12s\033[0m \033[38;5;244mНе найден\033[0m\n" "iptables:"
                 fi
                 
                 # Показываем использование ресурсов
@@ -2213,12 +2282,12 @@ main_menu() {
             else
                 menu_status="Остановлен"
                 status_color="\033[1;31m"
-                echo -e "${status_color}❌ Статус узла: ОСТАНОВЛЕН\033[0m"
+                echo -e "${status_color}❌ Статус RemnaNode: ОСТАНОВЛЕН\033[0m"
                 echo -e "\033[38;5;244m   Сервисы установлены, но не запущены\033[0m"
                 echo -e "\033[38;5;244m   Используйте опцию 2 для запуска узла\033[0m"
             fi
         else
-            echo -e "${status_color}📦 Статус узла: НЕ УСТАНОВЛЕН\033[0m"
+            echo -e "${status_color}📦 Статус RemnaNode: НЕ УСТАНОВЛЕН\033[0m"
             echo -e "\033[38;5;244m   Используйте опцию 1 для установки RemnaNode\033[0m"
         fi
         
@@ -2227,13 +2296,13 @@ main_menu() {
         echo
         echo -e "\033[1;37m🚀 Установка и управление:\033[0m"
         echo -e "   \033[38;5;15m1)\033[0m 🛠️  Установить RemnaNode"
-        echo -e "   \033[38;5;15m2)\033[0m ▶️  Запустить сервисы узла"
-        echo -e "   \033[38;5;15m3)\033[0m ⏹️  Остановить сервисы узла"
-        echo -e "   \033[38;5;15m4)\033[0m 🔄 Перезапустить сервисы узла"
+        echo -e "   \033[38;5;15m2)\033[0m ▶️  Запустить сервисы RemnaNode"
+        echo -e "   \033[38;5;15m3)\033[0m ⏹️  Остановить сервисы RemnaNode"
+        echo -e "   \033[38;5;15m4)\033[0m 🔄 Перезапустить сервисы RemnaNode"
         echo -e "   \033[38;5;15m5)\033[0m 🗑️  Удалить RemnaNode"
         echo
         echo -e "\033[1;37m📊 Мониторинг и логи:\033[0m"
-        echo -e "   \033[38;5;15m6)\033[0m 📊 Показать статус узла"
+        echo -e "   \033[38;5;15m6)\033[0m 📊 Показать статус RemnaNode"
         echo -e "   \033[38;5;15m7)\033[0m 📋 Просмотреть логи контейнера"
         echo -e "   \033[38;5;15m8)\033[0m 📤 Просмотреть выходные логи Xray"
         echo -e "   \033[38;5;15m9)\033[0m 📥 Просмотреть логи ошибок Xray"
@@ -2243,6 +2312,7 @@ main_menu() {
         echo -e "   \033[38;5;15m11)\033[0m ⬆️  Обновить Xray-core"
         echo -e "   \033[38;5;15m12)\033[0m 📝 Редактировать конфигурацию"
         echo -e "   \033[38;5;15m13)\033[0m 🗂️  Настроить ротацию логов"
+        echo -e "   \033[38;5;15m14)\033[0m 🛡️  Установить tBlocker"
         echo
         echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 55))\033[0m"
         echo -e "\033[38;5;15m   0)\033[0m 🚪 Выход в терминал"
@@ -2267,7 +2337,7 @@ main_menu() {
         
         echo -e "\033[38;5;8mRemnaNode CLI v$SCRIPT_VERSION by DigneZzZ • gig.ovh\033[0m"
         echo
-        read -p "$(echo -e "\033[1;37mВыберите опцию [0-13]:\033[0m ")" choice
+        read -p "$(echo -e "\033[1;37mВыберите опцию [0-14]:\033[0m ")" choice
 
         case "$choice" in
             1) install_command; read -p "Нажмите Enter для продолжения..." ;;
@@ -2283,6 +2353,7 @@ main_menu() {
             11) update_core_command; read -p "Нажмите Enter для продолжения..." ;;
             12) edit_command; read -p "Нажмите Enter для продолжения..." ;;
             13) setup_log_rotation; read -p "Нажмите Enter для продолжения..." ;;
+            14) install_tblocker_command; read -p "Нажмите Enter для продолжения..." ;;
             0) clear; exit 0 ;;
             *) 
                 echo -e "\033[1;31m❌ Неверная опция!\033[0m"
@@ -2309,6 +2380,7 @@ case "${COMMAND:-menu}" in
     core-update) update_core_command ;;
     edit) edit_command ;;
     setup-logs) setup_log_rotation ;;
+    install-tblocker) install_tblocker_command ;;
     help|--help|-h) usage ;;
     version|--version|-v) show_version ;;
     menu) main_menu ;;

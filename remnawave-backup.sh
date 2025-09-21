@@ -93,7 +93,7 @@ if [ -f "$COMPOSE_PATH/.env" ]; then
     echo -e "${BLUE}Использую настройки БД: Пользователь=$POSTGRES_USER, База=$POSTGRES_DB${NC}"
 else
     echo -e "${YELLOW}⚠ Файл .env не найден по пути $COMPOSE_PATH.${NC}"
-    echo -е "${BLUE}Вам нужно ввести параметры подключения к БД вручную.${NC}"
+    echo -e "${BLUE}Вам нужно ввести параметры подключения к БД вручную.${NC}"
     USE_ENV=false
     prompt_input "${YELLOW}Введите POSTGRES_USER${NC}" POSTGRES_USER "postgres"
     prompt_input "${YELLOW}Введите POSTGRES_PASSWORD${NC}" POSTGRES_PASSWORD ""

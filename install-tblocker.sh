@@ -49,10 +49,60 @@ if grep -q "/var/lib/toblock:/var/lib/toblock" "$COMPOSE_FILE"; then
     sed -i '/\/var\/lib\/toblock:\/var\/lib\/toblock/d' "$COMPOSE_FILE"
 fi
 
-# Добавляем только необходимый том /var/log/remnanode
+# ===== Функции для корректных отступов в docker-compose.yml =====
+get_property_indent() {
+    awk '
+        BEGIN{in_remna=0}
+        /^[[:space:]]*remnanode:[[:space:]]*$/ {in_remna=1; next}
+        in_remna && /^[[:space:]]*[A-Za-z0-9_-]+:[[:space:]]/ {
+            match($0,/^[[:space:]]*/); print substr($0,1,RLENGTH); exit
+        }
+    ' "$COMPOSE_FILE"
+}
+
+get_volumes_item_indent() {
+    awk '
+        BEGIN{in_remna=0; in_vol=0}
+        /^[[:space:]]*remnanode:[[:space:]]*$/ {in_remna=1; next}
+        in_remna && /^[[:space:]]*volumes:[[:space:]]*$/ {in_vol=1; next}
+        in_vol && /^[[:space:]]*-[[:space:]]/ { match($0,/^[[:space:]]*/); print substr($0,1,RLENGTH); exit }
+        in_vol && /^[[:space:]]*[A-Za-z0-9_-]+:[[:space:]]*$/ {exit}
+    ' "$COMPOSE_FILE"
+}
+
+escape_sed() { echo "$1" | sed 's/[\\\/*.$^[]/\\&/g' ; }
+
+# Добавляем том /var/log/remnanode с правильными отступами
 if ! grep -q "/var/log/remnanode:/var/log/remnanode" "$COMPOSE_FILE"; then
     echo "➡ Добавляем том /var/log/remnanode в docker-compose.yml..."
-    sed -i '/volumes:/a\            - '\''/var/log/remnanode:/var/log/remnanode'\''' "$COMPOSE_FILE"
+
+    prop_indent="$(get_property_indent)"
+    [ -n "$prop_indent" ] || prop_indent="    "
+    # элементы списка отступаются на один уровень глубже свойства
+    item_indent="${prop_indent}  "
+
+    # Если уже есть volumes: — используем его и считываем фактический отступ элементов
+    if awk '/^[[:space:]]*remnanode:[[:space:]]*$/{in=1;next} in&&/^[[:space:]]*volumes:[[:space:]]*$/{print;exit}' "$COMPOSE_FILE" >/dev/null; then
+        detected_item_indent="$(get_volumes_item_indent)"
+        [ -n "$detected_item_indent" ] && item_indent="$detected_item_indent"
+        esc_prop="$(escape_sed "$prop_indent")"
+        esc_item="$(escape_sed "$item_indent")"
+        sed -i "/^${esc_prop}volumes:/a\\${item_indent}- /var/log/remnanode:/var/log/remnanode" "$COMPOSE_FILE"
+    else
+        # Вставляем блок volumes после restart: always в секции remnanode
+        esc_prop="$(escape_sed "$prop_indent")"
+        awk -v prop="$prop_indent" -v item="$item_indent" '
+            BEGIN{in_remna=0}
+            /^[[:space:]]*remnanode:[[:space:]]*$/ {in_remna=1; print; next}
+            in_remna && /^[[:space:]]*restart:[[:space:]]*always[[:space:]]*$/ {
+                print
+                print prop "volumes:"
+                print item "- /var/log/remnanode:/var/log/remnanode"
+                next
+            }
+            { print }
+        ' "$COMPOSE_FILE" > "$COMPOSE_FILE.tmp" && mv "$COMPOSE_FILE.tmp" "$COMPOSE_FILE"
+    fi
 else
     echo "✅ volumes для логов уже настроен."
 fi

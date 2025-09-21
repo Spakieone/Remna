@@ -464,12 +464,21 @@ EOL
         
 
         if grep -q "^${escaped_service_indent}volumes:" "$COMPOSE_FILE"; then
+            # Попробовать определить фактический отступ элементов '-' внутри текущей секции volumes
+            local detected_item_indent=""
+            detected_item_indent=$(awk 'found_volumes && match($0,/^[[:space:]]*-[[:space:]]/){ m=substr($0,1,RLENGTH-2); print m; exit } /^[[:space:]]*volumes:[[:space:]]*$/ { found_volumes=1 }' "$COMPOSE_FILE")
+            if [ -n "$detected_item_indent" ]; then
+                volume_item_indent="$detected_item_indent"
+            fi
             if ! grep -q "$DATA_DIR:$DATA_DIR" "$COMPOSE_FILE"; then
                 sed -i "/^${escaped_service_indent}volumes:/a\\${volume_item_indent}- $DATA_DIR:$DATA_DIR" "$COMPOSE_FILE"
                 colorized_echo green "Добавлен том логов в существующую секцию volumes"
             else
                 colorized_echo yellow "Том логов уже существует в секции volumes"
             fi
+
+            # Нормализуем отступы в секции volumes (на случай ранее добавленных строк)
+            normalize_volumes_indentation "$COMPOSE_FILE"
         elif grep -q "^${escaped_service_indent}# volumes:" "$COMPOSE_FILE"; then
             sed -i "s|^${escaped_service_indent}# volumes:|${service_indent}volumes:|g" "$COMPOSE_FILE"
             
@@ -1797,6 +1806,47 @@ escape_for_sed() {
 }
 
 
+normalize_volumes_indentation() {
+    local compose_file="$1"
+    [ -f "$compose_file" ] || return 0
+
+    local service_indent=$(get_service_property_indentation "$compose_file")
+    local indent_type=""
+    if [[ "$service_indent" =~ $'\t' ]]; then
+        indent_type=$'\t'
+    else
+        indent_type="  "
+    fi
+    local item_indent="${service_indent}${indent_type}"
+
+    # Перенормируем отступы элементов '-' внутри секции volumes сервиса remna*
+    local tmp_file
+    tmp_file=$(mktemp)
+    awk -v base="${service_indent}" -v item="${item_indent}" '
+        function indent_len(s,  n,i,c) { n=0; for(i=1;i<=length(s);i++){c=substr(s,i,1); if(c=="\t"){n+=1}else if(c==" "){n+=1}else break} return n }
+        function starts_with_volumes(line,base){return (line ~ "^" base "volumes:[[:space:]]*$")}
+        BEGIN{in_remna=0; in_vol=0; base_len=length(base)}
+        {
+            line=$0
+            # Детекция заголовков сервисов
+            if (match(line, /^[[:space:]]*[A-Za-z0-9_-]+:[[:space:]]*$/)) {
+                name=line; sub(/^[[:space:]]*/, "", name); sub(/:[[:space:]]*$/, "", name)
+                # Выход из секции volumes при встрече нового свойства/сервиса c отступом не больше base
+                if (in_vol) { in_vol=0 }
+                if (name ~ /remna/) { in_remna=1 } else if (indent_len(line) <= base_len) { in_remna=0 }
+            }
+            # Вход в volumes
+            if (in_remna && starts_with_volumes(line, base)) { in_vol=1; print line; next }
+            # Нормализация элементов
+            if (in_vol && match(line, /^[[:space:]]*-[[:space:]]/)) {
+                sub(/^[[:space:]]*-[[:space:]]*/, item "- ", line)
+                print line; next
+            }
+            print $0
+        }
+    ' "$compose_file" > "$tmp_file" && mv "$tmp_file" "$compose_file"
+}
+
 update_core_command() {
     check_running_as_root
     get_xray_core
@@ -2176,6 +2226,24 @@ main_menu() {
                 status_color="\033[1;32m"
                 echo -e "${status_color}✅ Статус RemnaNode: ЗАПУЩЕН\033[0m"
                 
+                # Статус Caddy
+                echo
+                local caddy_exists=false
+                if systemctl list-unit-files 2>/dev/null | grep -q '^caddy\.service'; then
+                    caddy_exists=true
+                elif [ -f "/etc/systemd/system/caddy.service" ] || [ -f "/lib/systemd/system/caddy.service" ]; then
+                    caddy_exists=true
+                fi
+                if $caddy_exists; then
+                    if systemctl is-active --quiet caddy 2>/dev/null; then
+                        echo -e "\033[1;37m🚦 Статус Caddy:\033[0m \033[1;32m✅ Запущен\033[0m"
+                    else
+                        echo -e "\033[1;37m🚦 Статус Caddy:\033[0m \033[1;31m⏹️  Остановлен\033[0m"
+                    fi
+                else
+                    echo -e "\033[1;37m🚦 Статус Caddy:\033[0m \033[38;5;244m❌ Не установлен\033[0m"
+                fi
+                
                 # Показываем информацию о подключении
                 if [ -n "$node_port" ]; then
                     echo
@@ -2184,7 +2252,7 @@ main_menu() {
                     printf "   \033[38;5;15m%-12s\033[0m \033[38;5;117m%s\033[0m\n" "Порт:" "$node_port"
                     printf "   \033[38;5;15m%-12s\033[0m \033[38;5;117m%s:%s\033[0m\n" "Полный URL:" "$NODE_IP" "$node_port"
 
-                    # Краткий статус tBlocker и iptables в одну строку
+                    # Статусы iptables и tBlocker отдельными строками
                     local tb_exists=false tb_active=false ipt_label="" tb_label=""
                     if systemctl list-unit-files 2>/dev/null | grep -q '^tblocker\.service' || \
                        [ -f "/etc/systemd/system/tblocker.service" ] || [ -f "/lib/systemd/system/tblocker.service" ]; then
@@ -2194,16 +2262,21 @@ main_menu() {
                         fi
                     fi
                     if $tb_exists; then
-                        if $tb_active; then tb_label="\033[1;32mЗапущен\033[0m"; else tb_label="\033[1;33mОстановлен\033[0m"; fi
+                        if $tb_active; then tb_label="\033[1;32m✅ Запущен\033[0m"; else tb_label="\033[1;31m⏹️  Остановлен\033[0m"; fi
                     else
-                        tb_label="\033[38;5;244mНе установлен\033[0m"
+                        tb_label="\033[38;5;244m❌ Не установлен\033[0m"
                     fi
-                    if command -v iptables >/dev/null 2>&1 && iptables -L -n >/dev/null 2>&1; then
-                        ipt_label="\033[1;32mАктивен\033[0m"
+                    if command -v iptables >/dev/null 2>&1; then
+                        if iptables -L -n >/dev/null 2>&1; then
+                            ipt_label="\033[1;32m✅ Активен\033[0m"
+                        else
+                            ipt_label="\033[1;33m⚠️  Недоступен\033[0m"
+                        fi
                     else
-                        ipt_label="\033[1;33mНедоступен\033[0m"
+                        ipt_label="\033[38;5;244m❌ Не найден\033[0m"
                     fi
-                    echo -e "\033[1;37m🛡️  Firewall (iptables) и tBlocker:\033[0m tBlocker: ${tb_label} | iptables: ${ipt_label}"
+                    echo -e "\033[1;37m🛡️  Firewall (iptables):\033[0m ${ipt_label}"
+                    printf "       \033[38;5;15m%-10s\033[0m %b\n" "tBlocker:" "${tb_label}"
                 fi
                 
                 # Проверяем Xray-core
@@ -2217,41 +2290,7 @@ main_menu() {
                     echo -e "\033[1;33m⚠️  Не установлен\033[0m"
                 fi
 
-                # Блок: tBlocker и iptables
-                echo
-                echo -e "\033[1;37m🛡️  Сетевой экран:\033[0m"
-                # tBlocker статус
-                local tb_exists=false
-                if systemctl list-unit-files 2>/dev/null | grep -q '^tblocker\.service'; then
-                    tb_exists=true
-                elif [ -f "/etc/systemd/system/tblocker.service" ] || [ -f "/lib/systemd/system/tblocker.service" ]; then
-                    tb_exists=true
-                fi
-                if $tb_exists; then
-                    if systemctl is-active --quiet tblocker 2>/dev/null; then
-                        printf "   \033[38;5;15m%-12s\033[0m \033[1;32m✅ Запущен\033[0m\n" "tBlocker:"
-                    else
-                        printf "   \033[38;5;15m%-12s\033[0m \033[1;33m⏹️  Остановлен\033[0m\n" "tBlocker:"
-                    fi
-                else
-                    printf "   \033[38;5;15m%-12s\033[0m \033[38;5;244mНе установлен\033[0m\n" "tBlocker:"
-                fi
-                # iptables статус
-                if command -v iptables >/dev/null 2>&1; then
-                    if iptables -L -n >/dev/null 2>&1; then
-                        local tb_chains
-                        tb_chains=$(iptables -S 2>/dev/null | grep -i 'tblocker' | wc -l | tr -d '\n')
-                        if [ "$tb_chains" != "0" ]; then
-                            printf "   \033[38;5;15m%-12s\033[0m \033[1;32m✅ Активен\033[0m (цепочек tBlocker: %s)\n" "iptables:" "$tb_chains"
-                        else
-                            printf "   \033[38;5;15m%-12s\033[0m \033[1;32m✅ Активен\033[0m\n" "iptables:"
-                        fi
-                    else
-                        printf "   \033[38;5;15m%-12s\033[0m \033[1;33m⚠️  Недоступен\033[0m\n" "iptables:"
-                    fi
-                else
-                    printf "   \033[38;5;15m%-12s\033[0m \033[38;5;244mНе найден\033[0m\n" "iptables:"
-                fi
+                # (подробный блок tBlocker/iptables удалён во избежание дублирования)
                 
                 # Показываем использование ресурсов
                 echo
@@ -2284,7 +2323,7 @@ main_menu() {
                 status_color="\033[1;31m"
                 echo -e "${status_color}❌ Статус RemnaNode: ОСТАНОВЛЕН\033[0m"
                 echo -e "\033[38;5;244m   Сервисы установлены, но не запущены\033[0m"
-                echo -e "\033[38;5;244m   Используйте опцию 2 для запуска узла\033[0m"
+                echo -e "\033[38;5;244m   Используйте опцию 2 для запуска RemnaNode\033[0m"
             fi
         else
             echo -e "${status_color}📦 Статус RemnaNode: НЕ УСТАНОВЛЕН\033[0m"

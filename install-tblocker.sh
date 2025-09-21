@@ -12,7 +12,44 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
-echo "✅ Запускаем установку Tblocker..."
+echo "✅ Запускаем скрипт Tblocker..."
+
+# ===== Поддержка подкоманд =====
+ACTION="install"
+if [ $# -gt 0 ]; then
+    case "$1" in
+        uninstall|remove)
+            ACTION="uninstall"
+            ;;
+        install)
+            ACTION="install"
+            ;;
+        *)
+            ACTION="install"
+            ;;
+    esac
+fi
+
+# ===== Удаление Tblocker =====
+if [ "$ACTION" = "uninstall" ]; then
+    echo "🗑 Удаление Tblocker..."
+    if systemctl list-unit-files 2>/dev/null | grep -q '^tblocker\.service'; then
+        systemctl stop tblocker 2>/dev/null || true
+        systemctl disable tblocker 2>/dev/null || true
+        [ -f "/etc/systemd/system/tblocker.service" ] && rm -f "/etc/systemd/system/tblocker.service"
+        [ -f "/lib/systemd/system/tblocker.service" ] && rm -f "/lib/systemd/system/tblocker.service"
+        systemctl daemon-reload 2>/dev/null || true
+        echo "✅ Сервис tBlocker остановлен и отключён"
+    else
+        echo "ℹ️  Сервис tBlocker не найден"
+    fi
+    [ -d "/opt/tblocker" ] && rm -rf "/opt/tblocker" && echo "✅ Удалена директория /opt/tblocker"
+    [ -f "/etc/logrotate.d/tblocker" ] && rm -f "/etc/logrotate.d/tblocker"
+    echo "✅ Готово. tBlocker удалён."
+    exit 0
+fi
+
+echo "➡ Режим: установка"
 
 # ===== Исправление прерванного dpkg =====
 if sudo fuser /var/lib/dpkg/lock >/dev/null 2>&1; then

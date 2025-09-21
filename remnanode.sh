@@ -3,10 +3,22 @@ install_tblocker_command() {
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 40))\033[0m"
     local script_name="install-tblocker.sh"
     if [ -f "script/scripts-main/$script_name" ]; then
-        bash "script/scripts-main/$script_name"
+        bash "script/scripts-main/$script_name" install
     else
         echo -e "\033[38;5;244mСкачивание $script_name с GitHub...\033[0m"
-        bash <(curl -fsSL "https://raw.githubusercontent.com/Spakieone/Remna/main/$script_name")
+        bash <(curl -fsSL "https://raw.githubusercontent.com/Spakieone/Remna/main/$script_name") install
+    fi
+}
+
+uninstall_tblocker_command() {
+    echo -e "\033[1;37m🗑️  Удаление tBlocker\033[0m"
+    echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 40))\033[0m"
+    local script_name="install-tblocker.sh"
+    if [ -f "script/scripts-main/$script_name" ]; then
+        bash "script/scripts-main/$script_name" uninstall
+    else
+        echo -e "\033[38;5;244mСкачивание $script_name с GitHub...\033[0m"
+        bash <(curl -fsSL "https://raw.githubusercontent.com/Spakieone/Remna/main/$script_name") uninstall
     fi
 }
 
@@ -577,6 +589,14 @@ install_remnanode() {
         install_latest_xray_core
     fi
 
+    # Ask about installing tBlocker
+    echo
+    read -p "Установить tBlocker (блокировка торрентов по iptables)? (y/n): " -r install_tb
+    INSTALL_TB=false
+    if [[ "$install_tb" =~ ^[Yy]$ ]]; then
+        INSTALL_TB=true
+    fi
+
     colorized_echo blue "Создание файла .env"
     cat > "$ENV_FILE" <<EOL
 ### APP ###
@@ -639,6 +659,13 @@ EOL
     fi
 
     colorized_echo green "Файл Docker Compose сохранён в $COMPOSE_FILE"
+
+    # Optionally install tBlocker right away
+    if [ "$INSTALL_TB" == "true" ]; then
+        echo
+        colorized_echo blue "Установка tBlocker по вашему запросу"
+        install_tblocker_command
+    fi
 }
 
 uninstall_remnanode_script() {
@@ -2352,6 +2379,7 @@ main_menu() {
         echo -e "   \033[38;5;15m12)\033[0m 📝 Редактировать конфигурацию"
         echo -e "   \033[38;5;15m13)\033[0m 🗂️  Настроить ротацию логов"
         echo -e "   \033[38;5;15m14)\033[0m 🛡️  Установить tBlocker"
+        echo -e "   \033[38;5;15m15)\033[0m 🗑️  Удалить tBlocker"
         echo
         echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 55))\033[0m"
         echo -e "\033[38;5;15m   0)\033[0m 🚪 Выход в терминал"
@@ -2376,7 +2404,7 @@ main_menu() {
         
         echo -e "\033[38;5;8mRemnaNode CLI v$SCRIPT_VERSION by DigneZzZ • gig.ovh\033[0m"
         echo
-        read -p "$(echo -e "\033[1;37mВыберите опцию [0-14]:\033[0m ")" choice
+        read -p "$(echo -e "\033[1;37mВыберите опцию [0-15]:\033[0m ")" choice
 
         case "$choice" in
             1) install_command; read -p "Нажмите Enter для продолжения..." ;;
@@ -2393,6 +2421,7 @@ main_menu() {
             12) edit_command; read -p "Нажмите Enter для продолжения..." ;;
             13) setup_log_rotation; read -p "Нажмите Enter для продолжения..." ;;
             14) install_tblocker_command; read -p "Нажмите Enter для продолжения..." ;;
+            15) uninstall_tblocker_command; read -p "Нажмите Enter для продолжения..." ;;
             0) clear; exit 0 ;;
             *) 
                 echo -e "\033[1;31m❌ Неверная опция!\033[0m"

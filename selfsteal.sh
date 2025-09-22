@@ -1252,17 +1252,8 @@ show_template_options() {
     echo -e "${GRAY}$(printf '─%.0s' $(seq 1 35))${NC}"
     echo
     echo -e "${WHITE}Выберите тип шаблона:${NC}"
-    echo -e "   ${WHITE}1)${NC} ${CYAN}😂 10gag - Сайт мемов${NC}"
-    echo -e "   ${WHITE}2)${NC} ${CYAN}🎬 Converter - Видеостудия-конвертер${NC}"
-    echo -e "   ${WHITE}3)${NC} ${CYAN}📁 Convertit - Конвертер файлов${NC}"
-    echo -e "   ${WHITE}4)${NC} ${CYAN}⬇️ Downloader - Даунлоадер${NC}"
-    echo -e "   ${WHITE}5)${NC} ${CYAN}☁️ FileCloud - Облачное хранилище${NC}"
-    echo -e "   ${WHITE}6)${NC} ${CYAN}🎮 Games-site - Ретро игровой портал${NC}"
-    echo -e "   ${WHITE}7)${NC} ${CYAN}🛠️ ModManager - Мод-менеджер для игр${NC}"
-    echo -e "   ${WHITE}8)${NC} ${CYAN}🚀 SpeedTest - Спидтест${NC}"
-    echo -e "   ${WHITE}9)${NC} ${CYAN}📺 YouTube - Видеохостинг с капчей${NC}"
-    echo -e "   ${WHITE}10)${NC} ${CYAN}⚠️ 503 Error - Страница ошибки 503 v1${NC}"
-    echo -e "   ${WHITE}11)${NC} ${CYAN}⚠️ 503 Error - Страница ошибки 503 v2${NC}"
+    echo -e "   ${WHITE}1)${NC} ${CYAN}⚠️ 503 Error - Страница ошибки 503 v1${NC}"
+    echo -e "   ${WHITE}2)${NC} ${CYAN}⚠️ 503 Error - Страница ошибки 503 v2${NC}"
     echo
     echo -e "   ${WHITE}v)${NC} ${GRAY}📄 Просмотреть текущий шаблон${NC}"
     echo -e "   ${WHITE}k)${NC} ${GRAY}📝 Оставить текущий шаблон${NC}"
@@ -1302,13 +1293,13 @@ template_command() {
         clear
         show_template_options
         
-        read -p "Выберите вариант шаблона [0-11, v, k]: " choice
+        read -p "Выберите вариант шаблона [0-2, v, k]: " choice
         
         case "$choice" in
             1)
                 echo
-                if download_template "1"; then
-                    echo -e "${GREEN}🎉 Шаблон 10gag успешно загружен!${NC}"
+                if download_template "10"; then
+                    echo -e "${GREEN}🎉 Шаблон 503 Error v1 успешно загружен!${NC}"
                     echo
                     local running_services=$(cd "$APP_DIR" && docker compose ps -q 2>/dev/null | wc -l || echo "0")
                     if [ "$running_services" -gt 0 ]; then
@@ -1320,193 +1311,22 @@ template_command() {
                         fi
                     fi
                 else
-                    echo -e "${RED}❌ Не удалось скачать шаблон 10gag${NC}"
+                    echo -e "${RED}❌ Не удалось скачать шаблон 503 Error v1${NC}"
                 fi
                 read -p "Нажмите Enter для продолжения..."
                 ;;
             2)
-                echo
-                if download_template "2"; then
-                    echo -e "${GREEN}🎉 Шаблон Converter успешно загружен!${NC}"
-                    echo
-                    local running_services=$(cd "$APP_DIR" && docker compose ps -q 2>/dev/null | wc -l || echo "0")
-                    if [ "$running_services" -gt 0 ]; then
-                        read -p "Перезапустить Caddy для применения изменений? [Y/n]: " -r restart_caddy
-                        if [[ ! $restart_caddy =~ ^[Nn]$ ]]; then
-                            echo -e "${YELLOW}🔄 Restarting Caddy...${NC}"
-                            cd "$APP_DIR" && docker compose restart
-                            echo -e "${GREEN}✅ Caddy restarted${NC}"
-                        fi
-                    fi
-                else
-                    echo -e "${RED}❌ Не удалось скачать шаблон Converter${NC}"
-                fi
-                read -p "Нажмите Enter для продолжения..."
-                ;;
-            3)
-                echo
-                if download_template "3"; then
-                    echo -e "${GREEN}🎉 Шаблон Convertit успешно загружен!${NC}"
-                    echo
-                    local running_services=$(cd "$APP_DIR" && docker compose ps -q 2>/dev/null | wc -l || echo "0")
-                    if [ "$running_services" -gt 0 ]; then
-                        read -p "Перезапустить Caddy для применения изменений? [Y/n]: " -r restart_caddy
-                        if [[ ! $restart_caddy =~ ^[Nn]$ ]]; then
-                            echo -e "${YELLOW}🔄 Restarting Caddy...${NC}"
-                            cd "$APP_DIR" && docker compose restart
-                            echo -e "${GREEN}✅ Caddy restarted${NC}"
-                        fi
-                    fi
-                else
-                    echo -e "${RED}❌ Не удалось скачать шаблон Convertit${NC}"
-                fi
-                read -p "Нажмите Enter для продолжения..."
-                ;;
-            4)
-                echo
-                if download_template "4"; then
-                    echo -e "${GREEN}🎉 Шаблон Downloader успешно загружен!${NC}"
-                    echo
-                    local running_services=$(cd "$APP_DIR" && docker compose ps -q 2>/dev/null | wc -l || echo "0")
-                    if [ "$running_services" -gt 0 ]; then
-                        read -p "Перезапустить Caddy для применения изменений? [Y/n]: " -r restart_caddy
-                        if [[ ! $restart_caddy =~ ^[Nn]$ ]]; then
-                            echo -e "${YELLOW}🔄 Restarting Caddy...${NC}"
-                            cd "$APP_DIR" && docker compose restart
-                            echo -e "${GREEN}✅ Caddy restarted${NC}"
-                        fi
-                    fi
-                else
-                    echo -e "${RED}❌ Не удалось скачать шаблон Downloader${NC}"
-                fi
-                read -p "Нажмите Enter для продолжения..."
-                ;;
-            5)
-                echo
-                if download_template "5"; then
-                    echo -e "${GREEN}🎉 Шаблон FileCloud успешно загружен!${NC}"
-                    echo
-                    local running_services=$(cd "$APP_DIR" && docker compose ps -q 2>/dev/null | wc -l || echo "0")
-                    if [ "$running_services" -gt 0 ]; then
-                        read -p "Перезапустить Caddy для применения изменений? [Y/n]: " -r restart_caddy
-                        if [[ ! $restart_caddy =~ ^[Nn]$ ]]; then
-                            echo -e "${YELLOW}🔄 Restarting Caddy...${NC}"
-                            cd "$APP_DIR" && docker compose restart
-                            echo -e "${GREEN}✅ Caddy restarted${NC}"
-                        fi
-                    fi
-                else
-                    echo -e "${RED}❌ Не удалось скачать шаблон FileCloud${NC}"
-                fi
-                read -p "Нажмите Enter для продолжения..."
-                ;;
-            6)
-                echo
-                if download_template "6"; then
-                    echo -e "${GREEN}🎉 Шаблон Games-site успешно загружен!${NC}"
-                    echo
-                    local running_services=$(cd "$APP_DIR" && docker compose ps -q 2>/dev/null | wc -l || echo "0")
-                    if [ "$running_services" -gt 0 ]; then
-                        read -p "Перезапустить Caddy для применения изменений? [Y/n]: " -r restart_caddy
-                        if [[ ! $restart_caddy =~ ^[Nn]$ ]]; then
-                            echo -e "${YELLOW}🔄 Restarting Caddy...${NC}"
-                            cd "$APP_DIR" && docker compose restart
-                            echo -e "${GREEN}✅ Caddy restarted${NC}"
-                        fi
-                    fi
-                else
-                    echo -e "${RED}❌ Не удалось скачать шаблон Games-site${NC}"
-                fi
-                read -p "Нажмите Enter для продолжения..."
-                ;;
-            7)
-                echo
-                if download_template "7"; then
-                    echo -e "${GREEN}🎉 Шаблон ModManager успешно загружен!${NC}"
-                    echo
-                    local running_services=$(cd "$APP_DIR" && docker compose ps -q 2>/dev/null | wc -l || echo "0")
-                    if [ "$running_services" -gt 0 ]; then
-                        read -p "Перезапустить Caddy для применения изменений? [Y/n]: " -r restart_caddy
-                        if [[ ! $restart_caddy =~ ^[Nn]$ ]]; then
-                            echo -e "${YELLOW}🔄 Restarting Caddy...${NC}"
-                            cd "$APP_DIR" && docker compose restart
-                            echo -e "${GREEN}✅ Caddy restarted${NC}"
-                        fi
-                    fi
-                else
-                    echo -e "${RED}❌ Не удалось скачать шаблон ModManager${NC}"
-                fi
-                read -p "Нажмите Enter для продолжения..."
-                ;;
-            8)
-                echo
-                if download_template "8"; then
-                    echo -e "${GREEN}🎉 Шаблон SpeedTest успешно загружен!${NC}"
-                    echo
-                    local running_services=$(cd "$APP_DIR" && docker compose ps -q 2>/dev/null | wc -l || echo "0")
-                    if [ "$running_services" -gt 0 ]; then
-                        read -p "Перезапустить Caddy для применения изменений? [Y/n]: " -r restart_caddy
-                        if [[ ! $restart_caddy =~ ^[Nn]$ ]]; then
-                            echo -e "${YELLOW}🔄 Restarting Caddy...${NC}"
-                            cd "$APP_DIR" && docker compose restart
-                            echo -e "${GREEN}✅ Caddy restarted${NC}"
-                        fi
-                    fi
-                else
-                    echo -e "${RED}❌ Не удалось скачать шаблон SpeedTest${NC}"
-                fi
-                read -p "Нажмите Enter для продолжения..."
-                ;;
-            9)
-                echo
-                if download_template "9"; then
-                    echo -e "${GREEN}🎉 Шаблон YouTube успешно загружен!${NC}"
-                    echo
-                    local running_services=$(cd "$APP_DIR" && docker compose ps -q 2>/dev/null | wc -l || echo "0")
-                    if [ "$running_services" -gt 0 ]; then
-                        read -p "Restart Caddy to apply changes? [Y/n]: " -r restart_caddy
-                        if [[ ! $restart_caddy =~ ^[Nn]$ ]]; then
-                            echo -e "${YELLOW}🔄 Restarting Caddy...${NC}"
-                            cd "$APP_DIR" && docker compose restart
-                            echo -e "${GREEN}✅ Caddy restarted${NC}"
-                        fi
-                    fi
-                else
-                    echo -e "${RED}❌ Не удалось скачать шаблон YouTube${NC}"
-                fi
-                read -p "Нажмите Enter для продолжения..."
-                ;;
-            10)
-                echo
-                if download_template "10"; then
-                    echo -e "${GREEN}🎉 Шаблон 503 Error успешно загружен!${NC}"
-                    echo
-                    local running_services=$(cd "$APP_DIR" && docker compose ps -q 2>/dev/null | wc -l || echo "0")
-                    if [ "$running_services" -gt 0 ]; then
-                        read -p "Restart Caddy to apply changes? [Y/n]: " -r restart_caddy
-                        if [[ ! $restart_caddy =~ ^[Nn]$ ]]; then
-                            echo -e "${YELLOW}🔄 Restarting Caddy...${NC}"
-                            cd "$APP_DIR" && docker compose restart
-                            echo -e "${GREEN}✅ Caddy restarted${NC}"
-                        fi
-                    fi
-                else
-                    echo -e "${RED}❌ Не удалось скачать шаблон 503 Error${NC}"
-                fi
-                read -p "Нажмите Enter для продолжения..."
-                ;;
-            11)
                 echo
                 if download_template "11"; then
                     echo -e "${GREEN}🎉 Шаблон 503 Error v2 успешно загружен!${NC}"
                     echo
                     local running_services=$(cd "$APP_DIR" && docker compose ps -q 2>/dev/null | wc -l || echo "0")
                     if [ "$running_services" -gt 0 ]; then
-                        read -p "Restart Caddy to apply changes? [Y/n]: " -r restart_caddy
+                        read -p "Перезапустить Caddy для применения изменений? [Y/n]: " -r restart_caddy
                         if [[ ! $restart_caddy =~ ^[Nn]$ ]]; then
-                            echo -e "${YELLOW}🔄 Restarting Caddy...${NC}"
+                            echo -e "${YELLOW}🔄 Перезапуск Caddy...${NC}"
                             cd "$APP_DIR" && docker compose restart
-                            echo -e "${GREEN}✅ Caddy restarted${NC}"
+                            echo -e "${GREEN}✅ Caddy перезапущен${NC}"
                         fi
                     fi
                 else
@@ -1520,14 +1340,14 @@ template_command() {
                 read -p "Нажмите Enter для продолжения..."
                 ;;
             k|K)
-                echo -e "${GRAY}Current template preserved${NC}"
+                echo -e "${GRAY}Текущий шаблон сохранён${NC}"
                 read -p "Нажмите Enter для продолжения..."
                 ;;
             0)
                 return 0
                 ;;
             *)
-                echo -e "${RED}❌ Invalid option!${NC}"
+                echo -e "${RED}❌ Неверная опция!${NC}"
                 sleep 1
                 ;;
         esac

@@ -34,20 +34,20 @@ show_header() {
 show_main_menu() {
     show_header
     
-    # Меню с волнами и цифрами без скобок
+    # Меню с выравниванием
     echo -e "${BOLD}${CYAN}┌─ 🛠️  ИНСТРУМЕНТЫ УПРАВЛЕНИЯ ─────────────────────────┐${NC}"
     echo -e "${BOLD}${CYAN}│${NC}                                                      ${BOLD}${CYAN}│${NC}"
-    echo -e "${BOLD}${CYAN}│${NC}  ${BOLD}${GREEN}1.${NC} ${CYAN}🧩 Remnawave Panel${NC}     ${GRAY}┃ Панель управления${NC}       ${BOLD}${CYAN}│${NC}"
-    echo -e "${BOLD}${CYAN}│${NC}  ${BOLD}${GREEN}2.${NC} ${YELLOW}🖥️  RemnaNode Core${NC}      ${GRAY}┃ Узлы и сервисы${NC}          ${BOLD}${CYAN}│${NC}"
-    echo -e "${BOLD}${CYAN}│${NC}  ${BOLD}${GREEN}3.${NC} ${PURPLE}🛡️  Reality Caddy${NC}       ${GRAY}┃ Маскировка трафика${NC}      ${BOLD}${CYAN}│${NC}"
-    echo -e "${BOLD}${CYAN}│${NC}  ${BOLD}${GREEN}4.${NC} ${BLUE}🌐 Network Tools${NC}       ${GRAY}┃ Диагностика сети${NC}        ${BOLD}${CYAN}│${NC}"
-    echo -e "${BOLD}${CYAN}│${NC}  ${BOLD}${GREEN}5.${NC} ${GREEN}📈 Node Exporter${NC}       ${GRAY}┃ Мониторинг системы${NC}      ${BOLD}${CYAN}│${NC}"
-    echo -e "${BOLD}${CYAN}│${NC}  ${BOLD}${GREEN}6.${NC} ${WHITE}📊 System Status${NC}       ${GRAY}┃ Детальная информация${NC}    ${BOLD}${CYAN}│${NC}"
+    echo -e "${BOLD}${CYAN}│${NC}  ${BOLD}${GREEN}1.${NC} ${CYAN}🧩 Remnawave Panel${NC}     ${GRAY}┃${NC} ${WHITE}Панель управления${NC}       ${BOLD}${CYAN}│${NC}"
+    echo -e "${BOLD}${CYAN}│${NC}  ${BOLD}${GREEN}2.${NC} ${YELLOW}🖥️  RemnaNode Core${NC}      ${GRAY}┃${NC} ${WHITE}Узлы и сервисы${NC}          ${BOLD}${CYAN}│${NC}"
+    echo -e "${BOLD}${CYAN}│${NC}  ${BOLD}${GREEN}3.${NC} ${PURPLE}🛡️  Reality Caddy${NC}       ${GRAY}┃${NC} ${WHITE}Маскировка трафика${NC}      ${BOLD}${CYAN}│${NC}"
+    echo -e "${BOLD}${CYAN}│${NC}  ${BOLD}${GREEN}4.${NC} ${BLUE}🌐 Network Tools${NC}       ${GRAY}┃${NC} ${WHITE}Диагностика сети${NC}        ${BOLD}${CYAN}│${NC}"
+    echo -e "${BOLD}${CYAN}│${NC}  ${BOLD}${GREEN}5.${NC} ${GREEN}📈 Node Exporter${NC}       ${GRAY}┃${NC} ${WHITE}Мониторинг системы${NC}      ${BOLD}${CYAN}│${NC}"
+    echo -e "${BOLD}${CYAN}│${NC}  ${BOLD}${GREEN}6.${NC} ${WHITE}📊 System Status${NC}       ${GRAY}┃${NC} ${WHITE}Детальная информация${NC}    ${BOLD}${CYAN}│${NC}"
     echo -e "${BOLD}${CYAN}│${NC}                                                      ${BOLD}${CYAN}│${NC}"
     echo -e "${BOLD}${CYAN}└──────────────────────────────────────────────────────┘${NC}"
     echo ""
     echo -e "${BOLD}${RED}┌─ 🚪 ВЫХОД ────────────────────────────────────────────┐${NC}"
-    echo -e "${BOLD}${RED}│${NC}  ${BOLD}${GREEN}0.${NC} ${RED}Завершение работы${NC}                                ${BOLD}${RED}│${NC}"
+    echo -e "${BOLD}${RED}│${NC}  ${BOLD}${GREEN}0.${NC} ${WHITE}Завершение работы${NC}                                ${BOLD}${RED}│${NC}"
     echo -e "${BOLD}${RED}└──────────────────────────────────────────────────────┘${NC}"
     echo ""
     echo -e "${WHITE}Выберите инструмент:${NC} "

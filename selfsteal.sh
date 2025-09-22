@@ -101,6 +101,54 @@ check_system_requirements() {
         echo -e "${GREEN}✅ curl доступен${NC}"
     fi
 
+    # Check for existing Caddy installation
+    if systemctl is-active --quiet caddy 2>/dev/null; then
+        echo -e "${YELLOW}⚠️  Обнаружен запущенный системный Caddy${NC}"
+        local caddy_domain=""
+        if [ -f "/etc/caddy/Caddyfile" ]; then
+            caddy_domain=$(grep -E '^[a-zA-Z0-9.-]+\s*{' /etc/caddy/Caddyfile | head -1 | awk '{print $1}' | sed 's/{$//')
+        fi
+        if [ -n "$caddy_domain" ]; then
+            echo -e "${GRAY}   Домен: $caddy_domain${NC}"
+        fi
+        echo -e "${GRAY}   PID: $(systemctl show -p MainPID --value caddy 2>/dev/null || echo 'unknown')${NC}"
+        echo
+        echo -e "${YELLOW}⚠️  Конфликт портов!${NC}"
+        echo -e "${GRAY}   Системный Caddy может конфликтовать с Caddy Selfsteal${NC}"
+        echo
+        echo -e "${WHITE}🔧 Варианты действий:${NC}"
+        echo -e "   ${WHITE}1)${NC} ${GRAY}Остановить и отключить системный Caddy${NC}"
+        echo -e "   ${WHITE}2)${NC} ${GRAY}Продолжить установку (может вызвать конфликты)${NC}"
+        echo -e "   ${WHITE}3)${NC} ${GRAY}Отменить установку${NC}"
+        echo
+        
+        while true; do
+            read -p "Выберите действие [1-3]: " caddy_choice
+            case "$caddy_choice" in
+                1)
+                    echo -e "${YELLOW}🛑 Остановка системного Caddy...${NC}"
+                    systemctl stop caddy 2>/dev/null || true
+                    systemctl disable caddy 2>/dev/null || true
+                    echo -e "${GREEN}✅ Системный Caddy остановлен и отключён${NC}"
+                    echo
+                    break
+                    ;;
+                2)
+                    echo -e "${YELLOW}⚠️  Продолжаем установку с предупреждением о возможных конфликтах${NC}"
+                    echo
+                    break
+                    ;;
+                3)
+                    echo -e "${GRAY}Установка отменена${NC}"
+                    return 1
+                    ;;
+                *)
+                    echo -e "${RED}❌ Неверный выбор. Введите 1, 2 или 3${NC}"
+                    ;;
+            esac
+        done
+    fi
+
     # Check available disk space
     local available_space=$(df / | tail -1 | awk '{print $4}')
     local available_gb=$((available_space / 1024 / 1024))
@@ -2265,6 +2313,18 @@ main_menu() {    # Auto-check for updates on first run
                 echo -e "${status_color}📦 Статус: $menu_status${NC}"
                 ;;
         esac
+        
+        # Check for system Caddy
+        if systemctl is-active --quiet caddy 2>/dev/null; then
+            local sys_caddy_domain=""
+            if [ -f "/etc/caddy/Caddyfile" ]; then
+                sys_caddy_domain=$(grep -E '^[a-zA-Z0-9.-]+\s*{' /etc/caddy/Caddyfile | head -1 | awk '{print $1}' | sed 's/{$//')
+            fi
+            echo -e "${YELLOW}⚠️  Системный Caddy активен${NC}"
+            if [ -n "$sys_caddy_domain" ]; then
+                echo -e "${GRAY}   Домен: $sys_caddy_domain${NC}"
+            fi
+        fi
         
         if [ -n "$domain" ]; then
             printf "   ${WHITE}%-10s${NC} ${GRAY}%s${NC}\n" "Домен:" "$domain"

@@ -22,6 +22,8 @@ uninstall_tblocker_command() {
     fi
 }
 
+node_exporter_menu_command() { :; }
+
 #!/usr/bin/env bash
 # Version: 3.2.2
 set -e

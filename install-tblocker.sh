@@ -74,7 +74,9 @@ apt update -y
 apt install -y curl logrotate docker docker-compose
 
 # ===== Настройка docker-compose.yml =====
-COMPOSE_FILE="/opt/remnanode/docker-compose.yml"
+# Всегда используем фиксированное имя приложения
+APP_NAME="remnanode"
+COMPOSE_FILE="/opt/${APP_NAME}/docker-compose.yml"
 if [ ! -f "$COMPOSE_FILE" ]; then
     echo "❌ Файл $COMPOSE_FILE не найден. Проверьте путь!"
     exit 1

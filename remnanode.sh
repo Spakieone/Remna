@@ -44,13 +44,9 @@ while [[ $# -gt 0 ]]; do
     
     case $key in
         --name)
-            if [[ "$COMMAND" == "install" || "$COMMAND" == "install-script" ]]; then
-                APP_NAME="$2"
-                shift # past argument
-            else
-                echo "Ошибка: параметр --name разрешен только с командами 'install' или 'install-script'."
-                exit 1
-            fi
+            # Имя приложения принудительно фиксировано как 'remnanode'
+            echo "⚠️  Параметр --name игнорируется. Используется имя 'remnanode'."
+            shift # past argument
             shift # past value
         ;;
         --dev)
@@ -81,19 +77,7 @@ if [ -z "$NODE_IP" ]; then
     NODE_IP=$(curl -s -6 ifconfig.io)
 fi
 
-if [[ "$COMMAND" == "install" || "$COMMAND" == "install-script" ]] && [ -z "$APP_NAME" ]; then
-    APP_NAME="remnanode"
-fi
-# Set script name if APP_NAME is not set
-if [ -z "$APP_NAME" ]; then
-    # Проверяем, запущен ли скрипт через curl
-    if [[ "$0" == *"/dev/fd/"* ]] || [[ "$0" == *"/proc/self/fd/"* ]]; then
-        APP_NAME="remnanode"  # Устанавливаем дефолтное имя
-    else
-        SCRIPT_NAME=$(basename "$0")
-        APP_NAME="${SCRIPT_NAME%.*}"
-    fi
-fi
+APP_NAME="remnanode"
 
 INSTALL_DIR="/opt"
 APP_DIR="$INSTALL_DIR/$APP_NAME"
@@ -1322,15 +1306,58 @@ identify_the_operating_system_and_architecture() {
     fi
 }
 
+get_xray_host_path_from_compose() {
+    # Извлекаем путь хоста, который смонтирован в /usr/local/bin/xray
+    if [ -f "$COMPOSE_FILE" ]; then
+        awk '
+            /^[[:space:]]*-[[:space:]]*/ && /:\/usr\/local\/bin\/xray/ {
+                line=$0
+                sub(/^[[:space:]]*-[[:space:]]*/,"",line)
+                idx=index(line,":/usr/local/bin/xray")
+                if (idx>0) {
+                    host=substr(line,1,idx-1)
+                    # Снимаем возможные кавычки вокруг пути
+                    gsub(/^"|"$/,"",host)
+                    gsub(/^'"'"'|'"'"'$/ ,"",host)
+                    print host
+                    exit
+                }
+            }
+        ' "$COMPOSE_FILE"
+    fi
+}
+
 get_current_xray_core_version() {
+    # 1) Пробуем путь из docker-compose (если есть)
+    local host_path
+    host_path=$(get_xray_host_path_from_compose 2>/dev/null)
+    if [ -n "$host_path" ] && [ -f "$host_path" ]; then
+        local version_output version
+        version_output=$("$host_path" -version 2>/dev/null)
+        if [ $? -eq 0 ]; then
+            version=$(echo "$version_output" | head -n1 | awk '{print $2}')
+            [ -n "$version" ] && { echo "$version"; return; }
+        fi
+    fi
+
+    # 2) Пробуем стандартный путь XRAY_FILE
     if [ -f "$XRAY_FILE" ]; then
+        local version_output version
         version_output=$("$XRAY_FILE" -version 2>/dev/null)
         if [ $? -eq 0 ]; then
             version=$(echo "$version_output" | head -n1 | awk '{print $2}')
-            echo "$version"
-            return
+            [ -n "$version" ] && { echo "$version"; return; }
         fi
     fi
+
+    # 3) Если контейнер запущен — смотрим бинарь внутри контейнера
+    if is_remnanode_up; then
+        local version_output version
+        version_output=$(docker exec "$APP_NAME" /usr/local/bin/xray -version 2>/dev/null | head -n1)
+        version=$(echo "$version_output" | awk '{print $2}')
+        [ -n "$version" ] && { echo "$version"; return; }
+    fi
+
     echo "Not installed"
 }
 
@@ -2378,6 +2405,10 @@ main_menu() {
         echo -e "   \033[38;5;15m11)\033[0m ⬆️  Обновить Xray-core"
         echo -e "   \033[38;5;15m12)\033[0m 📝 Редактировать конфигурацию"
         echo -e "   \033[38;5;15m13)\033[0m 🗂️  Настроить ротацию логов"
+
+        # Разделитель и отдельный блок tBlocker с другим цветом заголовка
+        echo -e "\033[38;5;8m$(printf '%.0s_' $(seq 1 54))\033[0m"
+        echo -e "\033[1;36m🛡️  tBlocker:\033[0m"
         echo -e "   \033[38;5;15m14)\033[0m 🛡️  Установить tBlocker"
         echo -e "   \033[38;5;15m15)\033[0m 🗑️  Удалить tBlocker"
         echo
@@ -2459,3 +2490,4 @@ case "${COMMAND:-menu}" in
         exit 1
         ;;
 esac
+

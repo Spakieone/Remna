@@ -22,14 +22,10 @@ while [[ $# -gt 0 ]]; do
     key="$1"  
     case $key in  
         --name)  
-            if [[ "$COMMAND" == "install" || "$COMMAND" == "install-script" ]]; then  
-                APP_NAME="$2"  
-                shift # past argument  
-            else  
-                echo "Ошибка: параметр --name разрешен только с командами 'install' или 'install-script'."  
-                exit 1  
-            fi  
-            shift # past value  
+            # Имя приложения принудительно фиксировано как 'remnawave'
+            echo -e "\033[38;5;244m⚠️  Параметр --name игнорируется. Используется имя 'remnawave'.\033[0m"
+            shift
+            shift
         ;;  
         --dev)  
             if [[ "$COMMAND" == "install" ]]; then  
@@ -65,13 +61,7 @@ if [[ "$COMMAND" == "install" || "$COMMAND" == "install-script" ]] && [ -z "$APP
 fi
 # Установка имени скрипта, если APP_NAME не установлен
 if [ -z "$APP_NAME" ]; then
-    # Проверяем, запущен ли скрипт через curl
-    if [[ "$0" == *"/dev/fd/"* ]] || [[ "$0" == *"/proc/self/fd/"* ]]; then
-        APP_NAME="remnawave"  # Устанавливаем имя по умолчанию
-    else
-        SCRIPT_NAME=$(basename "$0")
-        APP_NAME="${SCRIPT_NAME%.*}"
-    fi
+    APP_NAME="remnawave"
 fi
 
 INSTALL_DIR="/opt"
@@ -252,7 +242,7 @@ check_system_requirements() {
     
     # Проверяем свободное место (минимум 2GB для панели)
     local available_space=$(df / | awk 'NR==2 {print $4}')
-    if [ "$available_space" -lt 2097152 ]; then  # 2GB в KB
+    if [ "$available_space" -lt 2097152 ]; then  # 2GB in KB
         colorized_echo red "Ошибка: Недостаточно места на диске. Для панели Remnawave требуется минимум 2GB."
         errors=$((errors + 1))
     fi
@@ -772,8 +762,6 @@ schedule_update_script() {
     echo
     read -p "Нажмите Enter для продолжения..."
 }
-
-
 schedule_setup_menu() {
     # Убеждаемся что rsync установлен для лучшей производительности
     if ! command -v rsync >/dev/null 2>&1; then
@@ -1461,7 +1449,6 @@ validate_sql_integrity() {
     echo -e "\033[1;32m✅ Проверка SQL файла пройдена\033[0m"
     return 0
 }
-
 # Функция валидации извлеченного бэкапа
 validate_extracted_backup() {
     local target_dir="$1"
@@ -2199,7 +2186,6 @@ BACKUP_SCRIPT_EOF
     chmod +x "$BACKUP_SCRIPT_FILE"
     echo -e "\033[1;32m✅ Скрипт бэкапа создан: $BACKUP_SCRIPT_FILE\033[0m"
 }
-
 # Добавляем после функции backup_command:
 
 restore_command() {
@@ -2220,8 +2206,10 @@ restore_command() {
                 shift 2
                 ;;
             --name|-n)
-                target_app_name="$2"
-                shift 2
+                # Имя приложения принудительно фиксировано как 'remnawave'
+                echo -e "\033[38;5;244m⚠️  Параметр --name игнорируется. Используется имя 'remnawave'.\033[0m"
+                shift
+                shift
                 ;;
             --path|-p)  
                 target_base_dir="$2"
@@ -2885,11 +2873,6 @@ show_manual_install_commands() {
         done
     fi
 }
-
-
-
-
-
 restore_from_backup() {
     local backup_file="$1"
     local target_app_name="$2"
@@ -3484,7 +3467,6 @@ restore_database_only() {
         rm -rf "/tmp/restore_db_$$"
     fi
 }
-
 restore_database_in_existing_installation() {
     local target_dir="$1"
     local target_app_name="$2"
@@ -4205,7 +4187,6 @@ schedule_run_backup() {
     echo
     read -p "Нажмите Enter для продолжения..."
 }
-
 schedule_cleanup() {
     clear
     echo -e "\033[1;37m🧹 Cleanup Old Backups\033[0m"
@@ -5125,7 +5106,7 @@ cat > "$APP_CONFIG_FILE" <<'EOL'
                 ],
                 "description": {
                     "en": "Choose the version for your device, click the button below and install the app.",
-                    "ru": "Выبерите подходящую версию для вашего устройства, нажмите на кнопку ниже и установите приложение."
+                    "ru": "Выберете подходящую версию для вашего устройства, нажмите на кнопку ниже и установите приложение."
                 }
             },
             "addSubscriptionStep": {
@@ -5167,7 +5148,7 @@ cat > "$APP_CONFIG_FILE" <<'EOL'
                 ],
                 "description": {
                     "en": "Choose the version for your device, click the button below and install the app.",
-                    "ru": "Выبерите подходящую версию для вашего устройства, нажмите на кнопку ниже и установите приложение."
+                    "ru": "Выберете подходящую версию для вашего устройства, нажмите на кнопку ниже и установите приложение."
                 }
             },
             "addSubscriptionStep": {
@@ -5247,7 +5228,7 @@ cat > "$APP_CONFIG_FILE" <<'EOL'
                 ],
                 "description": {
                     "en": "Choose the version for your device, click the button below and install the app.",
-                    "ru": "Выبерите подходящую версию для вашего устройства, нажмите на кнопку ниже и установите приложение."
+                    "ru": "Выберете подходящую версию для вашего устройства, нажмите на кнопку ниже и установите приложение."
                 }
             },
             "addSubscriptionStep": {
@@ -5259,7 +5240,7 @@ cat > "$APP_CONFIG_FILE" <<'EOL'
             "connectAndUseStep": {
                 "description": {
                     "en": "You can select a server in the Proxy section, and enable VPN in the Settings section. Set the switch to ON.",
-                    "ru": "Выбрать сервер можно в разделе Прокси, включить VPN можно в разделе Настройки. Установите переключатель Tв положение ВКЛ."
+                    "ru": "Выбрать сервер можно в разделе Прокси, включить VPN можно в разделе Настройки. Установите переключатель TUN Mode в положение ВКЛ."
                 }
             }
         }
@@ -5656,7 +5637,6 @@ EOF
         cat > "$backup_dir/backup_info.txt" << EOF
 Remnawave Panel Backup Information
 ==================================
-
 Backup Date: $(date)
 Backup Type: Full System Backup
 Script Version: $SCRIPT_VERSION
@@ -6454,7 +6434,6 @@ validate_compose_file() {
     cd "$current_dir"
     return 0
 }
-
 status_command() {
     check_running_as_root
     detect_compose
@@ -7186,7 +7165,6 @@ edit_command_menu() {
         esac
     done
 }
-
 usage() {
     echo -e "\033[1;37m⚡ $APP_NAME\033[0m \033[38;5;8mCLI управления панелью\033[0m \033[38;5;244mv$SCRIPT_VERSION\033[0m"
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 60))\033[0m"

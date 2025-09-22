@@ -12,12 +12,20 @@ GRAY='\033[0;37m'
 BOLD='\033[1m'
 NC='\033[0m' # No Color
 
-# Функция для красивого заголовка
+# Функция для красивого заголовка с волнами
 show_header() {
     clear
     echo -e "${BOLD}${CYAN}╔══════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${BOLD}${CYAN}║${NC}                    ${WHITE}🚀 Remna Management Suite 🚀${NC}                    ${BOLD}${CYAN}║${NC}"
-    echo -e "${BOLD}${CYAN}║${NC}                      ${GRAY}Управление сервисами${NC}                        ${BOLD}${CYAN}║${NC}"
+    echo -e "${BOLD}${CYAN}║${NC}                                                          ${BOLD}${CYAN}║${NC}"
+    echo -e "${BOLD}${CYAN}║${NC}  ${WHITE}██████╗ ███████╗███╗   ███╗███╗   ██╗ █████╗ ${NC}  ${BOLD}${CYAN}║${NC}"
+    echo -e "${BOLD}${CYAN}║${NC}  ${WHITE}██╔══██╗██╔════╝████╗ ████║████╗  ██║██╔══██╗${NC}  ${BOLD}${CYAN}║${NC}"
+    echo -e "${BOLD}${CYAN}║${NC}  ${WHITE}██████╔╝█████╗  ██╔████╔██║██╔██╗ ██║███████║${NC}  ${BOLD}${CYAN}║${NC}"
+    echo -e "${BOLD}${CYAN}║${NC}  ${WHITE}██╔══██╗██╔══╝  ██║╚██╔╝██║██║╚██╗██║██╔══██║${NC}  ${BOLD}${CYAN}║${NC}"
+    echo -e "${BOLD}${CYAN}║${NC}  ${WHITE}██║  ██║███████╗██║ ╚═╝ ██║██║ ╚████║██║  ██║${NC}  ${BOLD}${CYAN}║${NC}"
+    echo -e "${BOLD}${CYAN}║${NC}  ${WHITE}╚═╝  ╚═╝╚══════╝╚═╝     ╚═╝╚═╝  ╚═══╝╚═╝  ╚═╝${NC}  ${BOLD}${CYAN}║${NC}"
+    echo -e "${BOLD}${CYAN}║${NC}                                                          ${BOLD}${CYAN}║${NC}"
+    echo -e "${BOLD}${CYAN}║${NC}            ${GRAY}Management Suite by Spakieone${NC}            ${BOLD}${CYAN}║${NC}"
+    echo -e "${BOLD}${CYAN}║${NC}                                                          ${BOLD}${CYAN}║${NC}"
     echo -e "${BOLD}${CYAN}╚══════════════════════════════════════════════════════════════╝${NC}"
     echo ""
 }
@@ -26,41 +34,44 @@ show_header() {
 show_main_menu() {
     show_header
     
-    # Меню с эмодзи и цветами
-    echo -e "${WHITE}📋 Доступные инструменты:${NC}"
+    # Меню с волнами и цифрами без скобок
+    echo -e "${BOLD}${CYAN}┌─ 🛠️  ИНСТРУМЕНТЫ УПРАВЛЕНИЯ ─────────────────────────┐${NC}"
+    echo -e "${BOLD}${CYAN}│${NC}                                                      ${BOLD}${CYAN}│${NC}"
+    echo -e "${BOLD}${CYAN}│${NC}  ${BOLD}${GREEN}1.${NC} ${CYAN}🧩 Remnawave Panel${NC}     ${GRAY}┃ Панель управления${NC}       ${BOLD}${CYAN}│${NC}"
+    echo -e "${BOLD}${CYAN}│${NC}  ${BOLD}${GREEN}2.${NC} ${YELLOW}🖥️  RemnaNode Core${NC}      ${GRAY}┃ Узлы и сервисы${NC}          ${BOLD}${CYAN}│${NC}"
+    echo -e "${BOLD}${CYAN}│${NC}  ${BOLD}${GREEN}3.${NC} ${PURPLE}🛡️  Reality Caddy${NC}       ${GRAY}┃ Маскировка трафика${NC}      ${BOLD}${CYAN}│${NC}"
+    echo -e "${BOLD}${CYAN}│${NC}  ${BOLD}${GREEN}4.${NC} ${BLUE}🌐 Network Tools${NC}       ${GRAY}┃ Диагностика сети${NC}        ${BOLD}${CYAN}│${NC}"
+    echo -e "${BOLD}${CYAN}│${NC}  ${BOLD}${GREEN}5.${NC} ${GREEN}📈 Node Exporter${NC}       ${GRAY}┃ Мониторинг системы${NC}      ${BOLD}${CYAN}│${NC}"
+    echo -e "${BOLD}${CYAN}│${NC}  ${BOLD}${GREEN}6.${NC} ${WHITE}📊 System Status${NC}       ${GRAY}┃ Детальная информация${NC}    ${BOLD}${CYAN}│${NC}"
+    echo -e "${BOLD}${CYAN}│${NC}                                                      ${BOLD}${CYAN}│${NC}"
+    echo -e "${BOLD}${CYAN}└──────────────────────────────────────────────────────┘${NC}"
     echo ""
-    echo -e "   ${BOLD}${GREEN}1)${NC} ${CYAN}🧩 Управление Remnawave${NC}        ${GRAY}┃ Панель управления${NC}"
-    echo -e "   ${BOLD}${GREEN}2)${NC} ${YELLOW}🖥️  Управление RemnaNode${NC}        ${GRAY}┃ Узлы и сервисы${NC}"
-    echo -e "   ${BOLD}${GREEN}3)${NC} ${PURPLE}🛡️  Инструменты Reality Caddy${NC}   ${GRAY}┃ Маскировка трафика${NC}"
-    echo -e "   ${BOLD}${GREEN}4)${NC} ${BLUE}🌐 Сетевые инструменты${NC}         ${GRAY}┃ Диагностика сети${NC}"
-    echo -e "   ${BOLD}${GREEN}5)${NC} ${GREEN}📈 Node Exporter${NC}              ${GRAY}┃ Мониторинг системы${NC}"
-    echo -e "   ${BOLD}${GREEN}6)${NC} ${CYAN}📊 Статус системы${NC}             ${GRAY}┃ Детальная информация${NC}"
+    echo -e "${BOLD}${RED}┌─ 🚪 ВЫХОД ────────────────────────────────────────────┐${NC}"
+    echo -e "${BOLD}${RED}│${NC}  ${BOLD}${GREEN}0.${NC} ${RED}Завершение работы${NC}                                ${BOLD}${RED}│${NC}"
+    echo -e "${BOLD}${RED}└──────────────────────────────────────────────────────┘${NC}"
     echo ""
-    echo -e "   ${BOLD}${RED}0)${NC} ${RED}🚪 Выход${NC}                      ${GRAY}┃ Завершение работы${NC}"
-    echo ""
-    echo -e "${GRAY}┌─────────────────────────────────────────────────────────────┐${NC}"
-    echo -e "${GRAY}│${NC} ${WHITE}Выберите опцию [0-6]:${NC}                                    ${GRAY}│${NC}"
-    echo -e "${GRAY}└─────────────────────────────────────────────────────────────┘${NC}"
+    echo -e "${WHITE}Выберите инструмент:${NC} "
     echo -n "   ➤ "
 }
 
 # Функция для вызова скриптов
 call_script() {
     local script_name=$1
+    shift  # Убираем первый аргумент (имя скрипта), остальные - параметры
     local script_path="./$script_name"
     
     # Проверяем разные возможные пути
     if [ -f "$script_path" ]; then
         echo -e "${YELLOW}Запуск $script_name...${NC}"
         echo ""
-        bash "$script_path"
+        bash "$script_path" "$@"
         echo ""
         echo -e "${GREEN}Скрипт $script_name завершен.${NC}"
         read -p "Нажмите Enter для возврата в главное меню..."
     elif [ -f "script/scripts-main/$script_name" ]; then
         echo -e "${YELLOW}Запуск $script_name...${NC}"
         echo ""
-        bash "script/scripts-main/$script_name"
+        bash "script/scripts-main/$script_name" "$@"
         echo ""
         echo -e "${GREEN}Скрипт $script_name завершен.${NC}"
         read -p "Нажмите Enter для возврата в главное меню..."
@@ -71,7 +82,12 @@ call_script() {
         
         echo -e "${YELLOW}Запуск $script_name...${NC}"
         echo ""
-        bash <(curl -s "$github_url")
+        # Скачиваем скрипт во временный файл и запускаем с параметрами
+        local temp_script="/tmp/$script_name"
+        curl -s "$github_url" -o "$temp_script"
+        chmod +x "$temp_script"
+        bash "$temp_script" "$@"
+        rm -f "$temp_script"
         echo ""
         echo -e "${GREEN}Скрипт $script_name завершен.${NC}"
         read -p "Нажмите Enter для возврата в главное меню..."

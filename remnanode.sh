@@ -2284,20 +2284,61 @@ main_menu() {
                 
                 # Статус Caddy
                 echo
-                local caddy_exists=false
-                if systemctl list-unit-files 2>/dev/null | grep -q '^caddy\.service'; then
-                    caddy_exists=true
-                elif [ -f "/etc/systemd/system/caddy.service" ] || [ -f "/lib/systemd/system/caddy.service" ]; then
-                    caddy_exists=true
-                fi
-                if $caddy_exists; then
-                    if systemctl is-active --quiet caddy 2>/dev/null; then
-                        echo -e "\033[1;37m🚦 Статус Caddy:\033[0m \033[1;32m✅ Запущен\033[0m"
-                    else
-                        echo -e "\033[1;37m🚦 Статус Caddy:\033[0m \033[1;31m⏹️  Остановлен\033[0m"
+                local caddy_status=""
+                local caddy_type=""
+                
+                # Проверяем Docker контейнеры Caddy
+                if docker ps --format "table {{.Names}}\t{{.Status}}" 2>/dev/null | grep -q "caddy"; then
+                    local caddy_container=$(docker ps --format "table {{.Names}}\t{{.Status}}" 2>/dev/null | grep "caddy" | head -1 | awk '{print $1}')
+                    if [ -n "$caddy_container" ]; then
+                        if docker ps --format "{{.Status}}" --filter "name=$caddy_container" 2>/dev/null | grep -q "Up"; then
+                            caddy_status="✅ Запущен"
+                            caddy_type="Docker ($caddy_container)"
+                        else
+                            caddy_status="⏹️ Остановлен"
+                            caddy_type="Docker ($caddy_container)"
+                        fi
                     fi
+                fi
+                
+                # Если Docker контейнер не найден, проверяем systemd
+                if [ -z "$caddy_status" ]; then
+                    if systemctl list-unit-files 2>/dev/null | grep -q '^caddy\.service'; then
+                        if systemctl is-active --quiet caddy 2>/dev/null; then
+                            caddy_status="✅ Запущен"
+                            caddy_type="Systemd"
+                        else
+                            caddy_status="⏹️ Остановлен"
+                            caddy_type="Systemd"
+                        fi
+                    elif [ -f "/etc/systemd/system/caddy.service" ] || [ -f "/lib/systemd/system/caddy.service" ]; then
+                        if systemctl is-active --quiet caddy 2>/dev/null; then
+                            caddy_status="✅ Запущен"
+                            caddy_type="Systemd"
+                        else
+                            caddy_status="⏹️ Остановлен"
+                            caddy_type="Systemd"
+                        fi
+                    fi
+                fi
+                
+                # Если systemd не найден, проверяем процессы
+                if [ -z "$caddy_status" ]; then
+                    if pgrep -f "caddy" >/dev/null 2>&1; then
+                        local caddy_pid=$(pgrep -f "caddy" | head -1)
+                        local caddy_cmd=$(ps -p "$caddy_pid" -o cmd= 2>/dev/null | head -1)
+                        caddy_status="✅ Запущен"
+                        caddy_type="Process (PID: $caddy_pid)"
+                    else
+                        caddy_status="❌ Не установлен"
+                        caddy_type=""
+                    fi
+                fi
+                
+                if [ -n "$caddy_type" ]; then
+                    echo -e "\033[1;37m🚦 Статус Caddy:\033[0m \033[1;32m$caddy_status\033[0m \033[38;5;244m($caddy_type)\033[0m"
                 else
-                    echo -e "\033[1;37m🚦 Статус Caddy:\033[0m \033[38;5;244m❌ Не установлен\033[0m"
+                    echo -e "\033[1;37m🚦 Статус Caddy:\033[0m \033[1;31m$caddy_status\033[0m"
                 fi
                 
                 # Показываем информацию о подключении

@@ -35,20 +35,20 @@ show_main_menu() {
     show_header
     
     # Меню с выравниванием
-    echo -e "${BOLD}${CYAN}┌─ 🛠️  ИНСТРУМЕНТЫ УПРАВЛЕНИЯ ─────────────────────────┐${NC}"
-    echo -e "${BOLD}${CYAN}│${NC}                                                      ${BOLD}${CYAN}│${NC}"
-    echo -e "${BOLD}${CYAN}│${NC}  ${BOLD}${GREEN}1.${NC} ${CYAN}🧩 Remnawave Panel${NC}     ${GRAY}┃${NC} ${WHITE}Панель управления${NC}       ${BOLD}${CYAN}│${NC}"
-    echo -e "${BOLD}${CYAN}│${NC}  ${BOLD}${GREEN}2.${NC} ${YELLOW}🖥️  RemnaNode Core${NC}      ${GRAY}┃${NC} ${WHITE}Узлы и сервисы${NC}          ${BOLD}${CYAN}│${NC}"
-    echo -e "${BOLD}${CYAN}│${NC}  ${BOLD}${GREEN}3.${NC} ${PURPLE}🛡️  Reality Caddy${NC}       ${GRAY}┃${NC} ${WHITE}Маскировка трафика${NC}      ${BOLD}${CYAN}│${NC}"
-    echo -e "${BOLD}${CYAN}│${NC}  ${BOLD}${GREEN}4.${NC} ${BLUE}🌐 Network Tools${NC}       ${GRAY}┃${NC} ${WHITE}Диагностика сети${NC}        ${BOLD}${CYAN}│${NC}"
-    echo -e "${BOLD}${CYAN}│${NC}  ${BOLD}${GREEN}5.${NC} ${GREEN}📈 Node Exporter${NC}       ${GRAY}┃${NC} ${WHITE}Мониторинг системы${NC}      ${BOLD}${CYAN}│${NC}"
-    echo -e "${BOLD}${CYAN}│${NC}  ${BOLD}${GREEN}6.${NC} ${WHITE}📊 System Status${NC}       ${GRAY}┃${NC} ${WHITE}Детальная информация${NC}    ${BOLD}${CYAN}│${NC}"
-    echo -e "${BOLD}${CYAN}│${NC}                                                      ${BOLD}${CYAN}│${NC}"
-    echo -e "${BOLD}${CYAN}└──────────────────────────────────────────────────────┘${NC}"
+    echo -e "${BOLD}${WHITE}┌─ 🛠️  ИНСТРУМЕНТЫ УПРАВЛЕНИЯ ─────────────────────────┐${NC}"
+    echo -e "${BOLD}${WHITE}│${NC}                                                      ${BOLD}${WHITE}│${NC}"
+    echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${WHITE}1.${NC} ${WHITE}🧩 Remnawave Panel${NC}     ${GRAY}┃${NC} ${WHITE}Панель управления${NC}       ${BOLD}${WHITE}│${NC}"
+    echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${WHITE}2.${NC} ${WHITE}🖥️  RemnaNode Core${NC}      ${GRAY}┃${NC} ${WHITE}Узлы и сервисы${NC}          ${BOLD}${WHITE}│${NC}"
+    echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${WHITE}3.${NC} ${WHITE}🛡️  Reality Caddy${NC}       ${GRAY}┃${NC} ${WHITE}Маскировка трафика${NC}      ${BOLD}${WHITE}│${NC}"
+    echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${WHITE}4.${NC} ${WHITE}🌐 Network Tools${NC}       ${GRAY}┃${NC} ${WHITE}Диагностика сети${NC}        ${BOLD}${WHITE}│${NC}"
+    echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${WHITE}5.${NC} ${WHITE}📈 Node Exporter${NC}       ${GRAY}┃${NC} ${WHITE}Мониторинг системы${NC}      ${BOLD}${WHITE}│${NC}"
+    echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${WHITE}6.${NC} ${WHITE}📊 System Status${NC}       ${GRAY}┃${NC} ${WHITE}Детальная информация${NC}    ${BOLD}${WHITE}│${NC}"
+    echo -e "${BOLD}${WHITE}│${NC}                                                      ${BOLD}${WHITE}│${NC}"
+    echo -e "${BOLD}${WHITE}└──────────────────────────────────────────────────────┘${NC}"
     echo ""
-    echo -e "${BOLD}${RED}┌─ 🚪 ВЫХОД ────────────────────────────────────────────┐${NC}"
-    echo -e "${BOLD}${RED}│${NC}  ${BOLD}${GREEN}0.${NC} ${WHITE}Завершение работы${NC}                                ${BOLD}${RED}│${NC}"
-    echo -e "${BOLD}${RED}└──────────────────────────────────────────────────────┘${NC}"
+    echo -e "${BOLD}${WHITE}┌─ 🚪 ВЫХОД ────────────────────────────────────────────┐${NC}"
+    echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${WHITE}0.${NC} ${WHITE}Завершение работы${NC}                                ${BOLD}${WHITE}│${NC}"
+    echo -e "${BOLD}${WHITE}└──────────────────────────────────────────────────────┘${NC}"
     echo ""
     echo -e "${WHITE}Выберите инструмент:${NC} "
     echo -n "   ➤ "
@@ -193,7 +193,7 @@ while true; do
             ;;
         5) 
             echo -e "${GREEN}📈 Запуск Node Exporter...${NC}"
-            call_script "install_node_exporter.sh menu" 
+            call_script "install_node_exporter.sh" "menu"
             ;;
         6) 
             echo -e "${CYAN}📊 Загрузка статуса системы...${NC}"

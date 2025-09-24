@@ -500,6 +500,13 @@ EOL
                 colorized_echo green "Раскомментирована секция volumes и добавлена строка тома логов"
             fi
         else
+            # Проверяем, есть ли уже секция volumes где-то в файле
+            if grep -q "^[[:space:]]*volumes:" "$COMPOSE_FILE"; then
+                # Если volumes есть, но не в нужном месте, исправляем это
+                colorized_echo yellow "Найдена секция volumes, но не в правильном месте. Исправляем..."
+                # Удаляем все существующие volumes и создаем правильную
+                sed -i '/^[[:space:]]*volumes:/,/^[[:space:]]*[a-zA-Z]/ { /^[[:space:]]*[a-zA-Z]/!d; }' "$COMPOSE_FILE"
+            fi
             sed -i "/^${escaped_service_indent}restart: always/a\\${service_indent}volumes:\\n${volume_item_indent}- /var/log/remnanode:/var/log/remnanode" "$COMPOSE_FILE"
             colorized_echo green "Добавлена новая секция volumes с томом логов"
         fi

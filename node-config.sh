@@ -165,8 +165,17 @@ manage_ufw() {
                 echo -e "${YELLOW}⚠️  UFW уже активен${NC}"
             else
                 echo -e "${BLUE}🔧 Включаем UFW...${NC}"
+                
+                # Открываем основные порты перед включением
+                echo -e "${BLUE}🔓 Открываем основные порты:${NC}"
+                echo -e "  • SSH (22)..."
+                sudo ufw allow 22/tcp
+                echo -e "  • HTTPS (443)..."
+                sudo ufw allow 443/tcp
+                
+                # Включаем UFW
                 sudo ufw --force enable
-                echo -e "${GREEN}✅ UFW включен${NC}"
+                echo -e "${GREEN}✅ UFW включен с открытыми портами SSH и HTTPS${NC}"
             fi
             ;;
         2)
@@ -202,23 +211,31 @@ open_ports_for_ip() {
     echo -e "${WHITE}🌐 Открытие портов для IP${NC}"
     echo -e "${GRAY}$(printf '─%.0s' $(seq 1 40))${NC}"
     
+    # Получаем порт RemnaNode из конфигурации
+    local node_port="6001"
+    if [ -f "/opt/remnanode/.env" ]; then
+        node_port=$(grep "APP_PORT=" "/opt/remnanode/.env" | cut -d'=' -f2 2>/dev/null || echo "6001")
+    fi
+    
     echo -e "${WHITE}Выберите порт для открытия:${NC}"
     echo -e "   ${WHITE}1)${NC} \033[1;32m9100\033[0m - Node Exporter (мониторинг)"
-    echo -e "   ${WHITE}2)${NC} \033[1;32m22\033[0m - SSH"
-    echo -e "   ${WHITE}3)${NC} \033[1;32m443\033[0m - HTTPS"
-    echo -e "   ${WHITE}4)${NC} \033[1;32m80\033[0m - HTTP"
-    echo -e "   ${WHITE}5)${NC} \033[1;32mДругой порт\033[0m - ввести вручную"
+    echo -e "   ${WHITE}2)${NC} \033[1;32m$node_port\033[0m - RemnaNode (текущий порт)"
+    echo -e "   ${WHITE}3)${NC} \033[1;32m22\033[0m - SSH"
+    echo -e "   ${WHITE}4)${NC} \033[1;32m443\033[0m - HTTPS"
+    echo -e "   ${WHITE}5)${NC} \033[1;32m80\033[0m - HTTP"
+    echo -e "   ${WHITE}6)${NC} \033[1;32mДругой порт\033[0m - ввести вручную"
     echo
     
-    read -p "Выберите опцию [1-5]: " port_choice
+    read -p "Выберите опцию [1-6]: " port_choice
     
     local selected_port=""
     case "$port_choice" in
         1) selected_port="9100" ;;
-        2) selected_port="22" ;;
-        3) selected_port="443" ;;
-        4) selected_port="80" ;;
-        5) 
+        2) selected_port="$node_port" ;;
+        3) selected_port="22" ;;
+        4) selected_port="443" ;;
+        5) selected_port="80" ;;
+        6) 
             read -p "Введите номер порта: " selected_port
             if ! [[ "$selected_port" =~ ^[0-9]+$ ]] || [ "$selected_port" -lt 1 ] || [ "$selected_port" -gt 65535 ]; then
                 echo -e "${RED}❌ Неверный номер порта! Должен быть от 1 до 65535${NC}"

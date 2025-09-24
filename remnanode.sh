@@ -22,6 +22,156 @@ uninstall_tblocker_command() {
     fi
 }
 
+# ===== Функции управления UFW =====
+
+ufw_enable_command() {
+    echo -e "\033[1;37m🔥 Включение UFW\033[0m"
+    echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 40))\033[0m"
+    
+    if ! command -v ufw >/dev/null 2>&1; then
+        echo -e "\033[1;31m❌ UFW не установлен!\033[0m"
+        echo -e "\033[38;5;244mУстановите UFW: sudo apt install ufw\033[0m"
+        return 1
+    fi
+    
+    if ufw status | grep -q "Status: active"; then
+        echo -e "\033[1;33m⚠️  UFW уже активен\033[0m"
+    else
+        echo -e "\033[1;32m✅ Включаем UFW...\033[0m"
+        if sudo ufw --force enable; then
+            echo -e "\033[1;32m✅ UFW успешно включен\033[0m"
+        else
+            echo -e "\033[1;31m❌ Ошибка при включении UFW\033[0m"
+        fi
+    fi
+}
+
+ufw_disable_command() {
+    echo -e "\033[1;37m❌ Выключение UFW\033[0m"
+    echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 40))\033[0m"
+    
+    if ! command -v ufw >/dev/null 2>&1; then
+        echo -e "\033[1;31m❌ UFW не установлен!\033[0m"
+        return 1
+    fi
+    
+    if ! ufw status | grep -q "Status: active"; then
+        echo -e "\033[1;33m⚠️  UFW уже неактивен\033[0m"
+    else
+        echo -e "\033[1;33m⚠️  Выключаем UFW...\033[0m"
+        if sudo ufw --force disable; then
+            echo -e "\033[1;32m✅ UFW успешно выключен\033[0m"
+        else
+            echo -e "\033[1;31m❌ Ошибка при выключении UFW\033[0m"
+        fi
+    fi
+}
+
+ufw_open_ports_command() {
+    echo -e "\033[1;37m🌐 Открытие портов для IP\033[0m"
+    echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 40))\033[0m"
+    
+    if ! command -v ufw >/dev/null 2>&1; then
+        echo -e "\033[1;31m❌ UFW не установлен!\033[0m"
+        echo -e "\033[38;5;244mУстановите UFW: sudo apt install ufw\033[0m"
+        return 1
+    fi
+    
+    # Получаем порт из конфигурации
+    local node_port="6001"
+    if [ -f "$ENV_FILE" ]; then
+        node_port=$(grep "APP_PORT=" "$ENV_FILE" | cut -d'=' -f2 2>/dev/null || echo "6001")
+    fi
+    
+    echo -e "\033[1;37mВведите IP адрес для открытия портов:\033[0m"
+    echo -e "\033[38;5;244mПример: 192.168.1.100 или 10.0.0.0/8\033[0m"
+    read -p "IP адрес: " target_ip
+    
+    if [ -z "$target_ip" ]; then
+        echo -e "\033[1;31m❌ IP адрес не может быть пустым\033[0m"
+        return 1
+    fi
+    
+    echo -e "\033[1;37mОткрываем порты для $target_ip:\033[0m"
+    
+    # SSH порт
+    echo -e "\033[1;32m✅ Открываем SSH (22)...\033[0m"
+    sudo ufw allow from "$target_ip" to any port 22
+    
+    # RemnaNode порт
+    echo -e "\033[1;32m✅ Открываем RemnaNode ($node_port)...\033[0m"
+    sudo ufw allow from "$target_ip" to any port "$node_port"
+    
+    # Node Exporter порт (если нужен)
+    echo -e "\033[1;32m✅ Открываем Node Exporter (9100)...\033[0m"
+    sudo ufw allow from "$target_ip" to any port 9100
+    
+    echo -e "\033[1;32m✅ Порты успешно открыты для $target_ip\033[0m"
+}
+
+ufw_reset_command() {
+    echo -e "\033[1;37m🗑️  Сброс правил UFW\033[0m"
+    echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 40))\033[0m"
+    
+    if ! command -v ufw >/dev/null 2>&1; then
+        echo -e "\033[1;31m❌ UFW не установлен!\033[0m"
+        return 1
+    fi
+    
+    echo -e "\033[1;33m⚠️  ВНИМАНИЕ: Это удалит ВСЕ правила UFW!\033[0m"
+    read -p "Вы уверены? (y/N): " confirm
+    
+    if [[ "$confirm" =~ ^[Yy]$ ]]; then
+        echo -e "\033[1;32m✅ Сбрасываем правила UFW...\033[0m"
+        if sudo ufw --force reset; then
+            echo -e "\033[1;32m✅ Правила UFW успешно сброшены\033[0m"
+        else
+            echo -e "\033[1;31m❌ Ошибка при сбросе правил UFW\033[0m"
+        fi
+    else
+        echo -e "\033[1;33m⚠️  Операция отменена\033[0m"
+    fi
+}
+
+ufw_show_rules_command() {
+    echo -e "\033[1;37m📋 Правила UFW\033[0m"
+    echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 40))\033[0m"
+    
+    if ! command -v ufw >/dev/null 2>&1; then
+        echo -e "\033[1;31m❌ UFW не установлен!\033[0m"
+        return 1
+    fi
+    
+    echo -e "\033[1;37mСтатус UFW:\033[0m"
+    sudo ufw status verbose
+}
+
+ufw_remove_remnanode_rules_command() {
+    echo -e "\033[1;37m🗑️  Удаление правил UFW\033[0m"
+    echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 40))\033[0m"
+    
+    if ! command -v ufw >/dev/null 2>&1; then
+        echo -e "\033[1;31m❌ UFW не установлен!\033[0m"
+        return 1
+    fi
+    
+    # Получаем порт из конфигурации
+    local node_port="6001"
+    if [ -f "$ENV_FILE" ]; then
+        node_port=$(grep "APP_PORT=" "$ENV_FILE" | cut -d'=' -f2 2>/dev/null || echo "6001")
+    fi
+    
+    echo -e "\033[1;37mУдаляем правила для порта $node_port...\033[0m"
+    
+    # Удаляем правила для RemnaNode порта
+    sudo ufw delete allow "$node_port" 2>/dev/null || true
+    sudo ufw delete deny "$node_port" 2>/dev/null || true
+    
+    echo -e "\033[1;32m✅ Правила UFW удалены\033[0m"
+    echo -e "\033[38;5;244mТекущие правила:\033[0m"
+    sudo ufw status numbered
+}
+
 node_exporter_menu_command() { :; }
 
 #!/usr/bin/env bash
@@ -2398,6 +2548,19 @@ main_menu() {
                     fi
                     echo -e "\033[1;37m🛡️  Firewall (iptables):\033[0m ${ipt_label}"
                     printf "       \033[38;5;15m%-10s\033[0m %b\n" "tBlocker:" "${tb_label}"
+                    
+                    # Статус UFW
+                    local ufw_status=""
+                    if command -v ufw >/dev/null 2>&1; then
+                        if ufw status | grep -q "Status: active"; then
+                            ufw_status="\033[1;32m✅ Активен\033[0m"
+                        else
+                            ufw_status="\033[1;33m⚠️  Неактивен\033[0m"
+                        fi
+                    else
+                        ufw_status="\033[38;5;244m❌ Не установлен\033[0m"
+                    fi
+                    printf "       \033[38;5;15m%-10s\033[0m %b\n" "UFW:" "${ufw_status}"
                 fi
                 
                 # Проверяем Xray-core
@@ -2479,6 +2642,16 @@ main_menu() {
         echo -e "   \033[38;5;15m14)\033[0m 🛡️  Установить tBlocker"
         echo -e "   \033[38;5;15m15)\033[0m 🗑️  Удалить tBlocker"
         echo
+        
+        # Блок управления UFW
+        echo -e "\033[1;33m🔥 Управление UFW:\033[0m"
+        echo -e "   \033[38;5;15m16)\033[0m 🔥 Включить UFW"
+        echo -e "   \033[38;5;15m17)\033[0m ❌ Выключить UFW"
+        echo -e "   \033[38;5;15m18)\033[0m 🌐 Открыть порты для IP"
+        echo -e "   \033[38;5;15m19)\033[0m 🗑️  Сбросить правила UFW"
+        echo -e "   \033[38;5;15m20)\033[0m 📋 Показать правила UFW"
+        echo -e "   \033[38;5;15m21)\033[0m 🗑️  Удалить правила UFW"
+        echo
         echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 55))\033[0m"
         echo -e "\033[38;5;15m   0)\033[0m 🚪 Выход в терминал"
         echo
@@ -2502,7 +2675,7 @@ main_menu() {
         
         echo -e "\033[38;5;8mRemnaNode CLI v$SCRIPT_VERSION by DigneZzZ • gig.ovh\033[0m"
         echo
-        read -p "$(echo -e "\033[1;37mВыберите опцию [0-15]:\033[0m ")" choice
+        read -p "$(echo -e "\033[1;37mВыберите опцию [0-21]:\033[0m ")" choice
 
         case "$choice" in
             1) install_command; read -p "Нажмите Enter для продолжения..." ;;
@@ -2520,6 +2693,12 @@ main_menu() {
             13) setup_log_rotation; read -p "Нажмите Enter для продолжения..." ;;
             14) install_tblocker_command; read -p "Нажмите Enter для продолжения..." ;;
             15) uninstall_tblocker_command; read -p "Нажмите Enter для продолжения..." ;;
+            16) ufw_enable_command; read -p "Нажмите Enter для продолжения..." ;;
+            17) ufw_disable_command; read -p "Нажмите Enter для продолжения..." ;;
+            18) ufw_open_ports_command; read -p "Нажмите Enter для продолжения..." ;;
+            19) ufw_reset_command; read -p "Нажмите Enter для продолжения..." ;;
+            20) ufw_show_rules_command; read -p "Нажмите Enter для продолжения..." ;;
+            21) ufw_remove_remnanode_rules_command; read -p "Нажмите Enter для продолжения..." ;;
             0) clear; exit 0 ;;
             *) 
                 echo -e "\033[1;31m❌ Неверная опция!\033[0m"

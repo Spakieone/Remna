@@ -634,24 +634,37 @@ EOF
 
     echo -e "${GREEN}✅ Файл Caddyfile создан${NC}"    # Install random template instead of default HTML
     echo
-    echo -e "${WHITE}🎨 Установка случайного шаблона сайта${NC}"
+    echo -e "${WHITE}🎨 Выбор шаблона сайта${NC}"
     echo -e "${GRAY}$(printf '─%.0s' $(seq 1 35))${NC}"
     
-    # List of available templates
-    local templates=("1" "2" "3" "4" "5" "6" "7" "8" "9" "10" "11")
-    local template_names=("10gag" "Converter" "Convertit" "Downloader" "FileCloud" "Games-site" "ModManager" "SpeedTest" "YouTube" "503 Error v1" "503 Error v2")
+    # List of available templates (only 2 options)
+    local templates=("1" "2")
+    local template_names=("503 Error v1" "503 Error v2")
     
-    # Select random template
-    local random_index=$((RANDOM % ${#templates[@]}))
-    local selected_template=${templates[$random_index]}
-    local selected_name=${template_names[$random_index]}
+    echo -e "${WHITE}Доступные шаблоны:${NC}"
+    echo -e "${GRAY}  1. 503 Error v1${NC}"
+    echo -e "${GRAY}  2. 503 Error v2${NC}"
+    echo
+    
+    # Ask user to choose
+    while true; do
+        read -p "Выберите шаблон (1-2): " template_choice
+        if [[ "$template_choice" =~ ^[12]$ ]]; then
+            break
+        else
+            echo -e "${RED}❌ Неверный выбор! Введите 1 или 2${NC}"
+        fi
+    done
+    
+    local selected_template="$template_choice"
+    local selected_name=${template_names[$((template_choice-1))]}
     local installed_template=""
     
-    echo -e "${CYAN}🎲 Выбран шаблон: ${selected_name}${NC}"
+    echo -e "${CYAN}✅ Выбран шаблон: ${selected_name}${NC}"
     echo
     
     if download_template "$selected_template"; then
-        echo -e "${GREEN}✅ Случайный шаблон успешно установлен${NC}"
+        echo -e "${GREEN}✅ Шаблон успешно установлен${NC}"
         installed_template="$selected_name template"
     else
         echo -e "${YELLOW}⚠️  Не удалось скачать шаблон, создаю запасной${NC}"
@@ -1252,17 +1265,8 @@ show_template_options() {
     echo -e "${GRAY}$(printf '─%.0s' $(seq 1 35))${NC}"
     echo
     echo -e "${WHITE}Выберите тип шаблона:${NC}"
-    echo -e "   ${WHITE}1)${NC} ${CYAN}😂 10gag - Сайт мемов${NC}"
-    echo -e "   ${WHITE}2)${NC} ${CYAN}🎬 Converter - Видеостудия-конвертер${NC}"
-    echo -e "   ${WHITE}3)${NC} ${CYAN}📁 Convertit - Конвертер файлов${NC}"
-    echo -e "   ${WHITE}4)${NC} ${CYAN}⬇️ Downloader - Даунлоадер${NC}"
-    echo -e "   ${WHITE}5)${NC} ${CYAN}☁️ FileCloud - Облачное хранилище${NC}"
-    echo -e "   ${WHITE}6)${NC} ${CYAN}🎮 Games-site - Ретро игровой портал${NC}"
-    echo -e "   ${WHITE}7)${NC} ${CYAN}🛠️ ModManager - Мод-менеджер для игр${NC}"
-    echo -e "   ${WHITE}8)${NC} ${CYAN}🚀 SpeedTest - Спидтест${NC}"
-    echo -e "   ${WHITE}9)${NC} ${CYAN}📺 YouTube - Видеохостинг с капчей${NC}"
-    echo -e "   ${WHITE}10)${NC} ${CYAN}⚠️ 503 Error - Страница ошибки 503 v1${NC}"
-    echo -e "   ${WHITE}11)${NC} ${CYAN}⚠️ 503 Error - Страница ошибки 503 v2${NC}"
+    echo -e "   ${WHITE}1)${NC} ${CYAN}⚠️ 503 Error - Страница ошибки 503 v1${NC}"
+    echo -e "   ${WHITE}2)${NC} ${CYAN}⚠️ 503 Error - Страница ошибки 503 v2${NC}"
     echo
     echo -e "   ${WHITE}v)${NC} ${GRAY}📄 Просмотреть текущий шаблон${NC}"
     echo -e "   ${WHITE}k)${NC} ${GRAY}📝 Оставить текущий шаблон${NC}"
@@ -1302,13 +1306,13 @@ template_command() {
         clear
         show_template_options
         
-        read -p "Выберите вариант шаблона [0-11, v, k]: " choice
+        read -p "Выберите вариант шаблона [1-2, v, k]: " choice
         
         case "$choice" in
             1)
                 echo
-                if download_template "1"; then
-                    echo -e "${GREEN}🎉 Шаблон 10gag успешно загружен!${NC}"
+                if download_template "10"; then
+                    echo -e "${GREEN}🎉 Шаблон 503 Error v1 успешно загружен!${NC}"
                     echo
                     local running_services=$(cd "$APP_DIR" && docker compose ps -q 2>/dev/null | wc -l || echo "0")
                     if [ "$running_services" -gt 0 ]; then
@@ -1320,14 +1324,14 @@ template_command() {
                         fi
                     fi
                 else
-                    echo -e "${RED}❌ Не удалось скачать шаблон 10gag${NC}"
+                    echo -e "${RED}❌ Не удалось скачать шаблон 503 Error v1${NC}"
                 fi
                 read -p "Нажмите Enter для продолжения..."
                 ;;
             2)
                 echo
-                if download_template "2"; then
-                    echo -e "${GREEN}🎉 Шаблон Converter успешно загружен!${NC}"
+                if download_template "11"; then
+                    echo -e "${GREEN}🎉 Шаблон 503 Error v2 успешно загружен!${NC}"
                     echo
                     local running_services=$(cd "$APP_DIR" && docker compose ps -q 2>/dev/null | wc -l || echo "0")
                     if [ "$running_services" -gt 0 ]; then
@@ -1339,7 +1343,7 @@ template_command() {
                         fi
                     fi
                 else
-                    echo -e "${RED}❌ Не удалось скачать шаблон Converter${NC}"
+                    echo -e "${RED}❌ Не удалось скачать шаблон 503 Error v2${NC}"
                 fi
                 read -p "Нажмите Enter для продолжения..."
                 ;;

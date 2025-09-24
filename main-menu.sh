@@ -43,7 +43,7 @@ show_main_menu() {
     echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}4.${NC} ${YELLOW}🚀 Network Tools${NC}       ${GRAY}┃${NC} ${WHITE}Диагностика сети${NC}        ${BOLD}${WHITE}│${NC}"
     echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}5.${NC} ${YELLOW}📈 Node Exporter${NC}       ${GRAY}┃${NC} ${WHITE}Мониторинг системы${NC}      ${BOLD}${WHITE}│${NC}"
     echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}6.${NC} ${YELLOW}📊 System Status${NC}       ${GRAY}┃${NC} ${WHITE}Детальная информация${NC}    ${BOLD}${WHITE}│${NC}"
-    echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}7.${NC} ${YELLOW}⚙️ Настройка ноды${NC}      ${GRAY}┃${NC} ${WHITE}UFW и IPv6${NC}              ${BOLD}${WHITE}│${NC}"
+    echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}7.${NC} ${YELLOW}⚙️ Настройка ноды${NC}       ${GRAY}┃${NC} ${WHITE}UFW и IPv6${NC}              ${BOLD}${WHITE}│${NC}"
     echo -e "${BOLD}${WHITE}│${NC}                                                      ${BOLD}${WHITE}│${NC}"
     echo -e "${BOLD}${WHITE}└──────────────────────────────────────────────────────┘${NC}"
     echo ""

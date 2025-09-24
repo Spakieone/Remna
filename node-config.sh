@@ -153,11 +153,12 @@ manage_ufw() {
     echo -e "   ${WHITE}2)${NC} ❌ Выключить UFW"
     echo -e "   ${WHITE}3)${NC} 📋 Показать статус UFW"
     echo -e "   ${WHITE}4)${NC} 🌐 Открыть порты для IP"
-    echo -e "   ${WHITE}5)${NC} 🗑️  Удалить все правила UFW"
+    echo -e "   ${WHITE}5)${NC} 🗑️  Удалить правила по портам"
+    echo -e "   ${WHITE}6)${NC} 🗑️  Удалить все правила UFW"
     echo -e "   ${WHITE}0)${NC} ⬅️  Назад"
     echo
     
-    read -p "Выберите опцию [0-5]: " ufw_choice
+    read -p "Выберите опцию [0-6]: " ufw_choice
     
     case "$ufw_choice" in
         1)
@@ -179,9 +180,9 @@ manage_ufw() {
                 # Открываем основные порты только для IPv4
                 echo -e "${BLUE}🔓 Открываем основные порты (только IPv4):${NC}"
                 echo -e "  • SSH (22)..."
-                sudo ufw allow in on any to any port 22 proto tcp
+                sudo ufw allow 22/tcp
                 echo -e "  • HTTPS (443)..."
-                sudo ufw allow in on any to any port 443 proto tcp
+                sudo ufw allow 443/tcp
                 
                 echo -e "${GREEN}✅ UFW включен с открытыми портами SSH и HTTPS (только IPv4)${NC}"
             fi
@@ -203,6 +204,9 @@ manage_ufw() {
             open_ports_for_ip
             ;;
         5)
+            delete_ports_rules
+            ;;
+        6)
             reset_ufw_rules
             ;;
         0)
@@ -275,10 +279,96 @@ open_ports_for_ip() {
     fi
     
     # Открываем порт только для IPv4
-    if sudo ufw allow from "$target_ip" to any port "$selected_port" proto tcp; then
+    if sudo ufw allow from "$target_ip" to any port "$selected_port"; then
         echo -e "${GREEN}✅ Порт $selected_port успешно открыт для $target_ip (только IPv4)${NC}"
     else
         echo -e "${RED}❌ Ошибка при открытии порта $selected_port${NC}"
+    fi
+}
+
+# Функция для удаления правил по портам
+delete_ports_rules() {
+    echo -e "${WHITE}🗑️  Удаление правил по портам${NC}"
+    echo -e "${GRAY}$(printf '─%.0s' $(seq 1 40))${NC}"
+    
+    # Получаем порт RemnaNode из конфигурации
+    local node_port="6001"
+    if [ -f "/opt/remnanode/.env" ]; then
+        node_port=$(grep "APP_PORT=" "/opt/remnanode/.env" | cut -d'=' -f2 2>/dev/null || echo "6001")
+    fi
+    
+    echo -e "${WHITE}Выберите порт для удаления правил:${NC}"
+    echo -e "   ${WHITE}1)${NC} \033[1;32m22\033[0m - SSH"
+    echo -e "   ${WHITE}2)${NC} \033[1;32m443\033[0m - HTTPS"
+    echo -e "   ${WHITE}3)${NC} \033[1;32m80\033[0m - HTTP"
+    echo -e "   ${WHITE}4)${NC} \033[1;32m9100\033[0m - Node Exporter"
+    echo -e "   ${WHITE}5)${NC} \033[1;32m$node_port\033[0m - RemnaNode"
+    echo -e "   ${WHITE}6)${NC} \033[1;32mДругой порт\033[0m - ввести вручную"
+    echo -e "   ${WHITE}7)${NC} \033[1;32mВсе порты\033[0m - удалить все правила"
+    echo
+    
+    read -p "Выберите опцию [1-7]: " port_choice
+    
+    case "$port_choice" in
+        1) delete_port_rule "22" ;;
+        2) delete_port_rule "443" ;;
+        3) delete_port_rule "80" ;;
+        4) delete_port_rule "9100" ;;
+        5) delete_port_rule "$node_port" ;;
+        6) 
+            read -p "Введите номер порта: " custom_port
+            if [[ "$custom_port" =~ ^[0-9]+$ ]] && [ "$custom_port" -ge 1 ] && [ "$custom_port" -le 65535 ]; then
+                delete_port_rule "$custom_port"
+            else
+                echo -e "${RED}❌ Неверный номер порта!${NC}"
+            fi
+            ;;
+        7)
+            echo -e "${YELLOW}⚠️  Удаляем все правила UFW...${NC}"
+            sudo ufw --force reset
+            echo -e "${GREEN}✅ Все правила UFW удалены${NC}"
+            ;;
+        *)
+            echo -e "${RED}❌ Неверный выбор!${NC}"
+            ;;
+    esac
+}
+
+# Вспомогательная функция для удаления правил порта
+delete_port_rule() {
+    local port="$1"
+    echo -e "${BLUE}🔧 Удаляем правила для порта $port...${NC}"
+    
+    # Удаляем все правила для порта
+    local deleted=false
+    
+    # Удаляем правила allow
+    if sudo ufw delete allow "$port" 2>/dev/null; then
+        echo -e "  ✅ Удалено правило allow для порта $port"
+        deleted=true
+    fi
+    
+    # Удаляем правила deny
+    if sudo ufw delete deny "$port" 2>/dev/null; then
+        echo -e "  ✅ Удалено правило deny для порта $port"
+        deleted=true
+    fi
+    
+    # Удаляем правила с протоколом tcp
+    if sudo ufw delete allow "$port/tcp" 2>/dev/null; then
+        echo -e "  ✅ Удалено правило allow для порта $port/tcp"
+        deleted=true
+    fi
+    
+    if sudo ufw delete deny "$port/tcp" 2>/dev/null; then
+        echo -e "  ✅ Удалено правило deny для порта $port/tcp"
+        deleted=true
+    fi
+    
+    if [ "$deleted" = true ]; then
+        echo -e "${GREEN}✅ Правила для порта $port успешно удалены${NC}"
+    else
+        echo -e "${YELLOW}⚠️  Правила для порта $port не найдены${NC}"
     fi
 }
 

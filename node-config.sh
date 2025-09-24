@@ -166,6 +166,11 @@ manage_ufw() {
             else
                 echo -e "${BLUE}🔧 Включаем UFW...${NC}"
                 
+                # Отключаем IPv6 в UFW перед настройкой
+                echo -e "${BLUE}🔧 Отключаем IPv6 в UFW...${NC}"
+                sudo ufw --force disable
+                echo 'IPV6=no' | sudo tee -a /etc/default/ufw
+                
                 # Открываем основные порты перед включением
                 echo -e "${BLUE}🔓 Открываем основные порты:${NC}"
                 echo -e "  • SSH (22)..."
@@ -175,7 +180,17 @@ manage_ufw() {
                 
                 # Включаем UFW
                 sudo ufw --force enable
-                echo -e "${GREEN}✅ UFW включен с открытыми портами SSH и HTTPS${NC}"
+                
+                # Удаляем IPv6 правила если они создались
+                echo -e "${BLUE}🧹 Очищаем IPv6 правила...${NC}"
+                sudo ufw delete allow 22/tcp 2>/dev/null || true
+                sudo ufw delete allow 443/tcp 2>/dev/null || true
+                
+                # Пересоздаем правила только для IPv4
+                sudo ufw allow 22/tcp
+                sudo ufw allow 443/tcp
+                
+                echo -e "${GREEN}✅ UFW включен с открытыми портами SSH и HTTPS (только IPv4)${NC}"
             fi
             ;;
         2)
@@ -260,6 +275,11 @@ open_ports_for_ip() {
     
     echo
     echo -e "${BLUE}🔧 Открываем порт $selected_port для $target_ip...${NC}"
+    
+    # Убеждаемся что IPv6 отключен в UFW
+    if ! grep -q "IPV6=no" /etc/default/ufw; then
+        echo 'IPV6=no' | sudo tee -a /etc/default/ufw
+    fi
     
     if sudo ufw allow from "$target_ip" to any port "$selected_port"; then
         echo -e "${GREEN}✅ Порт $selected_port успешно открыт для $target_ip${NC}"

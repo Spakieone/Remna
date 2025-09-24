@@ -173,16 +173,29 @@ if ! grep -q "/var/log/remnanode:/var/log/remnanode" "$COMPOSE_FILE"; then
     item_indent="${prop_indent}  "
 
     # Если уже есть volumes: — добавляем в существующую секцию
-    if awk '/^[[:space:]]*remnanode:[[:space:]]*$/{in=1;next} in&&/^[[:space:]]*volumes:[[:space:]]*$/{print;exit}' "$COMPOSE_FILE" >/dev/null; then
+    if grep -q "^[[:space:]]*volumes:" "$COMPOSE_FILE"; then
         detected_item_indent="$(get_volumes_item_indent)"
         [ -n "$detected_item_indent" ] && item_indent="$detected_item_indent"
         
         # Проверяем, что том логов еще не добавлен
         if ! grep -q "/var/log/remnanode:/var/log/remnanode" "$COMPOSE_FILE"; then
             # Находим последний элемент в секции volumes и добавляем после него
-            last_volume_line=$(awk '/^[[:space:]]*volumes:[[:space:]]*$/ { found=1; next } found && /^[[:space:]]*-[[:space:]]/ { last_line=NR } found && /^[[:space:]]*[a-zA-Z]/ && !/^[[:space:]]*-/ { exit } END { print last_line }' "$COMPOSE_FILE")
-            if [ -n "$last_volume_line" ]; then
-                sed -i "${last_volume_line}a\\${item_indent}- /var/log/remnanode:/var/log/remnanode" "$COMPOSE_FILE"
+            # Ищем все строки с volumes и берем последнюю
+            last_volumes_line=$(grep -n "^[[:space:]]*volumes:" "$COMPOSE_FILE" | tail -1 | cut -d: -f1)
+            if [ -n "$last_volumes_line" ]; then
+                # Ищем последний элемент в этой секции volumes
+                last_volume_item=$(awk -v start="$last_volumes_line" '
+                    NR >= start && /^[[:space:]]*-[[:space:]]/ { last_line=NR }
+                    NR >= start && /^[[:space:]]*[a-zA-Z]/ && !/^[[:space:]]*-/ { exit }
+                    END { print last_line }
+                ' "$COMPOSE_FILE")
+                
+                if [ -n "$last_volume_item" ]; then
+                    sed -i "${last_volume_item}a\\${item_indent}- /var/log/remnanode:/var/log/remnanode" "$COMPOSE_FILE"
+                else
+                    # Если нет элементов, добавляем после volumes:
+                    sed -i "${last_volumes_line}a\\${item_indent}- /var/log/remnanode:/var/log/remnanode" "$COMPOSE_FILE"
+                fi
             else
                 esc_prop="$(escape_sed "$prop_indent")"
                 sed -i "/^${esc_prop}volumes:/a\\${item_indent}- /var/log/remnanode:/var/log/remnanode" "$COMPOSE_FILE"

@@ -87,13 +87,46 @@ ufw_open_ports_command() {
         return 1
     fi
     
-    # Получаем порт из конфигурации
+    # Получаем порт из конфигурации для отображения в шапке
     local node_port="6001"
     if [ -f "$ENV_FILE" ]; then
         node_port=$(grep "APP_PORT=" "$ENV_FILE" | cut -d'=' -f2 2>/dev/null || echo "6001")
     fi
     
-    echo -e "\033[1;37mВведите IP адрес для открытия портов:\033[0m"
+    echo -e "\033[1;37mВыберите порт для открытия:\033[0m"
+    echo -e "\033[38;5;244mТекущий порт RemnaNode: $node_port\033[0m"
+    echo
+    echo -e "\033[1;37mДоступные порты:\033[0m"
+    echo -e "   \033[38;5;15m1)\033[0m \033[1;32m9100\033[0m - Node Exporter (мониторинг)"
+    echo -e "   \033[38;5;15m2)\033[0m \033[1;32m$node_port\033[0m - RemnaNode (текущий порт)"
+    echo -e "   \033[38;5;15m3)\033[0m \033[1;32m22\033[0m - SSH"
+    echo -e "   \033[38;5;15m4)\033[0m \033[1;32m443\033[0m - HTTPS"
+    echo -e "   \033[38;5;15m5)\033[0m \033[1;32mДругой порт\033[0m - ввести вручную"
+    echo
+    
+    read -p "Выберите опцию [1-5]: " port_choice
+    
+    local selected_port=""
+    case "$port_choice" in
+        1) selected_port="9100" ;;
+        2) selected_port="$node_port" ;;
+        3) selected_port="22" ;;
+        4) selected_port="443" ;;
+        5) 
+            read -p "Введите номер порта: " selected_port
+            if ! [[ "$selected_port" =~ ^[0-9]+$ ]] || [ "$selected_port" -lt 1 ] || [ "$selected_port" -gt 65535 ]; then
+                echo -e "\033[1;31m❌ Неверный номер порта! Должен быть от 1 до 65535\033[0m"
+                return 1
+            fi
+            ;;
+        *)
+            echo -e "\033[1;31m❌ Неверный выбор!\033[0m"
+            return 1
+            ;;
+    esac
+    
+    echo
+    echo -e "\033[1;37mВведите IP адрес для открытия порта $selected_port:\033[0m"
     echo -e "\033[38;5;244mПример: 192.168.1.100 или 10.0.0.0/8\033[0m"
     read -p "IP адрес: " target_ip
     
@@ -102,21 +135,14 @@ ufw_open_ports_command() {
         return 1
     fi
     
-    echo -e "\033[1;37mОткрываем порты для $target_ip:\033[0m"
+    echo
+    echo -e "\033[1;37mОткрываем порт $selected_port для $target_ip:\033[0m"
     
-    # SSH порт
-    echo -e "\033[1;32m✅ Открываем SSH (22)...\033[0m"
-    sudo ufw allow from "$target_ip" to any port 22
-    
-    # RemnaNode порт
-    echo -e "\033[1;32m✅ Открываем RemnaNode ($node_port)...\033[0m"
-    sudo ufw allow from "$target_ip" to any port "$node_port"
-    
-    # Node Exporter порт (если нужен)
-    echo -e "\033[1;32m✅ Открываем Node Exporter (9100)...\033[0m"
-    sudo ufw allow from "$target_ip" to any port 9100
-    
-    echo -e "\033[1;32m✅ Порты успешно открыты для $target_ip\033[0m"
+    if sudo ufw allow from "$target_ip" to any port "$selected_port"; then
+        echo -e "\033[1;32m✅ Порт $selected_port успешно открыт для $target_ip\033[0m"
+    else
+        echo -e "\033[1;31m❌ Ошибка при открытии порта $selected_port\033[0m"
+    fi
 }
 
 ufw_reset_command() {
@@ -183,6 +209,7 @@ ufw_remove_remnanode_rules_command() {
 }
 
 node_exporter_menu_command() { :; }
+
 
 #!/usr/bin/env bash
 # Version: 3.2.2
@@ -2653,15 +2680,6 @@ main_menu() {
         echo -e "   \033[38;5;15m15)\033[0m 🗑️  Удалить tBlocker"
         echo
         
-        # Блок управления UFW
-        echo -e "\033[1;33m🔥 Управление UFW:\033[0m"
-        echo -e "   \033[38;5;15m16)\033[0m 🔥 Включить UFW"
-        echo -e "   \033[38;5;15m17)\033[0m ❌ Выключить UFW"
-        echo -e "   \033[38;5;15m18)\033[0m 🌐 Открыть порты для IP"
-        echo -e "   \033[38;5;15m19)\033[0m 🗑️  Сбросить правила UFW"
-        echo -e "   \033[38;5;15m20)\033[0m 📋 Показать правила UFW"
-        echo -e "   \033[38;5;15m21)\033[0m 🗑️  Удалить правила UFW"
-        echo
         echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 55))\033[0m"
         echo -e "\033[38;5;15m   0)\033[0m 🚪 Выход в терминал"
         echo
@@ -2685,7 +2703,7 @@ main_menu() {
         
         echo -e "\033[38;5;8mRemnaNode CLI v$SCRIPT_VERSION by DigneZzZ • gig.ovh\033[0m"
         echo
-        read -p "$(echo -e "\033[1;37mВыберите опцию [0-21]:\033[0m ")" choice
+        read -p "$(echo -e "\033[1;37mВыберите опцию [0-15]:\033[0m ")" choice
 
         case "$choice" in
             1) install_command; read -p "Нажмите Enter для продолжения..." ;;
@@ -2703,12 +2721,6 @@ main_menu() {
             13) setup_log_rotation; read -p "Нажмите Enter для продолжения..." ;;
             14) install_tblocker_command; read -p "Нажмите Enter для продолжения..." ;;
             15) uninstall_tblocker_command; read -p "Нажмите Enter для продолжения..." ;;
-            16) ufw_enable_command; read -p "Нажмите Enter для продолжения..." ;;
-            17) ufw_disable_command; read -p "Нажмите Enter для продолжения..." ;;
-            18) ufw_open_ports_command; read -p "Нажмите Enter для продолжения..." ;;
-            19) ufw_reset_command; read -p "Нажмите Enter для продолжения..." ;;
-            20) ufw_show_rules_command; read -p "Нажмите Enter для продолжения..." ;;
-            21) ufw_remove_remnanode_rules_command; read -p "Нажмите Enter для продолжения..." ;;
             0) clear; exit 0 ;;
             *) 
                 echo -e "\033[1;31m❌ Неверная опция!\033[0m"

@@ -43,11 +43,12 @@ show_main_menu() {
     echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}4.${NC} ${YELLOW}🚀 Network Tools${NC}       ${GRAY}┃${NC} ${WHITE}Диагностика сети${NC}        ${BOLD}${WHITE}│${NC}"
     echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}5.${NC} ${YELLOW}📈 Node Exporter${NC}       ${GRAY}┃${NC} ${WHITE}Мониторинг системы${NC}      ${BOLD}${WHITE}│${NC}"
     echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}6.${NC} ${YELLOW}📊 System Status${NC}       ${GRAY}┃${NC} ${WHITE}Детальная информация${NC}    ${BOLD}${WHITE}│${NC}"
+    echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}7.${NC} ${YELLOW}⚙️ Настройка ноды${NC}     ${GRAY}┃${NC} ${WHITE}UFW и IPv6${NC}            ${BOLD}${WHITE}│${NC}"
     echo -e "${BOLD}${WHITE}│${NC}                                                      ${BOLD}${WHITE}│${NC}"
     echo -e "${BOLD}${WHITE}└──────────────────────────────────────────────────────┘${NC}"
     echo ""
     echo -e "${BOLD}${WHITE}┌─ 💡 ПОЛЕЗНЫЕ КОМАНДЫ ────────────────────────────────┐${NC}"
-    echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}7.${NC} ${YELLOW}💡 Полезные команды${NC}    ${GRAY}┃${NC} ${WHITE}Системные команды${NC}       ${BOLD}${WHITE}│${NC}"
+    echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}8.${NC} ${YELLOW}💡 Полезные команды${NC}    ${GRAY}┃${NC} ${WHITE}Системные команды${NC}       ${BOLD}${WHITE}│${NC}"
     echo -e "${BOLD}${WHITE}└──────────────────────────────────────────────────────┘${NC}"
     echo ""
     echo -e "${BOLD}${WHITE}┌─🚪ВЫХОД ─────────────────────────────────────────────┐${NC}"
@@ -204,6 +205,10 @@ while true; do
             show_system_status 
             ;;
         7) 
+            echo -e "${PURPLE}⚙️  Запуск настройки ноды...${NC}"
+            call_script "node-config.sh" 
+            ;;
+        8) 
             echo -e "${YELLOW}💡 Запуск полезных команд...${NC}"
             call_script "useful_commands.sh" 
             ;;
@@ -215,7 +220,7 @@ while true; do
             exit 0
             ;;
         *) 
-            echo -e "${RED}❌ Неверный выбор! Пожалуйста, выберите опцию от 0 до 7.${NC}"
+            echo -e "${RED}❌ Неверный выбор! Пожалуйста, выберите опцию от 0 до 8.${NC}"
             sleep 2
             ;;
     esac

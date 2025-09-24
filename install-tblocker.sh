@@ -45,6 +45,14 @@ if [ "$ACTION" = "uninstall" ]; then
     fi
     [ -d "/opt/tblocker" ] && rm -rf "/opt/tblocker" && echo "✅ Удалена директория /opt/tblocker"
     [ -f "/etc/logrotate.d/tblocker" ] && rm -f "/etc/logrotate.d/tblocker"
+    
+    # Удаляем том логов из docker-compose.yml если он был добавлен Tblocker
+    if [ -f "$COMPOSE_FILE" ] && grep -q "/var/log/remnanode:/var/log/remnanode" "$COMPOSE_FILE"; then
+        echo "➡ Удаляем том логов из docker-compose.yml..."
+        sed -i '/\/var\/log\/remnanode:\/var\/log\/remnanode/d' "$COMPOSE_FILE"
+        echo "✅ Том логов удален из docker-compose.yml"
+    fi
+    
     echo "✅ Готово. tBlocker удалён."
     exit 0
 fi
@@ -126,7 +134,13 @@ if ! grep -q "/var/log/remnanode:/var/log/remnanode" "$COMPOSE_FILE"; then
         [ -n "$detected_item_indent" ] && item_indent="$detected_item_indent"
         esc_prop="$(escape_sed "$prop_indent")"
         esc_item="$(escape_sed "$item_indent")"
-        sed -i "/^${esc_prop}volumes:/a\\${item_indent}- /var/log/remnanode:/var/log/remnanode" "$COMPOSE_FILE"
+        # Находим последний элемент в секции volumes и добавляем после него
+        last_volume_line=$(awk '/^[[:space:]]*volumes:[[:space:]]*$/ { found=1; next } found && /^[[:space:]]*-[[:space:]]/ { last_line=NR } found && /^[[:space:]]*[a-zA-Z]/ && !/^[[:space:]]*-/ { exit } END { print last_line }' "$COMPOSE_FILE")
+        if [ -n "$last_volume_line" ]; then
+            sed -i "${last_volume_line}a\\${item_indent}- /var/log/remnanode:/var/log/remnanode" "$COMPOSE_FILE"
+        else
+            sed -i "/^${esc_prop}volumes:/a\\${item_indent}- /var/log/remnanode:/var/log/remnanode" "$COMPOSE_FILE"
+        fi
     else
         # Вставляем блок volumes после restart: always в секции remnanode
         esc_prop="$(escape_sed "$prop_indent")"

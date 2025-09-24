@@ -169,26 +169,19 @@ manage_ufw() {
                 # Отключаем IPv6 в UFW перед настройкой
                 echo -e "${BLUE}🔧 Отключаем IPv6 в UFW...${NC}"
                 sudo ufw --force disable
-                echo 'IPV6=no' | sudo tee -a /etc/default/ufw
                 
-                # Открываем основные порты перед включением
-                echo -e "${BLUE}🔓 Открываем основные порты:${NC}"
-                echo -e "  • SSH (22)..."
-                sudo ufw allow 22/tcp
-                echo -e "  • HTTPS (443)..."
-                sudo ufw allow 443/tcp
+                # Настраиваем UFW для работы только с IPv4
+                echo 'IPV6=no' | sudo tee -a /etc/default/ufw
                 
                 # Включаем UFW
                 sudo ufw --force enable
                 
-                # Удаляем IPv6 правила если они создались
-                echo -e "${BLUE}🧹 Очищаем IPv6 правила...${NC}"
-                sudo ufw delete allow 22/tcp 2>/dev/null || true
-                sudo ufw delete allow 443/tcp 2>/dev/null || true
-                
-                # Пересоздаем правила только для IPv4
-                sudo ufw allow 22/tcp
-                sudo ufw allow 443/tcp
+                # Открываем основные порты только для IPv4
+                echo -e "${BLUE}🔓 Открываем основные порты (только IPv4):${NC}"
+                echo -e "  • SSH (22)..."
+                sudo ufw allow in on any to any port 22 proto tcp
+                echo -e "  • HTTPS (443)..."
+                sudo ufw allow in on any to any port 443 proto tcp
                 
                 echo -e "${GREEN}✅ UFW включен с открытыми портами SSH и HTTPS (только IPv4)${NC}"
             fi
@@ -281,8 +274,9 @@ open_ports_for_ip() {
         echo 'IPV6=no' | sudo tee -a /etc/default/ufw
     fi
     
-    if sudo ufw allow from "$target_ip" to any port "$selected_port"; then
-        echo -e "${GREEN}✅ Порт $selected_port успешно открыт для $target_ip${NC}"
+    # Открываем порт только для IPv4
+    if sudo ufw allow from "$target_ip" to any port "$selected_port" proto tcp; then
+        echo -e "${GREEN}✅ Порт $selected_port успешно открыт для $target_ip (только IPv4)${NC}"
     else
         echo -e "${RED}❌ Ошибка при открытии порта $selected_port${NC}"
     fi

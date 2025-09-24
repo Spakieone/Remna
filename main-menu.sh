@@ -46,7 +46,11 @@ show_main_menu() {
     echo -e "${BOLD}${WHITE}│${NC}                                                      ${BOLD}${WHITE}│${NC}"
     echo -e "${BOLD}${WHITE}└──────────────────────────────────────────────────────┘${NC}"
     echo ""
-    echo -e "${BOLD}${WHITE}┌─ 🚪 ВЫХОД ────────────────────────────────────────────┐${NC}"
+    echo -e "${BOLD}${WHITE}┌─ 💡 ПОЛЕЗНЫЕ КОМАНДЫ ────────────────────────────────┐${NC}"
+    echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}7.${NC} ${YELLOW}💡 Полезные команды${NC}        ${GRAY}┃${NC} ${WHITE}Системные команды${NC}         ${BOLD}${WHITE}│${NC}"
+    echo -e "${BOLD}${WHITE}└──────────────────────────────────────────────────────┘${NC}"
+    echo ""
+    echo -e "${BOLD}${WHITE}┌─🚪ВЫХОД ─────────────────────────────────────────────┐${NC}"
     echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}0.${NC} ${WHITE}Завершение работы${NC}                                ${BOLD}${WHITE}│${NC}"
     echo -e "${BOLD}${WHITE}└──────────────────────────────────────────────────────┘${NC}"
     echo ""
@@ -199,6 +203,10 @@ while true; do
             echo -e "${CYAN}📊 Загрузка статуса системы...${NC}"
             show_system_status 
             ;;
+        7) 
+            echo -e "${YELLOW}💡 Запуск полезных команд...${NC}"
+            call_script "useful_commands.sh" 
+            ;;
         0) 
             echo ""
             echo -e "${BOLD}${GREEN}👋 До свидания! Спасибо за использование Remna Management Suite!${NC}"
@@ -207,7 +215,7 @@ while true; do
             exit 0
             ;;
         *) 
-            echo -e "${RED}❌ Неверный выбор! Пожалуйста, выберите опцию от 0 до 6.${NC}"
+            echo -e "${RED}❌ Неверный выбор! Пожалуйста, выберите опцию от 0 до 7.${NC}"
             sleep 2
             ;;
     esac

@@ -119,40 +119,41 @@ get_volumes_item_indent() {
 
 escape_sed() { echo "$1" | sed 's/[\\\/*.$^[]/\\&/g' ; }
 
-# Исправляем дублирующиеся секции volumes
-echo "🔧 Проверяем и исправляем дублирующиеся секции volumes..."
-awk '
-BEGIN{in_remna=0; volumes_count=0; in_volumes=0; volumes_content=""}
-/^[[:space:]]*remnanode:[[:space:]]*$/ {in_remna=1; print; next}
-in_remna && /^[[:space:]]*volumes:[[:space:]]*$/ {
-    volumes_count++
-    if(volumes_count == 1) {
-        print
-        in_volumes=1
+# Проверяем, что volumes существует и не дублируется
+if grep -c "^[[:space:]]*volumes:" "$COMPOSE_FILE" | grep -q "^1$"; then
+    echo "✅ Секция volumes корректна"
+elif grep -c "^[[:space:]]*volumes:" "$COMPOSE_FILE" | grep -q "^[2-9]"; then
+    echo "⚠️  Обнаружено дублирование volumes, исправляем..."
+    # Удаляем все дублирующиеся volumes и оставляем только первую секцию
+    awk '
+    BEGIN{in_remna=0; volumes_count=0; in_volumes=0}
+    /^[[:space:]]*remnanode:[[:space:]]*$/ {in_remna=1; print; next}
+    in_remna && /^[[:space:]]*volumes:[[:space:]]*$/ {
+        volumes_count++
+        if(volumes_count == 1) {
+            print
+            in_volumes=1
+        }
+        next
     }
-    next
-}
-in_remna && in_volumes && /^[[:space:]]*-[[:space:]]/ {
-    volumes_content = volumes_content $0 "\n"
-    next
-}
-in_remna && in_volumes && /^[[:space:]]*[a-zA-Z]/ && !/^[[:space:]]*-/ {
-    in_volumes=0
-    printf "%s", volumes_content
-    print
-    next
-}
-in_remna && in_volumes && /^[[:space:]]*$/ {
-    volumes_content = volumes_content $0 "\n"
-    next
-}
-{print}
-' "$COMPOSE_FILE" > "$COMPOSE_FILE.tmp" && mv "$COMPOSE_FILE.tmp" "$COMPOSE_FILE"
-
-if [ $? -eq 0 ]; then
-    echo "✅ Дублирующиеся секции volumes исправлены"
+    in_remna && in_volumes && /^[[:space:]]*-[[:space:]]/ {
+        print
+        next
+    }
+    in_remna && in_volumes && /^[[:space:]]*[a-zA-Z]/ && !/^[[:space:]]*-/ {
+        in_volumes=0
+        print
+        next
+    }
+    in_remna && in_volumes && /^[[:space:]]*$/ {
+        print
+        next
+    }
+    {print}
+    ' "$COMPOSE_FILE" > "$COMPOSE_FILE.tmp" && mv "$COMPOSE_FILE.tmp" "$COMPOSE_FILE"
+    echo "✅ Дублирующиеся volumes исправлены"
 else
-    echo "⚠️  Не удалось исправить volumes, продолжаем..."
+    echo "ℹ️  Секция volumes не найдена"
 fi
 
 # Удаляем старый том /var/lib/remnanode:/var/lib/remnanode если он есть

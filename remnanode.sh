@@ -315,6 +315,7 @@ is_port_occupied() {
 }
 
 install_latest_xray_core() {
+    colorized_echo blue "🚀 Начинаем установку Xray-core..."
     identify_the_operating_system_and_architecture
     mkdir -p "$DATA_DIR"
     cd "$DATA_DIR"
@@ -335,11 +336,13 @@ install_latest_xray_core() {
     xray_download_url="https://github.com/XTLS/Xray-core/releases/download/${latest_release}/${xray_filename}"
     
     colorized_echo blue "Загрузка Xray-core версии ${latest_release}..."
-    wget "${xray_download_url}" -q
+    colorized_echo yellow "URL: ${xray_download_url}"
+    wget "${xray_download_url}" -q --show-progress
     if [ $? -ne 0 ]; then
         colorized_echo red "Ошибка: Не удалось загрузить Xray-core."
         exit 1
     fi
+    colorized_echo green "✅ Загрузка завершена"
     
     colorized_echo blue "Извлечение Xray-core..."
     unzip -o "${xray_filename}" -d "$DATA_DIR" >/dev/null 2>&1
@@ -347,6 +350,7 @@ install_latest_xray_core() {
         colorized_echo red "Ошибка: Не удалось извлечь Xray-core."
         exit 1
     fi
+    colorized_echo green "✅ Извлечение завершено"
 
     rm "${xray_filename}"
     chmod +x "$XRAY_FILE"

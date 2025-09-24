@@ -224,6 +224,36 @@ WebhookURL: "https://$BOT_DOMAIN/tblocker/webhook"
 WebhookTemplate: '{"username":"%s","ip":"%s","server":"%s","action":"%s","duration":%d,"timestamp":"%s"}'
 EOL
 
+# ===== Создание systemd сервиса =====
+echo "➡ Создание systemd сервиса..."
+
+# Проверяем, что исполняемый файл существует
+if [ ! -f "/opt/tblocker/tblocker" ]; then
+    echo "❌ Исполняемый файл /opt/tblocker/tblocker не найден!"
+    echo "Проверьте установку Tblocker."
+    exit 1
+fi
+
+# Делаем файл исполняемым
+chmod +x /opt/tblocker/tblocker
+
+cat > "/etc/systemd/system/tblocker.service" <<EOL
+[Unit]
+Description=Tblocker - Torrent Blocker
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/tblocker
+ExecStart=/opt/tblocker/tblocker
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOL
+
 # ===== Перезапуск Tblocker =====
 echo "➡ Перезапуск Tblocker..."
 systemctl daemon-reload

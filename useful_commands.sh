@@ -32,7 +32,7 @@ show_menu() {
     echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}1.${NC} ${YELLOW}⚡ Обновить систему${NC}       ${GRAY}┃${NC} ${WHITE}apt update && upgrade${NC}  ${BOLD}${WHITE}│${NC}"
     echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}2.${NC} ${YELLOW}🌍 Тест на локацию${NC}        ${GRAY}┃${NC} ${WHITE}IP region check${NC}        ${BOLD}${WHITE}│${NC}"
     echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}3.${NC} ${YELLOW}🚫 Проверка блокировок${NC}    ${GRAY}┃${NC} ${WHITE}IP.Check.Place${NC}         ${BOLD}${WHITE}│${NC}"
-    echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}4.${NC} ${YELLOW}🏠 Скорость к РФ${NC}        ${GRAY}┃${NC} ${WHITE}Russian providers${NC}      ${BOLD}${WHITE}│${NC}"
+    echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}4.${NC} ${YELLOW}🏠 Скорость к РФ${NC}          ${GRAY}┃${NC} ${WHITE}Russian providers${NC}      ${BOLD}${WHITE}│${NC}"
     echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}5.${NC} ${YELLOW}🚀 Скорость к зарубежным${NC}  ${GRAY}┃${NC} ${WHITE}International providers${NC}${BOLD}${WHITE}│${NC}"
     echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}6.${NC} ${YELLOW}📱 Проверка Instagram${NC}     ${GRAY}┃${NC} ${WHITE}Audio block check${NC}      ${BOLD}${WHITE}│${NC}"
     echo -e "${BOLD}${WHITE}│${NC}                                                        ${BOLD}${WHITE}│${NC}"

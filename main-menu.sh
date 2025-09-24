@@ -47,7 +47,7 @@ show_main_menu() {
     echo -e "${BOLD}${WHITE}└──────────────────────────────────────────────────────┘${NC}"
     echo ""
     echo -e "${BOLD}${WHITE}┌─ 💡 ПОЛЕЗНЫЕ КОМАНДЫ ────────────────────────────────┐${NC}"
-    echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}7.${NC} ${YELLOW}💡 Полезные команды${NC}    ${GRAY}┃${NC} ${WHITE}Системные команды${NC}         ${BOLD}${WHITE}│${NC}"
+    echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}7.${NC} ${YELLOW}💡 Полезные команды${NC}    ${GRAY}┃${NC} ${WHITE}Системные команды${NC}       ${BOLD}${WHITE}│${NC}"
     echo -e "${BOLD}${WHITE}└──────────────────────────────────────────────────────┘${NC}"
     echo ""
     echo -e "${BOLD}${WHITE}┌─🚪ВЫХОД ─────────────────────────────────────────────┐${NC}"

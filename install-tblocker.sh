@@ -119,6 +119,13 @@ get_volumes_item_indent() {
 
 escape_sed() { echo "$1" | sed 's/[\\\/*.$^[]/\\&/g' ; }
 
+# Удаляем старый том /var/lib/remnanode:/var/lib/remnanode если он есть
+if grep -q "/var/lib/remnanode:/var/lib/remnanode" "$COMPOSE_FILE"; then
+    echo "➡ Удаляем старый том /var/lib/remnanode:/var/lib/remnanode..."
+    sed -i '/\/var\/lib\/remnanode:\/var\/lib\/remnanode/d' "$COMPOSE_FILE"
+    echo "✅ Старый том /var/lib/remnanode:/var/lib/remnanode удален"
+fi
+
 # Добавляем том /var/log/remnanode с правильными отступами
 if ! grep -q "/var/log/remnanode:/var/log/remnanode" "$COMPOSE_FILE"; then
     echo "➡ Добавляем том /var/log/remnanode в docker-compose.yml..."
@@ -128,18 +135,24 @@ if ! grep -q "/var/log/remnanode:/var/log/remnanode" "$COMPOSE_FILE"; then
     # элементы списка отступаются на один уровень глубже свойства
     item_indent="${prop_indent}  "
 
-    # Если уже есть volumes: — используем его и считываем фактический отступ элементов
+    # Если уже есть volumes: — добавляем в существующую секцию
     if awk '/^[[:space:]]*remnanode:[[:space:]]*$/{in=1;next} in&&/^[[:space:]]*volumes:[[:space:]]*$/{print;exit}' "$COMPOSE_FILE" >/dev/null; then
         detected_item_indent="$(get_volumes_item_indent)"
         [ -n "$detected_item_indent" ] && item_indent="$detected_item_indent"
-        esc_prop="$(escape_sed "$prop_indent")"
-        esc_item="$(escape_sed "$item_indent")"
-        # Находим последний элемент в секции volumes и добавляем после него
-        last_volume_line=$(awk '/^[[:space:]]*volumes:[[:space:]]*$/ { found=1; next } found && /^[[:space:]]*-[[:space:]]/ { last_line=NR } found && /^[[:space:]]*[a-zA-Z]/ && !/^[[:space:]]*-/ { exit } END { print last_line }' "$COMPOSE_FILE")
-        if [ -n "$last_volume_line" ]; then
-            sed -i "${last_volume_line}a\\${item_indent}- /var/log/remnanode:/var/log/remnanode" "$COMPOSE_FILE"
+        
+        # Проверяем, что том логов еще не добавлен
+        if ! grep -q "/var/log/remnanode:/var/log/remnanode" "$COMPOSE_FILE"; then
+            # Находим последний элемент в секции volumes и добавляем после него
+            last_volume_line=$(awk '/^[[:space:]]*volumes:[[:space:]]*$/ { found=1; next } found && /^[[:space:]]*-[[:space:]]/ { last_line=NR } found && /^[[:space:]]*[a-zA-Z]/ && !/^[[:space:]]*-/ { exit } END { print last_line }' "$COMPOSE_FILE")
+            if [ -n "$last_volume_line" ]; then
+                sed -i "${last_volume_line}a\\${item_indent}- /var/log/remnanode:/var/log/remnanode" "$COMPOSE_FILE"
+            else
+                esc_prop="$(escape_sed "$prop_indent")"
+                sed -i "/^${esc_prop}volumes:/a\\${item_indent}- /var/log/remnanode:/var/log/remnanode" "$COMPOSE_FILE"
+            fi
+            echo "✅ Том логов добавлен в существующую секцию volumes"
         else
-            sed -i "/^${esc_prop}volumes:/a\\${item_indent}- /var/log/remnanode:/var/log/remnanode" "$COMPOSE_FILE"
+            echo "ℹ️  Том логов уже присутствует в volumes"
         fi
     else
         # Вставляем блок volumes после restart: always в секции remnanode
@@ -155,6 +168,7 @@ if ! grep -q "/var/log/remnanode:/var/log/remnanode" "$COMPOSE_FILE"; then
             }
             { print }
         ' "$COMPOSE_FILE" > "$COMPOSE_FILE.tmp" && mv "$COMPOSE_FILE.tmp" "$COMPOSE_FILE"
+        echo "✅ Создана новая секция volumes с томом логов"
     fi
 else
     echo "✅ volumes для логов уже настроен."

@@ -842,6 +842,14 @@ uninstall_command() {
     if is_remnanode_up; then
         down_remnanode
     fi
+    
+    # Удаляем контейнеры RemnaNode
+    colorized_echo yellow "Удаление контейнеров RemnaNode..."
+    if docker ps -aq --filter "name=remnanode" | grep -q .; then
+        docker rm -f remnanode 2>/dev/null || true
+        colorized_echo green "✅ Контейнеры RemnaNode удалены"
+    fi
+    
     uninstall_remnanode_script
     uninstall_remnanode
     uninstall_remnanode_docker_images

@@ -248,11 +248,6 @@ fi
 
 logrotate -vf "$LOGROTATE_FILE"
 
-# ===== Перезапуск контейнеров =====
-echo "➡ Перезапуск контейнеров Remnanode..."
-cd /opt/remnanode || exit
-docker compose down && docker compose up -d
-
 # ===== Установка Tblocker =====
 echo "➡ Устанавливаем Tblocker..."
 bash <(curl -fsSL git.new/install) <<EOF

@@ -152,10 +152,12 @@ manage_ufw() {
     echo -e "   ${WHITE}1)${NC} 🔥 Включить UFW"
     echo -e "   ${WHITE}2)${NC} ❌ Выключить UFW"
     echo -e "   ${WHITE}3)${NC} 📋 Показать статус UFW"
+    echo -e "   ${WHITE}4)${NC} 🌐 Открыть порты для IP"
+    echo -e "   ${WHITE}5)${NC} 🗑️  Удалить все правила UFW"
     echo -e "   ${WHITE}0)${NC} ⬅️  Назад"
     echo
     
-    read -p "Выберите опцию [0-3]: " ufw_choice
+    read -p "Выберите опцию [0-5]: " ufw_choice
     
     case "$ufw_choice" in
         1)
@@ -180,6 +182,12 @@ manage_ufw() {
             echo -e "${BLUE}📋 Статус UFW:${NC}"
             sudo ufw status verbose
             ;;
+        4)
+            open_ports_for_ip
+            ;;
+        5)
+            reset_ufw_rules
+            ;;
         0)
             return 0
             ;;
@@ -187,6 +195,83 @@ manage_ufw() {
             echo -e "${RED}❌ Неверный выбор!${NC}"
             ;;
     esac
+}
+
+# Функция для открытия портов для IP
+open_ports_for_ip() {
+    echo -e "${WHITE}🌐 Открытие портов для IP${NC}"
+    echo -e "${GRAY}$(printf '─%.0s' $(seq 1 40))${NC}"
+    
+    echo -e "${WHITE}Выберите порт для открытия:${NC}"
+    echo -e "   ${WHITE}1)${NC} \033[1;32m9100\033[0m - Node Exporter (мониторинг)"
+    echo -e "   ${WHITE}2)${NC} \033[1;32m22\033[0m - SSH"
+    echo -e "   ${WHITE}3)${NC} \033[1;32m443\033[0m - HTTPS"
+    echo -e "   ${WHITE}4)${NC} \033[1;32m80\033[0m - HTTP"
+    echo -e "   ${WHITE}5)${NC} \033[1;32mДругой порт\033[0m - ввести вручную"
+    echo
+    
+    read -p "Выберите опцию [1-5]: " port_choice
+    
+    local selected_port=""
+    case "$port_choice" in
+        1) selected_port="9100" ;;
+        2) selected_port="22" ;;
+        3) selected_port="443" ;;
+        4) selected_port="80" ;;
+        5) 
+            read -p "Введите номер порта: " selected_port
+            if ! [[ "$selected_port" =~ ^[0-9]+$ ]] || [ "$selected_port" -lt 1 ] || [ "$selected_port" -gt 65535 ]; then
+                echo -e "${RED}❌ Неверный номер порта! Должен быть от 1 до 65535${NC}"
+                return 1
+            fi
+            ;;
+        *)
+            echo -e "${RED}❌ Неверный выбор!${NC}"
+            return 1
+            ;;
+    esac
+    
+    echo
+    echo -e "${WHITE}Введите IP адрес для открытия порта $selected_port:${NC}"
+    echo -e "${GRAY}Пример: 192.168.1.100 или 10.0.0.0/8${NC}"
+    read -p "IP адрес: " target_ip
+    
+    if [ -z "$target_ip" ]; then
+        echo -e "${RED}❌ IP адрес не может быть пустым${NC}"
+        return 1
+    fi
+    
+    echo
+    echo -e "${BLUE}🔧 Открываем порт $selected_port для $target_ip...${NC}"
+    
+    if sudo ufw allow from "$target_ip" to any port "$selected_port"; then
+        echo -e "${GREEN}✅ Порт $selected_port успешно открыт для $target_ip${NC}"
+    else
+        echo -e "${RED}❌ Ошибка при открытии порта $selected_port${NC}"
+    fi
+}
+
+# Функция для сброса всех правил UFW
+reset_ufw_rules() {
+    echo -e "${WHITE}🗑️  Сброс всех правил UFW${NC}"
+    echo -e "${GRAY}$(printf '─%.0s' $(seq 1 40))${NC}"
+    
+    echo -e "${YELLOW}⚠️  ВНИМАНИЕ: Это удалит ВСЕ правила UFW!${NC}"
+    echo -e "${GRAY}Это действие нельзя отменить.${NC}"
+    echo
+    read -p "Вы уверены? (y/N): " confirm
+    
+    if [[ "$confirm" =~ ^[Yy]$ ]]; then
+        echo -e "${BLUE}🔧 Сбрасываем все правила UFW...${NC}"
+        if sudo ufw --force reset; then
+            echo -e "${GREEN}✅ Все правила UFW успешно удалены${NC}"
+            echo -e "${GRAY}UFW теперь имеет только базовые правила по умолчанию${NC}"
+        else
+            echo -e "${RED}❌ Ошибка при сбросе правил UFW${NC}"
+        fi
+    else
+        echo -e "${YELLOW}⚠️  Операция отменена${NC}"
+    fi
 }
 
 # Главное меню

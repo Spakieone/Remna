@@ -468,8 +468,16 @@ EOL
             if [ -n "$detected_item_indent" ]; then
                 volume_item_indent="$detected_item_indent"
             fi
-            if ! grep -q "$DATA_DIR:$DATA_DIR" "$COMPOSE_FILE"; then
-                sed -i "/^${escaped_service_indent}volumes:/a\\${volume_item_indent}- $DATA_DIR:$DATA_DIR" "$COMPOSE_FILE"
+            
+            # Проверяем, есть ли уже том логов
+            if ! grep -q "/var/log/remnanode:/var/log/remnanode" "$COMPOSE_FILE"; then
+                # Находим последний элемент в секции volumes и добавляем после него
+                local last_volume_line=$(awk '/^[[:space:]]*volumes:[[:space:]]*$/ { found=1; next } found && /^[[:space:]]*-[[:space:]]/ { last_line=NR } found && /^[[:space:]]*[a-zA-Z]/ && !/^[[:space:]]*-/ { exit } END { print last_line }' "$COMPOSE_FILE")
+                if [ -n "$last_volume_line" ]; then
+                    sed -i "${last_volume_line}a\\${volume_item_indent}- /var/log/remnanode:/var/log/remnanode" "$COMPOSE_FILE"
+                else
+                    sed -i "/^${escaped_service_indent}volumes:/a\\${volume_item_indent}- /var/log/remnanode:/var/log/remnanode" "$COMPOSE_FILE"
+                fi
                 colorized_echo green "Добавлен том логов в существующую секцию volumes"
             else
                 colorized_echo yellow "Том логов уже существует в секции volumes"
@@ -480,15 +488,15 @@ EOL
         elif grep -q "^${escaped_service_indent}# volumes:" "$COMPOSE_FILE"; then
             sed -i "s|^${escaped_service_indent}# volumes:|${service_indent}volumes:|g" "$COMPOSE_FILE"
             
-            if grep -q "^${escaped_volume_item_indent}#.*$DATA_DIR:$DATA_DIR" "$COMPOSE_FILE"; then
-                sed -i "s|^${escaped_volume_item_indent}#.*$DATA_DIR:$DATA_DIR|${volume_item_indent}- $DATA_DIR:$DATA_DIR|g" "$COMPOSE_FILE"
+            if grep -q "^${escaped_volume_item_indent}#.*/var/log/remnanode:/var/log/remnanode" "$COMPOSE_FILE"; then
+                sed -i "s|^${escaped_volume_item_indent}#.*/var/log/remnanode:/var/log/remnanode|${volume_item_indent}- /var/log/remnanode:/var/log/remnanode|g" "$COMPOSE_FILE"
                 colorized_echo green "Раскомментирована секция volumes и строка тома логов"
             else
-                sed -i "/^${escaped_service_indent}volumes:/a\\${volume_item_indent}- $DATA_DIR:$DATA_DIR" "$COMPOSE_FILE"
+                sed -i "/^${escaped_service_indent}volumes:/a\\${volume_item_indent}- /var/log/remnanode:/var/log/remnanode" "$COMPOSE_FILE"
                 colorized_echo green "Раскомментирована секция volumes и добавлена строка тома логов"
             fi
         else
-            sed -i "/^${escaped_service_indent}restart: always/a\\${service_indent}volumes:\\n${volume_item_indent}- $DATA_DIR:$DATA_DIR" "$COMPOSE_FILE"
+            sed -i "/^${escaped_service_indent}restart: always/a\\${service_indent}volumes:\\n${volume_item_indent}- /var/log/remnanode:/var/log/remnanode" "$COMPOSE_FILE"
             colorized_echo green "Добавлена новая секция volumes с томом логов"
         fi
         
@@ -630,9 +638,7 @@ EOL
             echo "      - $GEOSITE_FILE:/usr/local/share/xray/geosite.dat" >> "$COMPOSE_FILE"
         fi
         
-        cat >> "$COMPOSE_FILE" <<EOL
-      # - $DATA_DIR:$DATA_DIR
-EOL
+        # DATA_DIR volume removed - not needed
     else
         # If Xray is not installed, add commented volumes section
         cat >> "$COMPOSE_FILE" <<EOL
@@ -640,7 +646,6 @@ EOL
     #   - $XRAY_FILE:/usr/local/bin/xray
     #   - $GEOIP_FILE:/usr/local/share/xray/geoip.dat
     #   - $GEOSITE_FILE:/usr/local/share/xray/geosite.dat
-    #   - $DATA_DIR:$DATA_DIR
 EOL
     fi
 

@@ -130,9 +130,11 @@ install_node_api() {
 
     # 2. Исправляем dpkg если нужно
     log "Проверка состояния dpkg..."
-    if dpkg --configure -a 2>&1 | grep -q "dpkg was interrupted"; then
-        log "Исправление прерванного dpkg..."
+    dpkg --configure -a
+    if [ $? -ne 0 ]; then
+        log "dpkg был прерван, исправляем..."
         dpkg --configure -a
+        sleep 2
     fi
     
     # 3. Устанавливаем Python3 и pip
@@ -334,11 +336,26 @@ fix_node_api() {
     # Проверяем права root
     check_root
     
+    # Исправляем dpkg если нужно
+    log "Проверка состояния dpkg..."
+    dpkg --configure -a
+    if [ $? -ne 0 ]; then
+        log "dpkg был прерван, исправляем..."
+        dpkg --configure -a
+        sleep 2
+    fi
+    
     # Проверяем что pip3 установлен
     if ! command -v pip3 &> /dev/null; then
         log "Установка pip3..."
         apt update
         apt install -y python3-pip
+        
+        # Проверяем что pip3 установился
+        if ! command -v pip3 &> /dev/null; then
+            error "pip3 не установлен! Попробуйте: apt install python3-pip"
+            return 1
+        fi
     fi
     
     # Переустанавливаем зависимости

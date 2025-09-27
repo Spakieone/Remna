@@ -229,10 +229,19 @@ EOF
     chmod +x "$NODE_API_SCRIPT"
     chown "$NODE_MANAGER_USER":"$NODE_MANAGER_USER" "$NODE_API_SCRIPT"
 
-    # 5. Создаем виртуальное окружение и устанавливаем зависимости
-    log "Создание виртуального окружения и установка зависимостей..."
-    sudo -u "$NODE_MANAGER_USER" python3 -m venv "$NODE_API_DIR/venv"
-    sudo -u "$NODE_MANAGER_USER" "$NODE_API_DIR/venv/bin/pip" install flask psutil
+    # 5. Устанавливаем зависимости глобально (проще и надежнее)
+    log "Установка зависимостей..."
+    
+    # Устанавливаем Flask и psutil глобально
+    pip3 install flask psutil
+    
+    # Проверяем установку
+    log "Проверка установленных пакетов..."
+    pip3 list | grep -E "(flask|psutil)"
+    
+    # Проверяем что Python может импортировать модули
+    log "Тестирование импорта модулей..."
+    python3 -c "import flask; import psutil; print('✅ Все модули импортированы успешно')"
 
     # 6. Создаем systemd сервис
     log "Создание systemd сервиса..."
@@ -243,12 +252,12 @@ After=network.target
 
 [Service]
 Type=simple
-User=$NODE_MANAGER_USER
-Group=$NODE_MANAGER_USER
+User=root
+Group=root
 WorkingDirectory=$NODE_API_DIR
 Environment="NODE_API_TOKEN=$NODE_API_TOKEN"
 Environment="NODE_SERVICES=nginx,node_exporter,vpn_service"
-ExecStart=$NODE_API_DIR/venv/bin/python $NODE_API_SCRIPT
+ExecStart=/usr/bin/python3 $NODE_API_SCRIPT
 Restart=always
 RestartSec=5
 StandardOutput=journal
@@ -292,6 +301,7 @@ EOF
     echo -e "${BOLD}${WHITE}📝 Скопируйте эту строку в .env файл бота мониторинга!${NC}"
     echo ""
 }
+
 
 # Проверка статуса
 check_status() {

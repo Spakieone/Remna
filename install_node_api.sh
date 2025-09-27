@@ -247,8 +247,19 @@ EOF
     # 6. Устанавливаем зависимости глобально (проще и надежнее)
     log "Установка зависимостей..."
     
-    # Устанавливаем Flask и psutil глобально
+    # Пробуем разные способы установки
+    log "Попытка 1: pip3 install..."
     pip3 install flask psutil
+    
+    if [ $? -ne 0 ]; then
+        log "Попытка 2: python3 -m pip install..."
+        python3 -m pip install flask psutil
+    fi
+    
+    if [ $? -ne 0 ]; then
+        log "Попытка 3: apt install python3-flask python3-psutil..."
+        apt install -y python3-flask python3-psutil
+    fi
     
     # Проверяем что установка прошла успешно
     if [ $? -ne 0 ]; then
@@ -258,8 +269,26 @@ EOF
     
     # Проверяем установку
     log "Проверка установленных пакетов..."
-    pip3 list | grep -E "(flask|psutil)"
     
+    # Проверяем через pip3
+    if command -v pip3 &> /dev/null; then
+        pip3 list | grep -E "(flask|psutil)"
+    fi
+    
+    # Проверяем через python3
+    python3 -c "
+import sys
+try:
+    import flask
+    print('✅ Flask установлен')
+except ImportError:
+    print('❌ Flask не найден')
+try:
+    import psutil
+    print('✅ psutil установлен')
+except ImportError:
+    print('❌ psutil не найден')
+"
     # Проверяем что Python может импортировать модули
     log "Тестирование импорта модулей..."
     python3 -c "import flask; import psutil; print('✅ Все модули импортированы успешно')"
@@ -360,11 +389,43 @@ fix_node_api() {
     
     # Переустанавливаем зависимости
     log "Переустановка зависимостей..."
+    
+    # Пробуем разные способы установки
+    log "Попытка 1: pip3 install..."
     pip3 install --force-reinstall flask psutil
+    
+    if [ $? -ne 0 ]; then
+        log "Попытка 2: python3 -m pip install..."
+        python3 -m pip install --force-reinstall flask psutil
+    fi
+    
+    if [ $? -ne 0 ]; then
+        log "Попытка 3: apt install python3-flask python3-psutil..."
+        apt install -y python3-flask python3-psutil
+    fi
     
     # Проверяем установку
     log "Проверка установленных пакетов..."
-    pip3 list | grep -E "(flask|psutil)"
+    
+    # Проверяем через pip3
+    if command -v pip3 &> /dev/null; then
+        pip3 list | grep -E "(flask|psutil)"
+    fi
+    
+    # Проверяем через python3
+    python3 -c "
+import sys
+try:
+    import flask
+    print('✅ Flask установлен')
+except ImportError:
+    print('❌ Flask не найден')
+try:
+    import psutil
+    print('✅ psutil установлен')
+except ImportError:
+    print('❌ psutil не найден')
+"
     
     # Тестируем импорт
     log "Тестирование импорта модулей..."

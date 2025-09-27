@@ -20,7 +20,7 @@ NODE_API_DIR="/home/node-manager/node-api"
 NODE_API_SCRIPT="$NODE_API_DIR/node_api.py"
 SYSTEMD_SERVICE_FILE="/etc/systemd/system/node-api.service"
 NODE_MANAGER_USER="node-manager"
-NODE_API_TOKEN="your-secret-token" # Замените на ваш токен
+NODE_API_TOKEN="" # Будет запрошен во время установки
 
 # Функция для красивого заголовка
 show_header() {
@@ -65,9 +65,58 @@ check_root() {
     fi
 }
 
+# Функция для запроса токена
+get_node_api_token() {
+    echo ""
+    echo -e "${BOLD}${WHITE}┌─ 🔑 НАСТРОЙКА ТОКЕНА БЕЗОПАСНОСТИ ──────────────────────────┐${NC}"
+    echo -e "${BOLD}${WHITE}│${NC}                                                      ${BOLD}${WHITE}│${NC}"
+    echo -e "${BOLD}${WHITE}│${NC}  ${YELLOW}Введите токен для Node API:${NC}                              ${BOLD}${WHITE}│${NC}"
+    echo -e "${BOLD}${WHITE}│${NC}                                                      ${BOLD}${WHITE}│${NC}"
+    echo -e "${BOLD}${WHITE}│${NC}  ${GRAY}Этот токен будет использоваться для авторизации${NC}        ${BOLD}${WHITE}│${NC}"
+    echo -e "${BOLD}${WHITE}│${NC}  ${GRAY}запросов к Node API на этой ноде.${NC}                        ${BOLD}${WHITE}│${NC}"
+    echo -e "${BOLD}${WHITE}│${NC}                                                      ${BOLD}${WHITE}│${NC}"
+    echo -e "${BOLD}${WHITE}│${NC}  ${CYAN}Рекомендации:${NC}                                          ${BOLD}${WHITE}│${NC}"
+    echo -e "${BOLD}${WHITE}│${NC}  ${CYAN}• Используйте сложный токен (минимум 20 символов)${NC}      ${BOLD}${WHITE}│${NC}"
+    echo -e "${BOLD}${WHITE}│${NC}  ${CYAN}• Используйте одинаковый токен на всех нодах${NC}           ${BOLD}${WHITE}│${NC}"
+    echo -e "${BOLD}${WHITE}│${NC}  ${CYAN}• Пример: monitoring-bot-2024-secure-token-xyz789${NC}      ${BOLD}${WHITE}│${NC}"
+    echo -e "${BOLD}${WHITE}└──────────────────────────────────────────────────────┘${NC}"
+    echo ""
+    
+    while true; do
+        echo -n -e "${WHITE}Введите токен: ${NC}"
+        read token
+        
+        if [ -z "$token" ]; then
+            echo -e "${RED}❌ Токен не может быть пустым!${NC}"
+            continue
+        fi
+        
+        if [ ${#token} -lt 10 ]; then
+            echo -e "${RED}❌ Токен слишком короткий! Минимум 10 символов.${NC}"
+            continue
+        fi
+        
+        echo ""
+        echo -n -e "${WHITE}Подтвердите токен: ${NC}"
+        read confirm_token
+        
+        if [ "$token" != "$confirm_token" ]; then
+            echo -e "${RED}❌ Токены не совпадают! Попробуйте снова.${NC}"
+            continue
+        fi
+        
+        NODE_API_TOKEN="$token"
+        echo -e "${GREEN}✅ Токен установлен успешно!${NC}"
+        break
+    done
+}
+
 # Установка Node API
 install_node_api() {
     log "🚀 Запуск установки Node API..."
+    
+    # 0. Запрашиваем токен безопасности
+    get_node_api_token
 
     # 1. Создаем пользователя node-manager, если его нет
     if ! id -u "$NODE_MANAGER_USER" >/dev/null 2>&1; then
@@ -225,12 +274,22 @@ EOF
         warn "UFW не найден, пропуск настройки файрвола."
     fi
 
+    # 9. Сохраняем токен в файл для копирования в бот мониторинга
+    log "Сохранение токена для бота мониторинга..."
+    echo "NODE_API_TOKEN=$NODE_API_TOKEN" > /tmp/node_api_token.txt
+    chmod 600 /tmp/node_api_token.txt
+
     log "✅ Установка Node API завершена!"
     echo ""
     info "📋 Проверка установки:"
     echo "   • Статус сервиса: sudo systemctl status node-api"
     echo "   • Проверка API: curl http://localhost:8080/health"
     echo "   • Логи сервиса: sudo journalctl -u node-api -f"
+    echo ""
+    echo -e "${BOLD}${YELLOW}🔑 ВАЖНО: Токен для бота мониторинга:${NC}"
+    echo -e "${BOLD}${CYAN}NODE_API_TOKEN=$NODE_API_TOKEN${NC}"
+    echo ""
+    echo -e "${BOLD}${WHITE}📝 Скопируйте эту строку в .env файл бота мониторинга!${NC}"
     echo ""
 }
 

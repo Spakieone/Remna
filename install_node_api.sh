@@ -248,17 +248,17 @@ EOF
     log "Установка зависимостей..."
     
     # Пробуем разные способы установки
-    log "Попытка 1: pip3 install..."
-    pip3 install flask psutil
+    log "Попытка 1: apt install python3-flask python3-psutil..."
+    apt install -y python3-flask python3-psutil
     
     if [ $? -ne 0 ]; then
-        log "Попытка 2: python3 -m pip install..."
-        python3 -m pip install flask psutil
+        log "Попытка 2: pip3 install с --break-system-packages..."
+        pip3 install --break-system-packages flask psutil
     fi
     
     if [ $? -ne 0 ]; then
-        log "Попытка 3: apt install python3-flask python3-psutil..."
-        apt install -y python3-flask python3-psutil
+        log "Попытка 3: python3 -m pip install с --break-system-packages..."
+        python3 -m pip install --break-system-packages flask psutil
     fi
     
     # Проверяем что установка прошла успешно
@@ -391,17 +391,17 @@ fix_node_api() {
     log "Переустановка зависимостей..."
     
     # Пробуем разные способы установки
-    log "Попытка 1: pip3 install..."
-    pip3 install --force-reinstall flask psutil
+    log "Попытка 1: apt install python3-flask python3-psutil..."
+    apt install -y python3-flask python3-psutil
     
     if [ $? -ne 0 ]; then
-        log "Попытка 2: python3 -m pip install..."
-        python3 -m pip install --force-reinstall flask psutil
+        log "Попытка 2: pip3 install с --break-system-packages..."
+        pip3 install --break-system-packages --force-reinstall flask psutil
     fi
     
     if [ $? -ne 0 ]; then
-        log "Попытка 3: apt install python3-flask python3-psutil..."
-        apt install -y python3-flask python3-psutil
+        log "Попытка 3: python3 -m pip install с --break-system-packages..."
+        python3 -m pip install --break-system-packages --force-reinstall flask psutil
     fi
     
     # Проверяем установку

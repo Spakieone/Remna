@@ -132,6 +132,12 @@ install_node_api() {
     log "Установка Python3 и pip..."
     apt update
     apt install -y python3 python3-pip python3-venv curl wget
+    
+    # Проверяем что pip3 установился
+    if ! command -v pip3 &> /dev/null; then
+        error "pip3 не установлен! Попробуйте: apt install python3-pip"
+        return 1
+    fi
 
     # 3. Создаем директорию для Node API
     log "Создание директории $NODE_API_DIR..."
@@ -235,6 +241,12 @@ EOF
     # Устанавливаем Flask и psutil глобально
     pip3 install flask psutil
     
+    # Проверяем что установка прошла успешно
+    if [ $? -ne 0 ]; then
+        error "Ошибка установки зависимостей! Попробуйте: pip3 install flask psutil"
+        return 1
+    fi
+    
     # Проверяем установку
     log "Проверка установленных пакетов..."
     pip3 list | grep -E "(flask|psutil)"
@@ -242,6 +254,11 @@ EOF
     # Проверяем что Python может импортировать модули
     log "Тестирование импорта модулей..."
     python3 -c "import flask; import psutil; print('✅ Все модули импортированы успешно')"
+    
+    if [ $? -ne 0 ]; then
+        error "Ошибка импорта модулей! Проверьте установку: pip3 list"
+        return 1
+    fi
 
     # 6. Создаем systemd сервис
     log "Создание systemd сервиса..."
@@ -303,6 +320,50 @@ EOF
 }
 
 
+# Исправление Node API (переустановка зависимостей)
+fix_node_api() {
+    log "🔧 Исправление Node API..."
+    
+    # Проверяем права root
+    check_root
+    
+    # Проверяем что pip3 установлен
+    if ! command -v pip3 &> /dev/null; then
+        log "Установка pip3..."
+        apt update
+        apt install -y python3-pip
+    fi
+    
+    # Переустанавливаем зависимости
+    log "Переустановка зависимостей..."
+    pip3 install --force-reinstall flask psutil
+    
+    # Проверяем установку
+    log "Проверка установленных пакетов..."
+    pip3 list | grep -E "(flask|psutil)"
+    
+    # Тестируем импорт
+    log "Тестирование импорта модулей..."
+    python3 -c "import flask; import psutil; print('✅ Все модули импортированы успешно')"
+    
+    if [ $? -ne 0 ]; then
+        error "❌ Ошибка импорта модулей!"
+        return 1
+    fi
+    
+    # Перезапускаем сервис
+    log "Перезапуск сервиса Node API..."
+    systemctl restart node-api
+    
+    # Проверяем статус
+    sleep 2
+    if systemctl is-active --quiet node-api; then
+        log "✅ Node API исправлен и запущен успешно!"
+    else
+        error "❌ Ошибка запуска Node API. Проверьте логи: sudo journalctl -u node-api -f"
+    fi
+}
+
 # Проверка статуса
 check_status() {
     show_header
@@ -347,10 +408,11 @@ show_menu() {
         echo -e "${BOLD}${WHITE}┌─ 🔧 NODE API УПРАВЛЕНИЕ ──────────────────────────────┐${NC}"
         echo -e "${BOLD}${WHITE}│${NC}                                                      ${BOLD}${WHITE}│${NC}"
         echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}1.${NC} ${YELLOW}🚀 Установить Node API${NC}           ${GRAY}┃${NC} ${WHITE}Полная установка${NC}        ${BOLD}${WHITE}│${NC}"
-        echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}2.${NC} ${YELLOW}📊 Проверить статус${NC}              ${GRAY}┃${NC} ${WHITE}Статус сервиса${NC}          ${BOLD}${WHITE}│${NC}"
-        echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}3.${NC} ${YELLOW}🔄 Перезапустить сервис${NC}           ${GRAY}┃${NC} ${WHITE}Перезапуск${NC}             ${BOLD}${WHITE}│${NC}"
-        echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}4.${NC} ${YELLOW}📋 Показать логи${NC}                 ${GRAY}┃${NC} ${WHITE}Логи сервиса${NC}           ${BOLD}${WHITE}│${NC}"
-        echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}5.${NC} ${YELLOW}🔧 Тест API${NC}                      ${GRAY}┃${NC} ${WHITE}Тестирование${NC}           ${BOLD}${WHITE}│${NC}"
+        echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}2.${NC} ${YELLOW}🔧 Исправить Node API${NC}           ${GRAY}┃${NC} ${WHITE}Переустановка зависимостей${NC} ${BOLD}${WHITE}│${NC}"
+        echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}3.${NC} ${YELLOW}📊 Проверить статус${NC}              ${GRAY}┃${NC} ${WHITE}Статус сервиса${NC}          ${BOLD}${WHITE}│${NC}"
+        echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}4.${NC} ${YELLOW}🔄 Перезапустить сервис${NC}           ${GRAY}┃${NC} ${WHITE}Перезапуск${NC}             ${BOLD}${WHITE}│${NC}"
+        echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}5.${NC} ${YELLOW}📋 Показать логи${NC}                 ${GRAY}┃${NC} ${WHITE}Логи сервиса${NC}           ${BOLD}${WHITE}│${NC}"
+        echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}6.${NC} ${YELLOW}🔧 Тест API${NC}                      ${GRAY}┃${NC} ${WHITE}Тестирование${NC}           ${BOLD}${WHITE}│${NC}"
         echo -e "${BOLD}${WHITE}│${NC}                                                      ${BOLD}${WHITE}│${NC}"
         echo -e "${BOLD}${WHITE}└──────────────────────────────────────────────────────┘${NC}"
         echo ""
@@ -370,19 +432,23 @@ show_menu() {
                 read -p "Нажмите Enter для продолжения..."
                 ;;
             2) 
-                check_status
+                fix_node_api
+                read -p "Нажмите Enter для продолжения..."
                 ;;
             3) 
+                check_status
+                ;;
+            4) 
                 echo -e "${BLUE}🔄 Перезапуск Node API...${NC}"
                 systemctl restart node-api
                 echo -e "${GREEN}✅ Node API перезапущен${NC}"
                 read -p "Нажмите Enter для продолжения..."
                 ;;
-            4) 
+            5) 
                 echo -e "${CYAN}📋 Логи Node API:${NC}"
                 journalctl -u node-api -f --no-pager
                 ;;
-            5) 
+            6) 
                 echo -e "${YELLOW}🔧 Тестирование API...${NC}"
                 echo ""
                 echo -e "${WHITE}Health Check:${NC}"

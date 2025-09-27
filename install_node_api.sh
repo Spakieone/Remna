@@ -128,7 +128,14 @@ install_node_api() {
         log "Пользователь $NODE_MANAGER_USER уже существует."
     fi
 
-    # 2. Устанавливаем Python3 и pip
+    # 2. Исправляем dpkg если нужно
+    log "Проверка состояния dpkg..."
+    if dpkg --configure -a 2>&1 | grep -q "dpkg was interrupted"; then
+        log "Исправление прерванного dpkg..."
+        dpkg --configure -a
+    fi
+    
+    # 3. Устанавливаем Python3 и pip
     log "Установка Python3 и pip..."
     apt update
     apt install -y python3 python3-pip python3-venv curl wget
@@ -139,12 +146,12 @@ install_node_api() {
         return 1
     fi
 
-    # 3. Создаем директорию для Node API
+    # 4. Создаем директорию для Node API
     log "Создание директории $NODE_API_DIR..."
     mkdir -p "$NODE_API_DIR"
     chown "$NODE_MANAGER_USER":"$NODE_MANAGER_USER" "$NODE_API_DIR"
 
-    # 4. Создаем скрипт Node API
+    # 5. Создаем скрипт Node API
     log "Создание скрипта node_api.py..."
     cat > "$NODE_API_SCRIPT" << 'EOF'
 #!/usr/bin/env python3
@@ -235,7 +242,7 @@ EOF
     chmod +x "$NODE_API_SCRIPT"
     chown "$NODE_MANAGER_USER":"$NODE_MANAGER_USER" "$NODE_API_SCRIPT"
 
-    # 5. Устанавливаем зависимости глобально (проще и надежнее)
+    # 6. Устанавливаем зависимости глобально (проще и надежнее)
     log "Установка зависимостей..."
     
     # Устанавливаем Flask и psutil глобально
@@ -260,7 +267,7 @@ EOF
         return 1
     fi
 
-    # 6. Создаем systemd сервис
+    # 7. Создаем systemd сервис
     log "Создание systemd сервиса..."
     cat > "$SYSTEMD_SERVICE_FILE" << EOF
 [Unit]
@@ -284,13 +291,13 @@ StandardError=journal
 WantedBy=multi-user.target
 EOF
 
-    # 7. Запускаем сервис
+    # 8. Запускаем сервис
     log "Запуск сервиса Node API..."
     systemctl daemon-reload
     systemctl enable node-api
     systemctl start node-api
 
-    # 8. Открываем порт в файрволе (если используется UFW)
+    # 9. Открываем порт в файрволе (если используется UFW)
     log "Настройка файрвола (UFW)..."
     if command -v ufw &> /dev/null; then
         ufw allow 8080/tcp
@@ -300,7 +307,7 @@ EOF
         warn "UFW не найден, пропуск настройки файрвола."
     fi
 
-    # 9. Сохраняем токен в файл для копирования в бот мониторинга
+    # 10. Сохраняем токен в файл для копирования в бот мониторинга
     log "Сохранение токена для бота мониторинга..."
     echo "NODE_API_TOKEN=$NODE_API_TOKEN" > /tmp/node_api_token.txt
     chmod 600 /tmp/node_api_token.txt

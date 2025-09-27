@@ -41,7 +41,7 @@ show_main_menu() {
     echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}2.${NC} ${YELLOW}🖥️ RemnaNode Core${NC}      ${GRAY}┃${NC} ${WHITE}Узлы и сервисы${NC}          ${BOLD}${WHITE}│${NC}"
     echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}3.${NC} ${YELLOW}🛡️ Reality Caddy${NC}       ${GRAY}┃${NC} ${WHITE}Маскировка трафика${NC}      ${BOLD}${WHITE}│${NC}"
     echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}4.${NC} ${YELLOW}🚀 Network Tools${NC}       ${GRAY}┃${NC} ${WHITE}Диагностика сети${NC}        ${BOLD}${WHITE}│${NC}"
-    echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}5.${NC} ${YELLOW}📈 Node Exporter${NC}       ${GRAY}┃${NC} ${WHITE}Мониторинг системы${NC}      ${BOLD}${WHITE}│${NC}"
+    echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}5.${NC} ${YELLOW}📈 Node Exporter + Node API${NC} ${GRAY}┃${NC} ${WHITE}Мониторинг и управление${NC}  ${BOLD}${WHITE}│${NC}"
     echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}6.${NC} ${YELLOW}📊 System Status${NC}       ${GRAY}┃${NC} ${WHITE}Детальная информация${NC}    ${BOLD}${WHITE}│${NC}"
     echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}7.${NC} ${YELLOW}⚙️ Настройка ноды${NC}       ${GRAY}┃${NC} ${WHITE}UFW и IPv6${NC}              ${BOLD}${WHITE}│${NC}"
     echo -e "${BOLD}${WHITE}│${NC}                                                      ${BOLD}${WHITE}│${NC}"
@@ -174,6 +174,73 @@ show_system_status() {
     read -p "Нажмите Enter для возврата в главное меню..."
 }
 
+# Меню Node Exporter + Node API
+show_node_exporter_menu() {
+    while true; do
+        show_header
+        echo -e "${BOLD}${WHITE}┌─ 📈 NODE EXPORTER + NODE API ────────────────────────┐${NC}"
+        echo -e "${BOLD}${WHITE}│${NC}                                                      ${BOLD}${WHITE}│${NC}"
+        echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}1.${NC} ${YELLOW}📊 Установить Node Exporter${NC}    ${GRAY}┃${NC} ${WHITE}Мониторинг системы${NC}      ${BOLD}${WHITE}│${NC}"
+        echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}2.${NC} ${YELLOW}🔧 Установить Node API${NC}        ${GRAY}┃${NC} ${WHITE}Управление нодами${NC}        ${BOLD}${WHITE}│${NC}"
+        echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}3.${NC} ${YELLOW}🔄 Перезапустить Node Exporter${NC} ${GRAY}┃${NC} ${WHITE}Перезапуск сервиса${NC}      ${BOLD}${WHITE}│${NC}"
+        echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}4.${NC} ${YELLOW}🔄 Перезапустить Node API${NC}      ${GRAY}┃${NC} ${WHITE}Перезапуск сервиса${NC}      ${BOLD}${WHITE}│${NC}"
+        echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}5.${NC} ${YELLOW}📈 Статус Node Exporter${NC}       ${GRAY}┃${NC} ${WHITE}Проверка работы${NC}         ${BOLD}${WHITE}│${NC}"
+        echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}6.${NC} ${YELLOW}🔧 Статус Node API${NC}            ${GRAY}┃${NC} ${WHITE}Проверка работы${NC}         ${BOLD}${WHITE}│${NC}"
+        echo -e "${BOLD}${WHITE}│${NC}                                                      ${BOLD}${WHITE}│${NC}"
+        echo -e "${BOLD}${WHITE}└──────────────────────────────────────────────────────┘${NC}"
+        echo ""
+        echo -e "${BOLD}${WHITE}┌─🚪ВЫХОД ─────────────────────────────────────────────┐${NC}"
+        echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}0.${NC} ${WHITE}Назад в главное меню${NC}                        ${BOLD}${WHITE}│${NC}"
+        echo -e "${BOLD}${WHITE}└──────────────────────────────────────────────────────┘${NC}"
+        echo ""
+        echo -e "${WHITE}Выберите действие:${NC} "
+        echo -n "   ➤ "
+        
+        read -r choice
+        
+        case $choice in
+            1) 
+                echo -e "${CYAN}📊 Установка Node Exporter...${NC}"
+                call_script "install_node_exporter.sh" "menu"
+                ;;
+            2) 
+                echo -e "${YELLOW}🔧 Установка Node API...${NC}"
+                call_script "install_node_api.sh" "menu"
+                ;;
+            3) 
+                echo -e "${BLUE}🔄 Перезапуск Node Exporter...${NC}"
+                sudo systemctl restart node_exporter
+                echo -e "${GREEN}✅ Node Exporter перезапущен${NC}"
+                read -p "Нажмите Enter для продолжения..."
+                ;;
+            4) 
+                echo -e "${PURPLE}🔄 Перезапуск Node API...${NC}"
+                sudo systemctl restart node-api
+                echo -e "${GREEN}✅ Node API перезапущен${NC}"
+                read -p "Нажмите Enter для продолжения..."
+                ;;
+            5) 
+                echo -e "${CYAN}📈 Статус Node Exporter...${NC}"
+                sudo systemctl status node_exporter --no-pager
+                read -p "Нажмите Enter для продолжения..."
+                ;;
+            6) 
+                echo -e "${YELLOW}🔧 Статус Node API...${NC}"
+                sudo systemctl status node-api --no-pager
+                read -p "Нажмите Enter для продолжения..."
+                ;;
+            0) 
+                return
+                ;;
+            *) 
+                echo -e "${RED}❌ Неверный выбор! Пожалуйста, выберите опцию от 0 до 6.${NC}"
+                sleep 2
+                ;;
+        esac
+    done
+}
+
+
 # Основной цикл
 while true; do
     show_main_menu
@@ -197,8 +264,8 @@ while true; do
             call_script "wtm.sh" 
             ;;
         5) 
-            echo -e "${GREEN}📈 Запуск Node Exporter...${NC}"
-            call_script "install_node_exporter.sh" "menu"
+            echo -e "${GREEN}📈 Запуск Node Exporter + Node API...${NC}"
+            show_node_exporter_menu
             ;;
         6) 
             echo -e "${CYAN}📊 Загрузка статуса системы...${NC}"

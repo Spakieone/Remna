@@ -395,6 +395,342 @@ reset_ufw_rules() {
     fi
 }
 
+# ===== Функции системных настроек =====
+
+# Настройка hostname
+configure_hostname() {
+    echo -e "${WHITE}🖥️  Настройка hostname${NC}"
+    echo -e "${GRAY}$(printf '─%.0s' $(seq 1 40))${NC}"
+    
+    local current_hostname=$(hostname)
+    echo -e "${BLUE}Текущий hostname: ${YELLOW}$current_hostname${NC}"
+    echo
+    
+    echo -e "${WHITE}Выберите действие:${NC}"
+    echo -e "   ${WHITE}1)${NC} 📝 Изменить hostname"
+    echo -e "   ${WHITE}2)${NC} 📋 Показать текущий hostname"
+    echo -e "   ${WHITE}0)${NC} ⬅️  Назад"
+    echo
+    
+    read -p "Выберите опцию [0-2]: " hostname_choice
+    
+    case "$hostname_choice" in
+        1)
+            echo
+            read -p "Введите новый hostname: " new_hostname
+            
+            if [ -z "$new_hostname" ]; then
+                echo -e "${RED}❌ Hostname не может быть пустым${NC}"
+                return 1
+            fi
+            
+            # Проверяем формат hostname
+            if ! [[ "$new_hostname" =~ ^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]$ ]] && [ ${#new_hostname} -gt 1 ]; then
+                echo -e "${RED}❌ Неверный формат hostname! Используйте только буквы, цифры и дефисы${NC}"
+                return 1
+            fi
+            
+            echo -e "${BLUE}🔧 Изменяем hostname на $new_hostname...${NC}"
+            
+            # Изменяем hostname
+            echo "$new_hostname" | sudo tee /etc/hostname > /dev/null
+            sudo hostnamectl set-hostname "$new_hostname"
+            
+            # Обновляем /etc/hosts
+            sudo sed -i "s/127.0.1.1.*/127.0.1.1\t$new_hostname/" /etc/hosts
+            
+            echo -e "${GREEN}✅ Hostname изменен на $new_hostname${NC}"
+            echo -e "${YELLOW}⚠️  Перезагрузка рекомендуется для полного применения изменений${NC}"
+            ;;
+        2)
+            echo -e "${BLUE}📋 Информация о hostname:${NC}"
+            echo -e "  Hostname: ${YELLOW}$current_hostname${NC}"
+            echo -e "  FQDN: ${YELLOW}$(hostname -f)${NC}"
+            echo -e "  Domain: ${YELLOW}$(hostname -d)${NC}"
+            ;;
+        0)
+            return 0
+            ;;
+        *)
+            echo -e "${RED}❌ Неверный выбор!${NC}"
+            ;;
+    esac
+}
+
+# Настройка timezone
+configure_timezone() {
+    echo -e "${WHITE}🕐 Настройка timezone${NC}"
+    echo -e "${GRAY}$(printf '─%.0s' $(seq 1 40))${NC}"
+    
+    local current_tz=$(timedatectl show --property=Timezone --value)
+    echo -e "${BLUE}Текущий timezone: ${YELLOW}$current_tz${NC}"
+    echo
+    
+    echo -e "${WHITE}Выберите действие:${NC}"
+    echo -e "   ${WHITE}1)${NC} 🌍 Выбрать timezone из списка"
+    echo -e "   ${WHITE}2)${NC} 🔍 Поиск timezone"
+    echo -e "   ${WHITE}3)${NC} 📋 Показать текущий timezone"
+    echo -e "   ${WHITE}0)${NC} ⬅️  Назад"
+    echo
+    
+    read -p "Выберите опцию [0-3]: " tz_choice
+    
+    case "$tz_choice" in
+        1)
+            echo -e "${BLUE}🌍 Популярные timezone:${NC}"
+            echo -e "   ${WHITE}1)${NC} Europe/Moscow"
+            echo -e "   ${WHITE}2)${NC} Europe/London"
+            echo -e "   ${WHITE}3)${NC} America/New_York"
+            echo -e "   ${WHITE}4)${NC} Asia/Tokyo"
+            echo -e "   ${WHITE}5)${NC} UTC"
+            echo -e "   ${WHITE}6)${NC} Другой timezone"
+            echo
+            
+            read -p "Выберите timezone [1-6]: " tz_select
+            
+            local selected_tz=""
+            case "$tz_select" in
+                1) selected_tz="Europe/Moscow" ;;
+                2) selected_tz="Europe/London" ;;
+                3) selected_tz="America/New_York" ;;
+                4) selected_tz="Asia/Tokyo" ;;
+                5) selected_tz="UTC" ;;
+                6) 
+                    read -p "Введите timezone (например, Europe/Moscow): " selected_tz
+                    ;;
+                *)
+                    echo -e "${RED}❌ Неверный выбор!${NC}"
+                    return 1
+                    ;;
+            esac
+            
+            if [ -n "$selected_tz" ]; then
+                echo -e "${BLUE}🔧 Устанавливаем timezone $selected_tz...${NC}"
+                if sudo timedatectl set-timezone "$selected_tz"; then
+                    echo -e "${GREEN}✅ Timezone установлен: $selected_tz${NC}"
+                    echo -e "${BLUE}Текущее время: ${YELLOW}$(date)${NC}"
+                else
+                    echo -e "${RED}❌ Ошибка при установке timezone${NC}"
+                fi
+            fi
+            ;;
+        2)
+            read -p "Введите часть названия timezone для поиска: " search_term
+            if [ -n "$search_term" ]; then
+                echo -e "${BLUE}🔍 Результаты поиска:${NC}"
+                timedatectl list-timezones | grep -i "$search_term" | head -10
+            fi
+            ;;
+        3)
+            echo -e "${BLUE}📋 Информация о времени:${NC}"
+            echo -e "  Timezone: ${YELLOW}$current_tz${NC}"
+            echo -e "  Время: ${YELLOW}$(date)${NC}"
+            echo -e "  UTC: ${YELLOW}$(date -u)${NC}"
+            ;;
+        0)
+            return 0
+            ;;
+        *)
+            echo -e "${RED}❌ Неверный выбор!${NC}"
+            ;;
+    esac
+}
+
+# Настройка DNS
+configure_dns() {
+    echo -e "${WHITE}🌐 Настройка DNS${NC}"
+    echo -e "${GRAY}$(printf '─%.0s' $(seq 1 40))${NC}"
+    
+    echo -e "${BLUE}Текущие DNS серверы:${NC}"
+    if [ -f "/etc/resolv.conf" ]; then
+        grep "nameserver" /etc/resolv.conf | sed 's/^/  /'
+    fi
+    echo
+    
+    echo -e "${WHITE}Выберите действие:${NC}"
+    echo -e "   ${WHITE}1)${NC} 🔧 Настроить DNS серверы"
+    echo -e "   ${WHITE}2)${NC} 📋 Показать текущие DNS"
+    echo -e "   ${WHITE}3)${NC} 🧪 Тест DNS"
+    echo -e "   ${WHITE}0)${NC} ⬅️  Назад"
+    echo
+    
+    read -p "Выберите опцию [0-3]: " dns_choice
+    
+    case "$dns_choice" in
+        1)
+            echo -e "${BLUE}🔧 Настройка DNS серверов:${NC}"
+            echo -e "   ${WHITE}1)${NC} Cloudflare (1.1.1.1, 1.0.0.1)"
+            echo -e "   ${WHITE}2)${NC} Google (8.8.8.8, 8.8.4.4)"
+            echo -e "   ${WHITE}3)${NC} Quad9 (9.9.9.9, 149.112.112.112)"
+            echo -e "   ${WHITE}4)${NC} OpenDNS (208.67.222.222, 208.67.220.220)"
+            echo -e "   ${WHITE}5)${NC} Пользовательские DNS"
+            echo
+            
+            read -p "Выберите DNS провайдера [1-5]: " dns_provider
+            
+            local dns1="" dns2=""
+            case "$dns_provider" in
+                1) dns1="1.1.1.1"; dns2="1.0.0.1" ;;
+                2) dns1="8.8.8.8"; dns2="8.8.4.4" ;;
+                3) dns1="9.9.9.9"; dns2="149.112.112.112" ;;
+                4) dns1="208.67.222.222"; dns2="208.67.220.220" ;;
+                5) 
+                    read -p "Введите первый DNS сервер: " dns1
+                    read -p "Введите второй DNS сервер: " dns2
+                    ;;
+                *)
+                    echo -e "${RED}❌ Неверный выбор!${NC}"
+                    return 1
+                    ;;
+            esac
+            
+            if [ -n "$dns1" ] && [ -n "$dns2" ]; then
+                echo -e "${BLUE}🔧 Настраиваем DNS серверы...${NC}"
+                
+                # Создаем резервную копию
+                sudo cp /etc/resolv.conf /etc/resolv.conf.backup
+                
+                # Настраиваем DNS
+                cat > /tmp/resolv.conf << EOF
+# DNS серверы настроены через node-config.sh
+nameserver $dns1
+nameserver $dns2
+options edns0
+EOF
+                
+                sudo mv /tmp/resolv.conf /etc/resolv.conf
+                sudo chmod 644 /etc/resolv.conf
+                
+                echo -e "${GREEN}✅ DNS серверы настроены:${NC}"
+                echo -e "  Primary: ${YELLOW}$dns1${NC}"
+                echo -e "  Secondary: ${YELLOW}$dns2${NC}"
+            fi
+            ;;
+        2)
+            echo -e "${BLUE}📋 Текущие DNS настройки:${NC}"
+            if [ -f "/etc/resolv.conf" ]; then
+                cat /etc/resolv.conf
+            else
+                echo -e "${RED}❌ Файл /etc/resolv.conf не найден${NC}"
+            fi
+            ;;
+        3)
+            echo -e "${BLUE}🧪 Тестируем DNS...${NC}"
+            echo -e "Тест Google DNS:"
+            nslookup google.com 8.8.8.8
+            echo
+            echo -e "Тест Cloudflare DNS:"
+            nslookup google.com 1.1.1.1
+            ;;
+        0)
+            return 0
+            ;;
+        *)
+            echo -e "${RED}❌ Неверный выбор!${NC}"
+            ;;
+    esac
+}
+
+# Настройка TCP параметров
+configure_tcp_params() {
+    echo -e "${WHITE}🚀 Настройка TCP параметров${NC}"
+    echo -e "${GRAY}$(printf '─%.0s' $(seq 1 40))${NC}"
+    
+    echo -e "${WHITE}Выберите профиль оптимизации:${NC}"
+    echo -e "   ${WHITE}1)${NC} 🏠 Домашний сервер (базовая оптимизация)"
+    echo -e "   ${WHITE}2)${NC} 🏢 Корпоративный сервер (средняя оптимизация)"
+    echo -e "   ${WHITE}3)${NC} 🚀 Высоконагруженный сервер (максимальная оптимизация)"
+    echo -e "   ${WHITE}4)${NC} 📋 Показать текущие параметры"
+    echo -e "   ${WHITE}5)${NC} 🔄 Сбросить к значениям по умолчанию"
+    echo -e "   ${WHITE}0)${NC} ⬅️  Назад"
+    echo
+    
+    read -p "Выберите опцию [0-5]: " tcp_choice
+    
+    case "$tcp_choice" in
+        1|2|3)
+            local profile_name=""
+            case "$tcp_choice" in
+                1) profile_name="домашний сервер" ;;
+                2) profile_name="корпоративный сервер" ;;
+                3) profile_name="высоконагруженный сервер" ;;
+            esac
+            
+            echo -e "${BLUE}🔧 Применяем настройки для $profile_name...${NC}"
+            
+            # Создаем конфигурацию TCP
+            cat > /tmp/99-tcp-optimization.conf << EOF
+# TCP оптимизация для $profile_name
+# Настроено через node-config.sh
+
+# Базовые настройки
+net.core.rmem_default = 262144
+net.core.rmem_max = 16777216
+net.core.wmem_default = 262144
+net.core.wmem_max = 16777216
+net.core.netdev_max_backlog = 5000
+net.core.somaxconn = 65535
+
+# TCP настройки
+net.ipv4.tcp_rmem = 4096 65536 16777216
+net.ipv4.tcp_wmem = 4096 65536 16777216
+net.ipv4.tcp_congestion_control = bbr
+net.ipv4.tcp_slow_start_after_idle = 0
+net.ipv4.tcp_tw_reuse = 1
+net.ipv4.tcp_fin_timeout = 15
+net.ipv4.tcp_keepalive_time = 1200
+net.ipv4.tcp_keepalive_intvl = 30
+net.ipv4.tcp_keepalive_probes = 3
+net.ipv4.tcp_max_syn_backlog = 8192
+net.ipv4.tcp_max_tw_buckets = 2000000
+net.ipv4.tcp_fastopen = 3
+EOF
+            
+            # Дополнительные настройки для высоконагруженных серверов
+            if [ "$tcp_choice" = "3" ]; then
+                cat >> /tmp/99-tcp-optimization.conf << EOF
+
+# Дополнительные настройки для высоконагруженных серверов
+net.core.netdev_budget = 600
+net.ipv4.tcp_workaround_signed_windows = 1
+net.ipv4.tcp_timestamps = 1
+net.ipv4.tcp_sack = 1
+net.ipv4.tcp_window_scaling = 1
+net.ipv4.tcp_no_metrics_save = 1
+net.ipv4.tcp_moderate_rcvbuf = 1
+EOF
+            fi
+            
+            # Применяем настройки
+            sudo mv /tmp/99-tcp-optimization.conf /etc/sysctl.d/99-tcp-optimization.conf
+            sudo chmod 644 /etc/sysctl.d/99-tcp-optimization.conf
+            sudo sysctl -p /etc/sysctl.d/99-tcp-optimization.conf
+            
+            echo -e "${GREEN}✅ TCP параметры настроены для $profile_name${NC}"
+            echo -e "${YELLOW}⚠️  Перезагрузка рекомендуется для полного применения изменений${NC}"
+            ;;
+        4)
+            echo -e "${BLUE}📋 Текущие TCP параметры:${NC}"
+            echo -e "Congestion Control: ${YELLOW}$(sysctl net.ipv4.tcp_congestion_control | cut -d'=' -f2)${NC}"
+            echo -e "Max Connections: ${YELLOW}$(sysctl net.core.somaxconn | cut -d'=' -f2)${NC}"
+            echo -e "TCP Window Scaling: ${YELLOW}$(sysctl net.ipv4.tcp_window_scaling | cut -d'=' -f2)${NC}"
+            echo -e "TCP SACK: ${YELLOW}$(sysctl net.ipv4.tcp_sack | cut -d'=' -f2)${NC}"
+            ;;
+        5)
+            echo -e "${BLUE}🔄 Сбрасываем TCP параметры к значениям по умолчанию...${NC}"
+            sudo rm -f /etc/sysctl.d/99-tcp-optimization.conf
+            sudo sysctl --system
+            echo -e "${GREEN}✅ TCP параметры сброшены${NC}"
+            ;;
+        0)
+            return 0
+            ;;
+        *)
+            echo -e "${RED}❌ Неверный выбор!${NC}"
+            ;;
+    esac
+}
+
 # Главное меню
 main_menu() {
     while true; do
@@ -409,10 +745,16 @@ main_menu() {
         echo -e "   ${WHITE}2)${NC} ❌ Отключить IPv6"
         echo -e "   ${WHITE}3)${NC} ✅ Включить IPv6"
         echo
+        echo -e "${WHITE}⚙️  Системные настройки:${NC}"
+        echo -e "   ${WHITE}4)${NC} 🖥️  Настройка hostname"
+        echo -e "   ${WHITE}5)${NC} 🕐 Настройка timezone"
+        echo -e "   ${WHITE}6)${NC} 🌐 Настройка DNS"
+        echo -e "   ${WHITE}7)${NC} 🚀 Настройка TCP параметров"
+        echo
         echo -e "   ${GRAY}0)${NC} ⬅️  Выход"
         echo
         
-        read -p "Выберите опцию [0-3]: " choice
+        read -p "Выберите опцию [0-7]: " choice
         
         case "$choice" in
             1)
@@ -427,12 +769,28 @@ main_menu() {
                 enable_ipv6
                 read -p "Нажмите Enter для продолжения..."
                 ;;
+            4)
+                configure_hostname
+                read -p "Нажмите Enter для продолжения..."
+                ;;
+            5)
+                configure_timezone
+                read -p "Нажмите Enter для продолжения..."
+                ;;
+            6)
+                configure_dns
+                read -p "Нажмите Enter для продолжения..."
+                ;;
+            7)
+                configure_tcp_params
+                read -p "Нажмите Enter для продолжения..."
+                ;;
             0)
                 echo -e "${GREEN}👋 Возврат в главное меню...${NC}"
                 exit 0
                 ;;
             *)
-                echo -e "${RED}❌ Неверный выбор! Пожалуйста, выберите опцию от 0 до 3.${NC}"
+                echo -e "${RED}❌ Неверный выбор! Пожалуйста, выберите опцию от 0 до 7.${NC}"
                 sleep 2
                 ;;
         esac

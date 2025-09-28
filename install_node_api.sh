@@ -97,22 +97,26 @@ def status():
     # Получаем информацию о сервисах
     services = {}
     for service in ['tblocker', 'node_exporter']:
-        # Проверяем статус сервиса
-        service_result = run(['systemctl', 'is-active', service], timeout=5)
-        if service_result["success"]:
-            status = service_result["output"].strip().lower()
-            # Более гибкая проверка статуса
-            if any(word in status for word in ['active', 'running', 'started', 'activating']):
-                services[service] = "active"
-            else:
-                services[service] = "inactive"
+        # Сначала проверяем через ps (более надежно)
+        ps_result = run(['ps', 'aux'], timeout=5)
+        if ps_result["success"] and service in ps_result["output"]:
+            services[service] = "active"
         else:
-            # Если systemctl не работает, проверяем через ps
-            ps_result = run(['ps', 'aux'], timeout=5)
-            if ps_result["success"] and service in ps_result["output"]:
-                services[service] = "active"
+            # Если не найдено в ps, проверяем systemctl
+            service_result = run(['systemctl', 'is-active', service], timeout=5)
+            if service_result["success"]:
+                status = service_result["output"].strip().lower()
+                if any(word in status for word in ['active', 'running', 'started', 'activating']):
+                    services[service] = "active"
+                else:
+                    services[service] = "inactive"
             else:
-                services[service] = "inactive"
+                # Последняя попытка - проверить через systemctl status
+                status_result = run(['systemctl', 'status', service], timeout=5)
+                if status_result["success"] and 'active' in status_result["output"].lower():
+                    services[service] = "active"
+                else:
+                    services[service] = "inactive"
     
     # Получаем информацию о Xray (если есть)
     xray_version = "N/A"
@@ -148,7 +152,12 @@ def status():
         "services": services,
         "xray_version": xray_version,
         "xray_status": xray_status,
-        "docker": docker_info()
+        "docker": docker_info(),
+        "debug": {
+            "ps_output": run(['ps', 'aux'], timeout=5)["output"][:200] if run(['ps', 'aux'], timeout=5)["success"] else "Failed",
+            "tblocker_status": run(['systemctl', 'is-active', 'tblocker'], timeout=5)["output"] if run(['systemctl', 'is-active', 'tblocker'], timeout=5)["success"] else "Failed",
+            "node_exporter_status": run(['systemctl', 'is-active', 'node_exporter'], timeout=5)["output"] if run(['systemctl', 'is-active', 'node_exporter'], timeout=5)["success"] else "Failed"
+        }
     })
 
 @app.get('/api/docker')

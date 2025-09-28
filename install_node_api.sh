@@ -73,13 +73,58 @@ def docker_info():
 
 @app.get('/health')
 def health():
-    return jsonify({"status":"ok","ts":datetime.now().isoformat(),"version":"1.0.0-simple"}), 200
+    return jsonify({"status":"ok","ts":datetime.now().isoformat(),"version":"1.1.0-enhanced"}), 200
 
 @app.get('/api/status')
 def status():
     if not check_auth():
         return jsonify({"error":"Unauthorized"}), 401
-    return jsonify({"status":"online","ts":datetime.now().isoformat(),"docker": docker_info()})
+    
+    # Получаем системную информацию
+    cpu_result = run(['sh', '-c', "top -bn1 | grep 'Cpu(s)' | awk '{print $2}' | sed 's/%us,//'"], timeout=5)
+    cpu_usage = cpu_result["output"] if cpu_result["success"] else "N/A"
+    
+    memory_result = run(['sh', '-c', "free | grep Mem | awk '{printf \"%.1f\", $3/$2 * 100.0}'"], timeout=5)
+    memory_usage = memory_result["output"] if memory_result["success"] else "N/A"
+    
+    uptime_result = run(['uptime', '-p'], timeout=5)
+    uptime = uptime_result["output"] if uptime_result["success"] else "N/A"
+    
+    # Получаем информацию о сервисах
+    services = {}
+    for service in ['tblocker', 'node_exporter']:
+        service_result = run(['systemctl', 'is-active', service], timeout=5)
+        services[service] = service_result["output"] if service_result["success"] else "inactive"
+    
+    # Получаем информацию о Xray (если есть)
+    xray_version = "N/A"
+    xray_status = "inactive"
+    
+    # Проверяем Xray через Docker exec
+    xray_version_result = run(['docker', 'exec', 'remnanode', '/usr/local/bin/xray', '-version'], timeout=5)
+    if xray_version_result["success"]:
+        version_line = xray_version_result["output"].split('\n')[0]
+        if 'Xray' in version_line:
+            xray_version = version_line.split()[1] if len(version_line.split()) > 1 else "N/A"
+    
+    # Проверяем статус Xray через supervisor
+    xray_status_result = run(['docker', 'exec', 'remnanode', 'supervisorctl', 'status', 'xray'], timeout=5)
+    if xray_status_result["success"]:
+        status_line = xray_status_result["output"]
+        if 'RUNNING' in status_line:
+            xray_status = "running"
+    
+    return jsonify({
+        "status": "online",
+        "ts": datetime.now().isoformat(),
+        "cpu": cpu_usage,
+        "memory": memory_usage,
+        "uptime": uptime,
+        "services": services,
+        "xray_version": xray_version,
+        "xray_status": xray_status,
+        "docker": docker_info()
+    })
 
 @app.get('/api/docker')
 def docker():

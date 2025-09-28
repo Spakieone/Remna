@@ -90,19 +90,29 @@ def status():
     uptime_result = run(['uptime', '-p'], timeout=5)
     uptime = uptime_result["output"] if uptime_result["success"] else "N/A"
     
+    # Получаем информацию о диске
+    disk_result = run(['sh', '-c', "df -h / | tail -1 | awk '{print $5}' | sed 's/%//'"], timeout=5)
+    disk_usage = disk_result["output"] if disk_result["success"] else "N/A"
+    
     # Получаем информацию о сервисах
     services = {}
     for service in ['tblocker', 'node_exporter']:
+        # Проверяем статус сервиса
         service_result = run(['systemctl', 'is-active', service], timeout=5)
-        # Проверяем различные варианты активного состояния
         if service_result["success"]:
             status = service_result["output"].strip().lower()
-            if status in ['active', 'running', 'started']:
+            # Более гибкая проверка статуса
+            if any(word in status for word in ['active', 'running', 'started', 'activating']):
                 services[service] = "active"
             else:
                 services[service] = "inactive"
         else:
-            services[service] = "inactive"
+            # Если systemctl не работает, проверяем через ps
+            ps_result = run(['ps', 'aux'], timeout=5)
+            if ps_result["success"] and service in ps_result["output"]:
+                services[service] = "active"
+            else:
+                services[service] = "inactive"
     
     # Получаем информацию о Xray (если есть)
     xray_version = "N/A"
@@ -133,6 +143,7 @@ def status():
         "ts": datetime.now().isoformat(),
         "cpu": cpu_usage,
         "memory": memory_usage,
+        "disk_usage_percent": disk_usage,
         "uptime": uptime,
         "services": services,
         "xray_version": xray_version,

@@ -94,7 +94,15 @@ def status():
     services = {}
     for service in ['tblocker', 'node_exporter']:
         service_result = run(['systemctl', 'is-active', service], timeout=5)
-        services[service] = service_result["output"] if service_result["success"] else "inactive"
+        # Проверяем различные варианты активного состояния
+        if service_result["success"]:
+            status = service_result["output"].strip().lower()
+            if status in ['active', 'running', 'started']:
+                services[service] = "active"
+            else:
+                services[service] = "inactive"
+        else:
+            services[service] = "inactive"
     
     # Получаем информацию о Xray (если есть)
     xray_version = "N/A"
@@ -111,7 +119,13 @@ def status():
     xray_status_result = run(['docker', 'exec', 'remnanode', 'supervisorctl', 'status', 'xray'], timeout=5)
     if xray_status_result["success"]:
         status_line = xray_status_result["output"]
-        if 'RUNNING' in status_line:
+        if 'RUNNING' in status_line or 'active' in status_line.lower():
+            xray_status = "running"
+    
+    # Дополнительная проверка через ps внутри контейнера
+    if xray_status == "inactive":
+        ps_result = run(['docker', 'exec', 'remnanode', 'ps', 'aux'], timeout=5)
+        if ps_result["success"] and 'xray' in ps_result["output"].lower():
             xray_status = "running"
     
     return jsonify({

@@ -87,15 +87,6 @@ def docker():
         return jsonify({"error":"Unauthorized"}), 401
     return jsonify(docker_info())
 
-@app.get('/api/docker/logs')
-def docker_logs():
-    if not check_auth():
-        return jsonify({"error":"Unauthorized"}), 401
-    container = request.args.get('container','remnanode')
-    lines = int(request.args.get('lines', 100))
-    res = run(['docker','logs','--tail',str(lines),container], timeout=15)
-    return jsonify({"container":container,"lines":lines,**res})
-
 @app.post('/api/docker/restart')
 def docker_restart():
     if not check_auth():

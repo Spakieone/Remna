@@ -97,26 +97,27 @@ def status():
     # Получаем информацию о сервисах
     services = {}
     for service in ['tblocker', 'node_exporter']:
-        # Сначала проверяем через ps (более надежно)
-        ps_result = run(['ps', 'aux'], timeout=5)
-        if ps_result["success"] and service in ps_result["output"]:
-            services[service] = "active"
-        else:
-            # Если не найдено в ps, проверяем systemctl
-            service_result = run(['systemctl', 'is-active', service], timeout=5)
-            if service_result["success"]:
-                status = service_result["output"].strip().lower()
-                if any(word in status for word in ['active', 'running', 'started', 'activating']):
-                    services[service] = "active"
-                else:
-                    services[service] = "inactive"
+        # Проверяем через systemctl is-active (основной метод)
+        service_result = run(['systemctl', 'is-active', service], timeout=5)
+        if service_result["success"]:
+            status = service_result["output"].strip().lower()
+            # Проверяем все возможные статусы активного сервиса
+            if status in ['active', 'running', 'started', 'activating', 'reloading']:
+                services[service] = "active"
             else:
-                # Последняя попытка - проверить через systemctl status
-                status_result = run(['systemctl', 'status', service], timeout=5)
-                if status_result["success"] and 'active' in status_result["output"].lower():
+                # Если systemctl говорит inactive, проверяем через ps
+                ps_result = run(['ps', 'aux'], timeout=5)
+                if ps_result["success"] and service in ps_result["output"]:
                     services[service] = "active"
                 else:
                     services[service] = "inactive"
+        else:
+            # Если systemctl не работает, проверяем только через ps
+            ps_result = run(['ps', 'aux'], timeout=5)
+            if ps_result["success"] and service in ps_result["output"]:
+                services[service] = "active"
+            else:
+                services[service] = "inactive"
     
     # Получаем информацию о Xray (если есть)
     xray_version = "N/A"
@@ -142,6 +143,21 @@ def status():
         if ps_result["success"] and 'xray' in ps_result["output"].lower():
             xray_status = "running"
     
+    # Проверяем Caddy (может быть системный процесс или в контейнере)
+    caddy_status = "inactive"
+    # Сначала проверяем как системный процесс
+    caddy_system_result = run(['systemctl', 'is-active', 'caddy'], timeout=5)
+    if caddy_system_result["success"]:
+        status = caddy_system_result["output"].strip().lower()
+        if status in ['active', 'running', 'started', 'activating', 'reloading']:
+            caddy_status = "running"
+    
+    # Если не найден как системный, проверяем в Docker
+    if caddy_status == "inactive":
+        docker_result = run(['docker', 'ps', '--filter', 'name=caddy', '--format', '{{.State}}'], timeout=5)
+        if docker_result["success"] and 'running' in docker_result["output"].lower():
+            caddy_status = "running"
+    
     return jsonify({
         "status": "online",
         "ts": datetime.now().isoformat(),
@@ -152,11 +168,13 @@ def status():
         "services": services,
         "xray_version": xray_version,
         "xray_status": xray_status,
+        "caddy_status": caddy_status,
         "docker": docker_info(),
         "debug": {
             "ps_output": run(['ps', 'aux'], timeout=5)["output"][:200] if run(['ps', 'aux'], timeout=5)["success"] else "Failed",
             "tblocker_status": run(['systemctl', 'is-active', 'tblocker'], timeout=5)["output"] if run(['systemctl', 'is-active', 'tblocker'], timeout=5)["success"] else "Failed",
-            "node_exporter_status": run(['systemctl', 'is-active', 'node_exporter'], timeout=5)["output"] if run(['systemctl', 'is-active', 'node_exporter'], timeout=5)["success"] else "Failed"
+            "node_exporter_status": run(['systemctl', 'is-active', 'node_exporter'], timeout=5)["output"] if run(['systemctl', 'is-active', 'node_exporter'], timeout=5)["success"] else "Failed",
+            "caddy_system_status": run(['systemctl', 'is-active', 'caddy'], timeout=5)["output"] if run(['systemctl', 'is-active', 'caddy'], timeout=5)["success"] else "Failed"
         }
     })
 

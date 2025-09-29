@@ -94,54 +94,81 @@ def status():
     disk_result = run(['sh', '-c', "df -h / | tail -1 | awk '{print $5}' | sed 's/%//'"], timeout=5)
     disk_usage = disk_result["output"] if disk_result["success"] else "N/A"
     
-    # Получаем информацию о сервисах
+    # Определяем тип сервера (панель или нода)
+    is_panel = False
+    docker_result = run(['docker', 'ps', '--format', '{{.Names}}'], timeout=5)
+    if docker_result["success"]:
+        container_names = docker_result["output"].lower()
+        if 'remnawave' in container_names and 'remnanode' not in container_names:
+            is_panel = True
+    
+    # Получаем информацию о сервисах в зависимости от типа сервера
     services = {}
-    for service in ['tblocker', 'node_exporter']:
-        # Проверяем через systemctl is-active (основной метод)
-        service_result = run(['systemctl', 'is-active', service], timeout=5)
-        if service_result["success"]:
-            status = service_result["output"].strip().lower()
-            # Проверяем все возможные статусы активного сервиса
-            if status in ['active', 'running', 'started', 'activating', 'reloading']:
-                services[service] = "active"
+    if is_panel:
+        # Для панели проверяем только node_exporter
+        for service in ['node_exporter']:
+            service_result = run(['systemctl', 'is-active', service], timeout=5)
+            if service_result["success"]:
+                status = service_result["output"].strip().lower()
+                if status in ['active', 'running', 'started', 'activating', 'reloading']:
+                    services[service] = "active"
+                else:
+                    ps_result = run(['ps', 'aux'], timeout=5)
+                    if ps_result["success"] and service in ps_result["output"]:
+                        services[service] = "active"
+                    else:
+                        services[service] = "inactive"
             else:
-                # Если systemctl говорит inactive, проверяем через ps
                 ps_result = run(['ps', 'aux'], timeout=5)
                 if ps_result["success"] and service in ps_result["output"]:
                     services[service] = "active"
                 else:
                     services[service] = "inactive"
-        else:
-            # Если systemctl не работает, проверяем только через ps
-            ps_result = run(['ps', 'aux'], timeout=5)
-            if ps_result["success"] and service in ps_result["output"]:
-                services[service] = "active"
+    else:
+        # Для ноды проверяем tblocker и node_exporter
+        for service in ['tblocker', 'node_exporter']:
+            service_result = run(['systemctl', 'is-active', service], timeout=5)
+            if service_result["success"]:
+                status = service_result["output"].strip().lower()
+                if status in ['active', 'running', 'started', 'activating', 'reloading']:
+                    services[service] = "active"
+                else:
+                    ps_result = run(['ps', 'aux'], timeout=5)
+                    if ps_result["success"] and service in ps_result["output"]:
+                        services[service] = "active"
+                    else:
+                        services[service] = "inactive"
             else:
-                services[service] = "inactive"
+                ps_result = run(['ps', 'aux'], timeout=5)
+                if ps_result["success"] and service in ps_result["output"]:
+                    services[service] = "active"
+                else:
+                    services[service] = "inactive"
     
-    # Получаем информацию о Xray (если есть)
+    # Получаем информацию о Xray (только для нод)
     xray_version = "N/A"
     xray_status = "inactive"
     
-    # Проверяем Xray через Docker exec
-    xray_version_result = run(['docker', 'exec', 'remnanode', '/usr/local/bin/xray', '-version'], timeout=5)
-    if xray_version_result["success"]:
-        version_line = xray_version_result["output"].split('\n')[0]
-        if 'Xray' in version_line:
-            xray_version = version_line.split()[1] if len(version_line.split()) > 1 else "N/A"
-    
-    # Проверяем статус Xray через supervisor
-    xray_status_result = run(['docker', 'exec', 'remnanode', 'supervisorctl', 'status', 'xray'], timeout=5)
-    if xray_status_result["success"]:
-        status_line = xray_status_result["output"]
-        if 'RUNNING' in status_line or 'active' in status_line.lower():
-            xray_status = "running"
-    
-    # Дополнительная проверка через ps внутри контейнера
-    if xray_status == "inactive":
-        ps_result = run(['docker', 'exec', 'remnanode', 'ps', 'aux'], timeout=5)
-        if ps_result["success"] and 'xray' in ps_result["output"].lower():
-            xray_status = "running"
+    if not is_panel:
+        # Проверяем Xray через Docker exec
+        xray_version_result = run(['docker', 'exec', 'remnanode', '/usr/local/bin/xray', '-version'], timeout=5)
+        if xray_version_result["success"]:
+            version_line = xray_version_result["output"].split('\n')[0]
+            if 'Xray' in version_line:
+                xray_version = version_line.split()[1] if len(version_line.split()) > 1 else "N/A"
+        
+        # Проверяем статус Xray через supervisor
+        xray_status_result = run(['docker', 'exec', 'remnanode', 'supervisorctl', 'status', 'xray'], timeout=5)
+        if xray_status_result["success"]:
+            status_line = xray_status_result["output"]
+            if 'RUNNING' in status_line or 'active' in status_line.lower():
+                xray_status = "running"
+        
+        # Дополнительная проверка через ps внутри контейнера
+        if xray_status == "inactive":
+            ps_result = run(['docker', 'exec', 'remnanode', 'ps', 'aux'], timeout=5)
+            if ps_result["success"] and 'xray' in ps_result["output"].lower():
+                xray_status = "running"
     
     # Проверяем Caddy (может быть системный процесс или в контейнере)
     caddy_status = "inactive"
@@ -169,12 +196,14 @@ def status():
         "xray_version": xray_version,
         "xray_status": xray_status,
         "caddy_status": caddy_status,
+        "server_type": "panel" if is_panel else "node",
         "docker": docker_info(),
         "debug": {
             "ps_output": run(['ps', 'aux'], timeout=5)["output"][:200] if run(['ps', 'aux'], timeout=5)["success"] else "Failed",
             "tblocker_status": run(['systemctl', 'is-active', 'tblocker'], timeout=5)["output"] if run(['systemctl', 'is-active', 'tblocker'], timeout=5)["success"] else "Failed",
             "node_exporter_status": run(['systemctl', 'is-active', 'node_exporter'], timeout=5)["output"] if run(['systemctl', 'is-active', 'node_exporter'], timeout=5)["success"] else "Failed",
-            "caddy_system_status": run(['systemctl', 'is-active', 'caddy'], timeout=5)["output"] if run(['systemctl', 'is-active', 'caddy'], timeout=5)["success"] else "Failed"
+            "caddy_system_status": run(['systemctl', 'is-active', 'caddy'], timeout=5)["output"] if run(['systemctl', 'is-active', 'caddy'], timeout=5)["success"] else "Failed",
+            "is_panel": is_panel
         }
     })
 

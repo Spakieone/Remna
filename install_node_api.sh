@@ -252,7 +252,7 @@ create_systemd_service() {
   cat > "$SYSTEMD_SERVICE_FILE" << EOF
 [Unit]
 Description=Node API (simple)
-After=network.target
+After=network.target docker.service
 
 [Service]
 Type=simple
@@ -260,7 +260,8 @@ User=root
 Group=root
 WorkingDirectory=$NODE_API_DIR
 Environment="NODE_API_TOKEN=$NODE_API_TOKEN"
-ExecStart=/usr/bin/python3 $NODE_API_SCRIPT
+Environment="PYTHONUNBUFFERED=1"
+ExecStart=$NODE_API_DIR/venv/bin/python $NODE_API_SCRIPT
 Restart=always
 RestartSec=5
 StandardOutput=journal
@@ -284,10 +285,17 @@ main() {
   fi
 
   apt update -y
-  apt install -y python3 python3-pip curl docker.io || true
+  apt install -y python3 python3-venv python3-pip curl docker.io || true
 
   mkdir -p "$NODE_API_DIR"
   chown -R "$NODE_MANAGER_USER":"$NODE_MANAGER_USER" "$NODE_API_DIR" 2>/dev/null || true
+
+  # venv и зависимости
+  if [ ! -d "$NODE_API_DIR/venv" ]; then
+    python3 -m venv "$NODE_API_DIR/venv"
+  fi
+  "$NODE_API_DIR/venv/bin/pip" install --upgrade pip
+  "$NODE_API_DIR/venv/bin/pip" install flask flask-cors psutil
 
   create_node_api_script
   create_systemd_service

@@ -37,6 +37,7 @@ from datetime import datetime
 
 app = Flask(__name__)
 AUTH_TOKEN = os.getenv("NODE_API_TOKEN", "your-secret-token")
+PORT = int(os.getenv("NODE_API_PORT", "8080"))
 
 def check_auth():
     token = request.headers.get('Authorization')
@@ -105,7 +106,6 @@ def status():
     # Получаем информацию о сервисах в зависимости от типа сервера
     services = {}
     if is_panel:
-        # Для панели проверяем только node_exporter
         for service in ['node_exporter']:
             service_result = run(['systemctl', 'is-active', service], timeout=5)
             if service_result["success"]:
@@ -125,7 +125,6 @@ def status():
                 else:
                     services[service] = "inactive"
     else:
-        # Для ноды проверяем tblocker и node_exporter
         for service in ['tblocker', 'node_exporter']:
             service_result = run(['systemctl', 'is-active', service], timeout=5)
             if service_result["success"]:
@@ -145,41 +144,30 @@ def status():
                 else:
                     services[service] = "inactive"
     
-    # Получаем информацию о Xray (только для нод)
     xray_version = "N/A"
     xray_status = "inactive"
-    
     if not is_panel:
-        # Проверяем Xray через Docker exec
         xray_version_result = run(['docker', 'exec', 'remnanode', '/usr/local/bin/xray', '-version'], timeout=5)
         if xray_version_result["success"]:
             version_line = xray_version_result["output"].split('\n')[0]
             if 'Xray' in version_line:
                 xray_version = version_line.split()[1] if len(version_line.split()) > 1 else "N/A"
-        
-        # Проверяем статус Xray через supervisor
         xray_status_result = run(['docker', 'exec', 'remnanode', 'supervisorctl', 'status', 'xray'], timeout=5)
         if xray_status_result["success"]:
             status_line = xray_status_result["output"]
             if 'RUNNING' in status_line or 'active' in status_line.lower():
                 xray_status = "running"
-        
-        # Дополнительная проверка через ps внутри контейнера
         if xray_status == "inactive":
             ps_result = run(['docker', 'exec', 'remnanode', 'ps', 'aux'], timeout=5)
             if ps_result["success"] and 'xray' in ps_result["output"].lower():
                 xray_status = "running"
     
-    # Проверяем Caddy (может быть системный процесс или в контейнере)
     caddy_status = "inactive"
-    # Сначала проверяем как системный процесс
     caddy_system_result = run(['systemctl', 'is-active', 'caddy'], timeout=5)
     if caddy_system_result["success"]:
         status = caddy_system_result["output"].strip().lower()
         if status in ['active', 'running', 'started', 'activating', 'reloading']:
             caddy_status = "running"
-    
-    # Если не найден как системный, проверяем в Docker
     if caddy_status == "inactive":
         docker_result = run(['docker', 'ps', '--filter', 'name=caddy', '--format', '{{.State}}'], timeout=5)
         if docker_result["success"] and 'running' in docker_result["output"].lower():
@@ -198,13 +186,6 @@ def status():
         "caddy_status": caddy_status,
         "server_type": "panel" if is_panel else "node",
         "docker": docker_info(),
-        "debug": {
-            "ps_output": run(['ps', 'aux'], timeout=5)["output"][:200] if run(['ps', 'aux'], timeout=5)["success"] else "Failed",
-            "tblocker_status": run(['systemctl', 'is-active', 'tblocker'], timeout=5)["output"] if run(['systemctl', 'is-active', 'tblocker'], timeout=5)["success"] else "Failed",
-            "node_exporter_status": run(['systemctl', 'is-active', 'node_exporter'], timeout=5)["output"] if run(['systemctl', 'is-active', 'node_exporter'], timeout=5)["success"] else "Failed",
-            "caddy_system_status": run(['systemctl', 'is-active', 'caddy'], timeout=5)["output"] if run(['systemctl', 'is-active', 'caddy'], timeout=5)["success"] else "Failed",
-            "is_panel": is_panel
-        }
     })
 
 @app.get('/api/docker')
@@ -242,8 +223,8 @@ def reboot():
         return jsonify({"error":str(e)}), 500
 
 if __name__ == '__main__':
-    print('Starting Simple Node API on :8080')
-    app.run(host='0.0.0.0', port=8080, debug=False)
+    print(f'Starting Simple Node API on :{PORT}')
+    app.run(host='0.0.0.0', port=PORT, debug=False)
 EOF
   chmod +x "$NODE_API_SCRIPT"
 }
@@ -252,55 +233,114 @@ create_systemd_service() {
   cat > "$SYSTEMD_SERVICE_FILE" << EOF
 [Unit]
 Description=Node API (simple)
-After=network.target
+After=network.target docker.service
 
 [Service]
 Type=simple
-User=root
-Group=root
+User=$NODE_MANAGER_USER
+Group=$NODE_MANAGER_USER
 WorkingDirectory=$NODE_API_DIR
 Environment="NODE_API_TOKEN=$NODE_API_TOKEN"
-ExecStart=/usr/bin/python3 $NODE_API_SCRIPT
-Restart=always
+Environment="NODE_API_PORT=$NODE_API_PORT"
+Environment="PYTHONUNBUFFERED=1"
+ExecStartPre=/bin/sh -c 'until docker info >/dev/null 2>&1; do sleep 1; done'
+ExecStart=$NODE_API_DIR/venv/bin/python $NODE_API_SCRIPT
+Restart=on-failure
 RestartSec=5
 StandardOutput=journal
 StandardError=journal
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+PrivateTmp=true
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RestrictNamespaces=true
+LockPersonality=true
 
 [Install]
 WantedBy=multi-user.target
 EOF
 }
 
+create_user_and_env() {
+  # Пользователь
+  if ! id -u "$NODE_MANAGER_USER" >/dev/null 2>&1; then
+    useradd -m -s /bin/bash "$NODE_MANAGER_USER" || true
+    log "Создан пользователь $NODE_MANAGER_USER"
+  fi
+  mkdir -p "$NODE_API_DIR"
+  chown -R "$NODE_MANAGER_USER":"$NODE_MANAGER_USER" "$NODE_API_DIR"
+  
+  # Docker и группа
+  apt install -y docker.io || true
+  if ! getent group docker >/dev/null; then
+    groupadd docker || true
+  fi
+  usermod -aG docker "$NODE_MANAGER_USER" || true
+  
+  # Python venv
+  sudo -u "$NODE_MANAGER_USER" bash -lc "python3 -m venv $NODE_API_DIR/venv"
+  sudo -u "$NODE_MANAGER_USER" bash -lc "$NODE_API_DIR/venv/bin/pip install --upgrade pip"
+  sudo -u "$NODE_MANAGER_USER" bash -lc "$NODE_API_DIR/venv/bin/pip install flask flask-cors psutil"
+}
+
+verify_service() {
+  systemctl daemon-reload
+  systemctl enable node-api >/dev/null 2>&1 || true
+  systemctl restart node-api
+
+  # Ждем до 20 секунд
+  for i in {1..20}; do
+    state=$(systemctl is-active node-api || true)
+    if [[ "$state" == "active" ]]; then
+      log "Сервис node-api активен"
+      break
+    fi
+    sleep 1
+  done
+
+  if [[ $(systemctl is-active node-api || true) != "active" ]]; then
+    err "Сервис node-api не запустился"
+    journalctl -u node-api -n 100 --no-pager || true
+    exit 1
+  fi
+
+  # Health и status
+  if command -v curl >/dev/null 2>&1; then
+    curl -fsS http://127.0.0.1:${NODE_API_PORT}/health >/dev/null || warn "Health endpoint недоступен"
+    curl -fsS -H "Authorization: Bearer $NODE_API_TOKEN" http://127.0.0.1:${NODE_API_PORT}/api/status >/dev/null || warn "Status endpoint недоступен (проверьте токен)"
+  fi
+}
+
 main() {
   require_root
 
+  # Токен
   if [ -z "$NODE_API_TOKEN" ]; then
-    echo -n "Введите NODE_API_TOKEN: "
-    read -r NODE_API_TOKEN
-    if [ -z "$NODE_API_TOKEN" ]; then
-      err "NODE_API_TOKEN пуст"
-      exit 1
-    fi
+    NODE_API_TOKEN=$(head -c 32 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | head -c 32)
+    warn "NODE_API_TOKEN не указан. Сгенерирован временный: $NODE_API_TOKEN"
   fi
+  
+  # Порт
+  NODE_API_PORT="${NODE_API_PORT:-8080}"
 
   apt update -y
-  apt install -y python3 python3-pip curl docker.io || true
+  apt install -y python3 python3-venv python3-pip curl || true
 
-  mkdir -p "$NODE_API_DIR"
-  chown -R "$NODE_MANAGER_USER":"$NODE_MANAGER_USER" "$NODE_API_DIR" 2>/dev/null || true
-
+  create_user_and_env
   create_node_api_script
+  chown -R "$NODE_MANAGER_USER":"$NODE_MANAGER_USER" "$NODE_API_DIR"
   create_systemd_service
 
-  systemctl daemon-reload
-  systemctl enable node-api || true
-  systemctl restart node-api || systemctl start node-api
-
+  # UFW
   if command -v ufw >/dev/null 2>&1; then
-    ufw allow 8080/tcp || true
+    ufw allow ${NODE_API_PORT}/tcp || true
   fi
 
-  log "Готово. Проверка: curl -H 'Authorization: Bearer $NODE_API_TOKEN' http://localhost:8080/api/status"
+  verify_service
+  log "Готово. Проверка: curl -H 'Authorization: Bearer $NODE_API_TOKEN' http://localhost:${NODE_API_PORT}/api/status"
 }
 
 main "$@"

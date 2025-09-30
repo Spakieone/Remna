@@ -261,6 +261,8 @@ Group=root
 WorkingDirectory=$NODE_API_DIR
 Environment="NODE_API_TOKEN=$NODE_API_TOKEN"
 Environment="PYTHONUNBUFFERED=1"
+Environment="VIRTUAL_ENV=$NODE_API_DIR/venv"
+Environment="PATH=$NODE_API_DIR/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 ExecStart=$NODE_API_DIR/venv/bin/python $NODE_API_SCRIPT
 Restart=always
 RestartSec=5
@@ -285,7 +287,7 @@ main() {
   fi
 
   apt update -y
-  apt install -y python3 python3-venv python3-pip curl docker.io || true
+  apt install -y python3 python3-venv python3-pip python3-flask python3-psutil curl docker.io || true
 
   mkdir -p "$NODE_API_DIR"
   chown -R "$NODE_MANAGER_USER":"$NODE_MANAGER_USER" "$NODE_API_DIR" 2>/dev/null || true

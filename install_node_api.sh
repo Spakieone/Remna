@@ -37,6 +37,8 @@ from datetime import datetime
 
 app = Flask(__name__)
 AUTH_TOKEN = os.getenv("NODE_API_TOKEN", "your-secret-token")
+BOT_SERVICE_NAME = os.getenv("BOT_SERVICE_NAME", "").strip()
+BOT_MATCH = os.getenv("BOT_MATCH", "").strip()  # шаблоны через запятую или точку с запятой
 
 def check_auth():
     token = request.headers.get('Authorization')
@@ -185,6 +187,55 @@ def status():
         if docker_result["success"] and 'running' in docker_result["output"].lower():
             caddy_status = "running"
     
+    # Статус процесса основного бота (если есть)
+    bot_status = "inactive"
+    bot_hint = ""
+
+    def ps_has_any(pattern_list, ps_text_lower):
+        for pat in pattern_list:
+            pat = pat.strip().lower()
+            if not pat:
+                continue
+            # поддержка множественных токенов в одном паттерне: все слова должны встретиться
+            tokens = [t for t in pat.replace('|', ' ').split() if t]
+            if all(tok in ps_text_lower for tok in tokens):
+                return True
+        return False
+
+    # 1) systemd, если указан BOT_SERVICE_NAME
+    if BOT_SERVICE_NAME:
+        svc = run(['systemctl','is-active', BOT_SERVICE_NAME], timeout=5)
+        if svc["success"]:
+            s = svc["output"].strip().lower()
+            if s in ['active','running','started','activating','reloading']:
+                bot_status = 'running'
+                bot_hint = f"systemd:{BOT_SERVICE_NAME}"
+
+    # 2) ps по шаблонам, если не нашли через systemd
+    if bot_status != 'running':
+        ps = run(['ps','aux'], timeout=5)
+        if ps["success"]:
+            out_lower = ps["output"].lower()
+            # Формируем список паттернов
+            patterns = []
+            if BOT_MATCH:
+                # поддержка разделителей , ;
+                for part in BOT_MATCH.replace(';', ',').split(','):
+                    if part.strip():
+                        patterns.append(part.strip())
+            # дефолтные подсказки
+            patterns += [
+                'solo_bot main.py',
+                'solo_bot/main.py',
+                '/solo_bot/main.py',
+                '/solo bot/main.py',
+                'venv/bin/python /root/solo_bot/main.py',
+                'venv/bin/python /root/solo bot/main.py'
+            ]
+            if ps_has_any(patterns, out_lower):
+                bot_status = 'running'
+                bot_hint = 'ps:match'
+    
     return jsonify({
         "status": "online",
         "ts": datetime.now().isoformat(),
@@ -198,6 +249,8 @@ def status():
         "caddy_status": caddy_status,
         "server_type": "panel" if is_panel else "node",
         "docker": docker_info(),
+        "bot_status": bot_status,
+        "bot_hint": bot_hint,
         "debug": {
             "ps_output": run(['ps', 'aux'], timeout=5)["output"][:200] if run(['ps', 'aux'], timeout=5)["success"] else "Failed",
             "tblocker_status": run(['systemctl', 'is-active', 'tblocker'], timeout=5)["output"] if run(['systemctl', 'is-active', 'tblocker'], timeout=5)["success"] else "Failed",

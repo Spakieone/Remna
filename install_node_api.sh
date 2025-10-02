@@ -1,371 +1,811 @@
 #!/bin/bash
 
-# Простой установщик Node API: всегда перезаписывает и перезапускает
+# Оптимизированный установщик Node API + MTR
+# Исправлены все обнаруженные проблемы
 
-set -e
+set -euo pipefail  # Строгий режим
 
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m'
+# Цвета и константы
+readonly RED='\033[0;31m'
+readonly GREEN='\033[0;32m'
+readonly YELLOW='\033[1;33m'
+readonly BLUE='\033[0;34m'
+readonly NC='\033[0m'
 
-NODE_API_DIR="/home/node-manager/node-api"
-NODE_API_SCRIPT="$NODE_API_DIR/node_api.py"
-SYSTEMD_SERVICE_FILE="/etc/systemd/system/node-api.service"
-NODE_MANAGER_USER="node-manager"
+readonly NODE_API_DIR="/opt/node-api"
+readonly NODE_API_SCRIPT="$NODE_API_DIR/node_api.py"
+readonly SYSTEMD_SERVICE_FILE="/etc/systemd/system/node-api.service"
+readonly NODE_API_USER="node-api"
 
-log() { echo -e "${GREEN}[OK]${NC} $1"; }
-warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
-err()  { echo -e "${RED}[ERR]${NC} $1"; }
+# Функции логирования
+log() { echo -e "${GREEN}[✓]${NC} $1"; }
+warn() { echo -e "${YELLOW}[⚠]${NC} $1"; }
+err() { echo -e "${RED}[✗]${NC} $1"; }
+info() { echo -e "${BLUE}[ℹ]${NC} $1"; }
 
+# Проверка прав root
 require_root() {
-  if [[ $EUID -ne 0 ]]; then
-    err "Запустите с sudo"
-    exit 1
-  fi
+    if [[ $EUID -ne 0 ]]; then
+        err "Требуются права root. Запустите: sudo $0"
+        exit 1
+    fi
 }
 
+# Проверка ОС
+detect_os() {
+    if [[ ! -f /etc/os-release ]]; then
+        err "Не удается определить ОС. Поддерживаются только Linux дистрибутивы."
+        exit 1
+    fi
+    
+    source /etc/os-release
+    export OS_ID="$ID"
+    export OS_VERSION="$VERSION_ID"
+    info "Обнаружена ОС: $PRETTY_NAME"
+}
+
+# Валидация токена
+validate_token() {
+    local token="$1"
+    
+    if [[ -z "$token" ]]; then
+        err "Токен не может быть пустым"
+        return 1
+    fi
+    
+    if [[ ${#token} -lt 8 ]]; then
+        err "Токен должен содержать минимум 8 символов"
+        return 1
+    fi
+    
+    if [[ "$token" =~ [[:space:]] ]]; then
+        err "Токен не должен содержать пробелы"
+        return 1
+    fi
+    
+    log "Токен прошел валидацию"
+    return 0
+}
+
+# Получение токена
+get_api_token() {
+    if [[ -n "${NODE_API_TOKEN:-}" ]]; then
+        if validate_token "$NODE_API_TOKEN"; then
+            return 0
+        else
+            unset NODE_API_TOKEN
+        fi
+    fi
+    
+    echo
+    info "Введите токен для Node API (минимум 8 символов, без пробелов):"
+    while true; do
+        echo -n "TOKEN: "
+        read -r NODE_API_TOKEN
+        
+        if validate_token "$NODE_API_TOKEN"; then
+            break
+        fi
+        warn "Попробуйте еще раз"
+    done
+    
+    export NODE_API_TOKEN
+}
+
+# Установка системных пакетов
+install_system_packages() {
+    info "Обновление списка пакетов..."
+    
+    case "$OS_ID" in
+        ubuntu|debian)
+            apt-get update -qq
+            apt-get install -y \
+                python3 \
+                python3-venv \
+                python3-pip \
+                python3-dev \
+                curl \
+                wget \
+                docker.io \
+                systemctl \
+                ufw || {
+                err "Ошибка установки системных пакетов"
+                exit 1
+            }
+            ;;
+        centos|rhel|fedora)
+            if command -v dnf >/dev/null 2>&1; then
+                dnf install -y python3 python3-pip python3-devel curl wget docker systemd firewalld
+            else
+                yum install -y python3 python3-pip python3-devel curl wget docker systemd firewalld
+            fi
+            ;;
+        *)
+            err "Неподдерживаемая ОС: $OS_ID"
+            exit 1
+            ;;
+    esac
+    
+    log "Системные пакеты установлены"
+}
+
+# Установка MTR
+install_mtr() {
+    if [[ "${INSTALL_MTR:-true}" != "true" ]]; then
+        info "Пропускаем установку MTR (INSTALL_MTR=false)"
+        return 0
+    fi
+    
+    info "Установка MTR для диагностики сети..."
+    
+    case "$OS_ID" in
+        ubuntu|debian)
+            if apt-get install -y mtr-tiny 2>/dev/null || apt-get install -y mtr 2>/dev/null; then
+                log "MTR установлен"
+            else
+                warn "Не удалось установить MTR через apt"
+                return 1
+            fi
+            ;;
+        centos|rhel|fedora)
+            if command -v dnf >/dev/null 2>&1; then
+                dnf install -y mtr || { warn "Не удалось установить MTR через dnf"; return 1; }
+            else
+                yum install -y mtr || { warn "Не удалось установить MTR через yum"; return 1; }
+            fi
+            ;;
+        arch)
+            pacman -Sy --noconfirm mtr || { warn "Не удалось установить MTR через pacman"; return 1; }
+            ;;
+        *)
+            warn "Неизвестная ОС ($OS_ID), пропускаем установку MTR"
+            return 1
+            ;;
+    esac
+    
+    # Проверяем установку
+    if command -v mtr >/dev/null 2>&1; then
+        log "MTR успешно установлен и доступен"
+        return 0
+    else
+        warn "MTR установлен, но не найден в PATH"
+        return 1
+    fi
+}
+
+# Создание пользователя
+create_user() {
+    if id "$NODE_API_USER" >/dev/null 2>&1; then
+        info "Пользователь $NODE_API_USER уже существует"
+    else
+        info "Создание пользователя $NODE_API_USER..."
+        useradd --system --no-create-home --shell /bin/false "$NODE_API_USER" || {
+            err "Не удалось создать пользователя $NODE_API_USER"
+            exit 1
+        }
+        log "Пользователь $NODE_API_USER создан"
+    fi
+}
+
+# Подготовка директории
+setup_directory() {
+    info "Настройка директории $NODE_API_DIR..."
+    
+    # Останавливаем сервис если работает
+    systemctl stop node-api 2>/dev/null || true
+    
+    # Создаем директорию
+    mkdir -p "$NODE_API_DIR"
+    
+    # Создаем Python venv
+    info "Создание виртуального окружения Python..."
+    if [[ -d "$NODE_API_DIR/venv" ]]; then
+        rm -rf "$NODE_API_DIR/venv"
+    fi
+    
+    python3 -m venv "$NODE_API_DIR/venv" || {
+        err "Не удалось создать виртуальное окружение"
+        exit 1
+    }
+    
+    # Обновляем pip и устанавливаем зависимости
+    info "Установка Python зависимостей..."
+    "$NODE_API_DIR/venv/bin/pip" install --upgrade pip --quiet || {
+        err "Не удалось обновить pip"
+        exit 1
+    }
+    
+    "$NODE_API_DIR/venv/bin/pip" install flask flask-cors psutil --quiet || {
+        err "Не удалось установить Python зависимости"
+        exit 1
+    }
+    
+    # Устанавливаем права
+    chown -R "$NODE_API_USER:$NODE_API_USER" "$NODE_API_DIR"
+    chmod 755 "$NODE_API_DIR"
+    
+    log "Директория настроена"
+}
+
+# Создание Node API скрипта
 create_node_api_script() {
-  cat > "$NODE_API_SCRIPT" << 'EOF'
+    info "Создание Node API скрипта..."
+    
+    cat > "$NODE_API_SCRIPT" << 'EOF'
 #!/usr/bin/env python3
 """
-Simple Node API: management only (no metrics)
+Optimized Node API v1.2.0
+- Исправлены дублирования команд
+- Оптимизирована проверка MTR
+- Улучшен error handling
 """
-from flask import Flask, request, jsonify
-import subprocess, os, json
+import os
+import json
+import subprocess
 from datetime import datetime
+from flask import Flask, request, jsonify
 
 app = Flask(__name__)
+
+# Конфигурация
 AUTH_TOKEN = os.getenv("NODE_API_TOKEN", "your-secret-token")
 BOT_SERVICE_NAME = os.getenv("BOT_SERVICE_NAME", "").strip()
-BOT_MATCH = os.getenv("BOT_MATCH", "").strip()  # шаблоны через запятую или точку с запятой
+BOT_MATCH = os.getenv("BOT_MATCH", "").strip()
 
 def check_auth():
+    """Проверка авторизации"""
     token = request.headers.get('Authorization')
     return bool(token and token == f"Bearer {AUTH_TOKEN}")
 
-def run(cmd, timeout=30, shell=False):
+def run_command(cmd, timeout=30, shell=False):
+    """Безопасное выполнение команд с обработкой ошибок"""
     try:
         if shell:
-            r = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=timeout)
+            result = subprocess.run(
+                cmd, shell=True, capture_output=True, 
+                text=True, timeout=timeout
+            )
         else:
-            r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
-        return {"success": r.returncode==0, "output": r.stdout.strip(), "error": r.stderr.strip(), "code": r.returncode}
+            result = subprocess.run(
+                cmd, capture_output=True, 
+                text=True, timeout=timeout
+            )
+        
+        return {
+            "success": result.returncode == 0,
+            "output": result.stdout.strip(),
+            "error": result.stderr.strip(),
+            "code": result.returncode
+        }
     except subprocess.TimeoutExpired:
-        return {"success": False, "output": "", "error": f"timeout {timeout}s", "code": -1}
+        return {
+            "success": False,
+            "output": "",
+            "error": f"Timeout {timeout}s",
+            "code": -1
+        }
     except Exception as e:
-        return {"success": False, "output": "", "error": str(e), "code": -1}
+        return {
+            "success": False,
+            "output": "",
+            "error": str(e),
+            "code": -1
+        }
 
-def docker_info():
-    res = run(['docker','ps','-a','--format','json'])
-    if not res["success"]:
-        return {"success": False, "error": res["error"], "containers": {}, "raw_containers": []}
-    containers, mapping = [], {}
-    for line in res["output"].split('\n'):
+def get_docker_info():
+    """Получение информации о Docker контейнерах"""
+    result = run_command(['docker', 'ps', '-a', '--format', 'json'])
+    if not result["success"]:
+        return {
+            "success": False, 
+            "error": result["error"], 
+            "containers": {}, 
+            "raw_containers": []
+        }
+    
+    containers = []
+    mapping = {}
+    
+    for line in result["output"].split('\n'):
         if line.strip():
             try:
-                obj = json.loads(line)
-                containers.append(obj)
-                name = obj.get('Names','').strip('/')
+                container = json.loads(line)
+                containers.append(container)
+                name = container.get('Names', '').strip('/')
                 if name:
-                    mapping[name] = obj
-            except Exception:
+                    mapping[name] = container
+            except json.JSONDecodeError:
                 continue
-    return {"success": True, "containers": mapping, "raw_containers": containers}
+    
+    return {
+        "success": True,
+        "containers": mapping,
+        "raw_containers": containers
+    }
 
-@app.get('/health')
-def health():
-    return jsonify({"status":"ok","ts":datetime.now().isoformat(),"version":"1.1.0-enhanced"}), 200
+def check_service_status(service_name):
+    """Проверка статуса systemd сервиса"""
+    result = run_command(['systemctl', 'is-active', service_name], timeout=5)
+    if result["success"]:
+        status = result["output"].strip().lower()
+        return status in ['active', 'running', 'started', 'activating', 'reloading']
+    
+    # Fallback: проверка через ps
+    ps_result = run_command(['ps', 'aux'], timeout=5)
+    if ps_result["success"]:
+        return service_name in ps_result["output"]
+    
+    return False
 
-@app.get('/api/status')
-def status():
-    if not check_auth():
-        return jsonify({"error":"Unauthorized"}), 401
+def get_system_metrics():
+    """Получение системных метрик"""
+    metrics = {}
     
-    # Получаем системную информацию
-    cpu_result = run(['sh', '-c', "top -bn1 | grep 'Cpu(s)' | awk '{print $2}' | sed 's/%us,//'"], timeout=5)
-    cpu_usage = cpu_result["output"] if cpu_result["success"] else "N/A"
+    # CPU
+    cpu_result = run_command([
+        'sh', '-c', 
+        "top -bn1 | grep 'Cpu(s)' | awk '{print $2}' | sed 's/%us,//'"
+    ], timeout=5)
+    metrics['cpu'] = cpu_result["output"] if cpu_result["success"] else "N/A"
     
-    memory_result = run(['sh', '-c', "free | grep Mem | awk '{printf \"%.1f\", $3/$2 * 100.0}'"], timeout=5)
-    memory_usage = memory_result["output"] if memory_result["success"] else "N/A"
+    # Memory
+    mem_result = run_command([
+        'sh', '-c',
+        "free | grep Mem | awk '{printf \"%.1f\", $3/$2 * 100.0}'"
+    ], timeout=5)
+    metrics['memory'] = mem_result["output"] if mem_result["success"] else "N/A"
     
-    uptime_result = run(['uptime', '-p'], timeout=5)
-    uptime = uptime_result["output"] if uptime_result["success"] else "N/A"
+    # Disk
+    disk_result = run_command([
+        'sh', '-c',
+        "df -h / | tail -1 | awk '{print $5}' | sed 's/%//'"
+    ], timeout=5)
+    metrics['disk_usage_percent'] = disk_result["output"] if disk_result["success"] else "N/A"
     
-    # Получаем информацию о диске
-    disk_result = run(['sh', '-c', "df -h / | tail -1 | awk '{print $5}' | sed 's/%//'"], timeout=5)
-    disk_usage = disk_result["output"] if disk_result["success"] else "N/A"
+    # Uptime
+    uptime_result = run_command(['uptime', '-p'], timeout=5)
+    metrics['uptime'] = uptime_result["output"] if uptime_result["success"] else "N/A"
     
-    # Определяем тип сервера (панель или нода)
-    is_panel = False
-    docker_result = run(['docker', 'ps', '--format', '{{.Names}}'], timeout=5)
+    return metrics
+
+def detect_server_type():
+    """Определение типа сервера"""
+    docker_result = run_command(['docker', 'ps', '--format', '{{.Names}}'], timeout=5)
     if docker_result["success"]:
         container_names = docker_result["output"].lower()
         if 'remnawave' in container_names and 'remnanode' not in container_names:
-            is_panel = True
+            return "panel"
+    return "node"
+
+def get_xray_info():
+    """Получение информации о Xray (только для нод)"""
+    version = "N/A"
+    status = "inactive"
     
-    # Получаем информацию о сервисах в зависимости от типа сервера
+    # Версия Xray
+    version_result = run_command([
+        'docker', 'exec', 'remnanode', 
+        '/usr/local/bin/xray', '-version'
+    ], timeout=5)
+    
+    if version_result["success"]:
+        version_line = version_result["output"].split('\n')[0]
+        if 'Xray' in version_line:
+            parts = version_line.split()
+            version = parts[1] if len(parts) > 1 else "N/A"
+    
+    # Статус Xray
+    status_result = run_command([
+        'docker', 'exec', 'remnanode', 
+        'supervisorctl', 'status', 'xray'
+    ], timeout=5)
+    
+    if status_result["success"]:
+        if 'RUNNING' in status_result["output"] or 'active' in status_result["output"].lower():
+            status = "running"
+    
+    # Дополнительная проверка через ps
+    if status == "inactive":
+        ps_result = run_command([
+            'docker', 'exec', 'remnanode', 'ps', 'aux'
+        ], timeout=5)
+        if ps_result["success"] and 'xray' in ps_result["output"].lower():
+            status = "running"
+    
+    return version, status
+
+def get_caddy_status():
+    """Проверка статуса Caddy"""
+    # Системный процесс
+    if check_service_status('caddy'):
+        return "running"
+    
+    # Docker контейнер
+    docker_result = run_command([
+        'docker', 'ps', '--filter', 'name=caddy', 
+        '--format', '{{.State}}'
+    ], timeout=5)
+    
+    if docker_result["success"] and 'running' in docker_result["output"].lower():
+        return "running"
+    
+    return "inactive"
+
+def get_bot_status():
+    """Проверка статуса основного бота"""
+    status = "inactive"
+    hint = ""
+    
+    # Проверка через systemd
+    if BOT_SERVICE_NAME and check_service_status(BOT_SERVICE_NAME):
+        return "running", f"systemd:{BOT_SERVICE_NAME}"
+    
+    # Проверка через ps
+    ps_result = run_command(['ps', 'aux'], timeout=5)
+    if not ps_result["success"]:
+        return status, hint
+    
+    ps_output = ps_result["output"].lower()
+    
+    # Формируем паттерны для поиска
+    patterns = []
+    if BOT_MATCH:
+        for part in BOT_MATCH.replace(';', ',').split(','):
+            if part.strip():
+                patterns.append(part.strip().lower())
+    
+    # Добавляем стандартные паттерны
+    patterns.extend([
+        'solo_bot main.py',
+        'solo_bot/main.py',
+        '/solo_bot/main.py',
+        '/solo bot/main.py',
+        'venv/bin/python /root/solo_bot/main.py',
+        'venv/bin/python /root/solo bot/main.py'
+    ])
+    
+    # Проверяем паттерны
+    for pattern in patterns:
+        tokens = [t for t in pattern.replace('|', ' ').split() if t]
+        if all(token in ps_output for token in tokens):
+            return "running", "ps:match"
+    
+    return status, hint
+
+@app.route('/health')
+def health():
+    """Health check endpoint"""
+    return jsonify({
+        "status": "ok",
+        "ts": datetime.now().isoformat(),
+        "version": "1.2.0-optimized"
+    }), 200
+
+@app.route('/api/status')
+def status():
+    """Основной endpoint статуса"""
+    if not check_auth():
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    # Получаем базовые метрики
+    metrics = get_system_metrics()
+    server_type = detect_server_type()
+    
+    # Получаем информацию о сервисах
     services = {}
-    if is_panel:
-        # Для панели проверяем только node_exporter
-        for service in ['node_exporter']:
-            service_result = run(['systemctl', 'is-active', service], timeout=5)
-            if service_result["success"]:
-                status = service_result["output"].strip().lower()
-                if status in ['active', 'running', 'started', 'activating', 'reloading']:
-                    services[service] = "active"
-                else:
-                    ps_result = run(['ps', 'aux'], timeout=5)
-                    if ps_result["success"] and service in ps_result["output"]:
-                        services[service] = "active"
-                    else:
-                        services[service] = "inactive"
-            else:
-                ps_result = run(['ps', 'aux'], timeout=5)
-                if ps_result["success"] and service in ps_result["output"]:
-                    services[service] = "active"
-                else:
-                    services[service] = "inactive"
+    if server_type == "panel":
+        services['node_exporter'] = "active" if check_service_status('node_exporter') else "inactive"
     else:
-        # Для ноды проверяем tblocker и node_exporter
-        for service in ['tblocker', 'node_exporter']:
-            service_result = run(['systemctl', 'is-active', service], timeout=5)
-            if service_result["success"]:
-                status = service_result["output"].strip().lower()
-                if status in ['active', 'running', 'started', 'activating', 'reloading']:
-                    services[service] = "active"
-                else:
-                    ps_result = run(['ps', 'aux'], timeout=5)
-                    if ps_result["success"] and service in ps_result["output"]:
-                        services[service] = "active"
-                    else:
-                        services[service] = "inactive"
-            else:
-                ps_result = run(['ps', 'aux'], timeout=5)
-                if ps_result["success"] and service in ps_result["output"]:
-                    services[service] = "active"
-                else:
-                    services[service] = "inactive"
+        services['tblocker'] = "active" if check_service_status('tblocker') else "inactive"
+        services['node_exporter'] = "active" if check_service_status('node_exporter') else "inactive"
     
-    # Получаем информацию о Xray (только для нод)
-    xray_version = "N/A"
-    xray_status = "inactive"
+    # Информация о Xray (только для нод)
+    xray_version, xray_status = ("N/A", "inactive")
+    if server_type == "node":
+        xray_version, xray_status = get_xray_info()
     
-    if not is_panel:
-        # Проверяем Xray через Docker exec
-        xray_version_result = run(['docker', 'exec', 'remnanode', '/usr/local/bin/xray', '-version'], timeout=5)
-        if xray_version_result["success"]:
-            version_line = xray_version_result["output"].split('\n')[0]
-            if 'Xray' in version_line:
-                xray_version = version_line.split()[1] if len(version_line.split()) > 1 else "N/A"
-        
-        # Проверяем статус Xray через supervisor
-        xray_status_result = run(['docker', 'exec', 'remnanode', 'supervisorctl', 'status', 'xray'], timeout=5)
-        if xray_status_result["success"]:
-            status_line = xray_status_result["output"]
-            if 'RUNNING' in status_line or 'active' in status_line.lower():
-                xray_status = "running"
-        
-        # Дополнительная проверка через ps внутри контейнера
-        if xray_status == "inactive":
-            ps_result = run(['docker', 'exec', 'remnanode', 'ps', 'aux'], timeout=5)
-            if ps_result["success"] and 'xray' in ps_result["output"].lower():
-                xray_status = "running"
+    # Статус Caddy
+    caddy_status = get_caddy_status()
     
-    # Проверяем Caddy (может быть системный процесс или в контейнере)
-    caddy_status = "inactive"
-    # Сначала проверяем как системный процесс
-    caddy_system_result = run(['systemctl', 'is-active', 'caddy'], timeout=5)
-    if caddy_system_result["success"]:
-        status = caddy_system_result["output"].strip().lower()
-        if status in ['active', 'running', 'started', 'activating', 'reloading']:
-            caddy_status = "running"
-    
-    # Если не найден как системный, проверяем в Docker
-    if caddy_status == "inactive":
-        docker_result = run(['docker', 'ps', '--filter', 'name=caddy', '--format', '{{.State}}'], timeout=5)
-        if docker_result["success"] and 'running' in docker_result["output"].lower():
-            caddy_status = "running"
-    
-    # Статус процесса основного бота (если есть)
-    bot_status = "inactive"
-    bot_hint = ""
-
-    def ps_has_any(pattern_list, ps_text_lower):
-        for pat in pattern_list:
-            pat = pat.strip().lower()
-            if not pat:
-                continue
-            # поддержка множественных токенов в одном паттерне: все слова должны встретиться
-            tokens = [t for t in pat.replace('|', ' ').split() if t]
-            if all(tok in ps_text_lower for tok in tokens):
-                return True
-        return False
-
-    # 1) systemd, если указан BOT_SERVICE_NAME
-    if BOT_SERVICE_NAME:
-        svc = run(['systemctl','is-active', BOT_SERVICE_NAME], timeout=5)
-        if svc["success"]:
-            s = svc["output"].strip().lower()
-            if s in ['active','running','started','activating','reloading']:
-                bot_status = 'running'
-                bot_hint = f"systemd:{BOT_SERVICE_NAME}"
-
-    # 2) ps по шаблонам, если не нашли через systemd
-    if bot_status != 'running':
-        ps = run(['ps','aux'], timeout=5)
-        if ps["success"]:
-            out_lower = ps["output"].lower()
-            # Формируем список паттернов
-            patterns = []
-            if BOT_MATCH:
-                # поддержка разделителей , ;
-                for part in BOT_MATCH.replace(';', ',').split(','):
-                    if part.strip():
-                        patterns.append(part.strip())
-            # дефолтные подсказки
-            patterns += [
-                'solo_bot main.py',
-                'solo_bot/main.py',
-                '/solo_bot/main.py',
-                '/solo bot/main.py',
-                'venv/bin/python /root/solo_bot/main.py',
-                'venv/bin/python /root/solo bot/main.py'
-            ]
-            if ps_has_any(patterns, out_lower):
-                bot_status = 'running'
-                bot_hint = 'ps:match'
+    # Статус бота
+    bot_status, bot_hint = get_bot_status()
     
     return jsonify({
         "status": "online",
         "ts": datetime.now().isoformat(),
-        "cpu": cpu_usage,
-        "memory": memory_usage,
-        "disk_usage_percent": disk_usage,
-        "uptime": uptime,
+        "server_type": server_type,
         "services": services,
         "xray_version": xray_version,
         "xray_status": xray_status,
         "caddy_status": caddy_status,
-        "server_type": "panel" if is_panel else "node",
-        "docker": docker_info(),
         "bot_status": bot_status,
         "bot_hint": bot_hint,
-        "debug": {
-            "ps_output": run(['ps', 'aux'], timeout=5)["output"][:200] if run(['ps', 'aux'], timeout=5)["success"] else "Failed",
-            "tblocker_status": run(['systemctl', 'is-active', 'tblocker'], timeout=5)["output"] if run(['systemctl', 'is-active', 'tblocker'], timeout=5)["success"] else "Failed",
-            "node_exporter_status": run(['systemctl', 'is-active', 'node_exporter'], timeout=5)["output"] if run(['systemctl', 'is-active', 'node_exporter'], timeout=5)["success"] else "Failed",
-            "caddy_system_status": run(['systemctl', 'is-active', 'caddy'], timeout=5)["output"] if run(['systemctl', 'is-active', 'caddy'], timeout=5)["success"] else "Failed",
-            "is_panel": is_panel
-        }
+        "docker": get_docker_info(),
+        **metrics
     })
 
-@app.get('/api/docker')
+@app.route('/api/docker')
 def docker():
+    """Docker информация"""
     if not check_auth():
-        return jsonify({"error":"Unauthorized"}), 401
-    return jsonify(docker_info())
+        return jsonify({"error": "Unauthorized"}), 401
+    return jsonify(get_docker_info())
 
-@app.post('/api/docker/restart')
+@app.route('/api/docker/restart', methods=['POST'])
 def docker_restart():
+    """Перезапуск Docker контейнеров"""
     if not check_auth():
-        return jsonify({"error":"Unauthorized"}), 401
-    names = request.json.get('containers',["remnanode","caddy"]) if request.is_json else ["remnanode","caddy"]
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    containers = ["remnanode", "caddy"]
+    if request.is_json and 'containers' in request.json:
+        containers = request.json['containers']
+    
     results = {}
-    for n in names:
-        results[n] = run(['docker','restart',n], timeout=30)
-    return jsonify({"message":"restart requested","results":results,"ts":datetime.now().isoformat()})
+    for container in containers:
+        results[container] = run_command(['docker', 'restart', container], timeout=30)
+    
+    return jsonify({
+        "message": "restart requested",
+        "results": results,
+        "ts": datetime.now().isoformat()
+    })
 
-@app.get('/api/exec')
-def exec_get():
+@app.route('/api/exec')
+def exec_command():
+    """Выполнение команд"""
     if not check_auth():
-        return jsonify({"error":"Unauthorized"}), 401
-    cmd = request.args.get('command','echo ok')
-    res = run(cmd.split(), timeout=15)
-    return jsonify({"command":cmd, **res})
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    cmd = request.args.get('command', 'echo ok')
+    result = run_command(cmd.split(), timeout=15)
+    
+    return jsonify({
+        "command": cmd,
+        **result
+    })
 
-@app.post('/api/reboot')
+@app.route('/api/reboot', methods=['POST'])
 def reboot():
+    """Перезагрузка сервера"""
     if not check_auth():
-        return jsonify({"error":"Unauthorized"}), 401
+        return jsonify({"error": "Unauthorized"}), 401
+    
     try:
         subprocess.Popen(['reboot'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        return jsonify({"message":"reboot initiated","ts":datetime.now().isoformat()})
+        return jsonify({
+            "message": "reboot initiated",
+            "ts": datetime.now().isoformat()
+        })
     except Exception as e:
-        return jsonify({"error":str(e)}), 500
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/mtr')
+def mtr_report():
+    """MTR диагностика сети"""
+    if not check_auth():
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    target = request.args.get('target', '8.8.8.8')
+    cycles = request.args.get('cycles', '10')
+    
+    # Проверяем наличие MTR
+    mtr_check = run_command(['which', 'mtr'], timeout=5)
+    if not mtr_check["success"]:
+        return jsonify({
+            "error": "MTR не установлен",
+            "success": False
+        })
+    
+    # Запускаем MTR
+    result = run_command([
+        'mtr', '--report', '--report-cycles', str(cycles), target
+    ], timeout=60)
+    
+    if result["success"]:
+        return jsonify({
+            "success": True,
+            "target": target,
+            "cycles": cycles,
+            "output": result["output"],
+            "ts": datetime.now().isoformat()
+        })
+    else:
+        return jsonify({
+            "success": False,
+            "error": result["error"] or "MTR завершился с ошибкой",
+            "output": result["output"]
+        })
 
 if __name__ == '__main__':
-    print('Starting Simple Node API on :8080')
+    print('🚀 Starting Optimized Node API v1.2.0 on :8080')
     app.run(host='0.0.0.0', port=8080, debug=False)
 EOF
-  chmod +x "$NODE_API_SCRIPT"
+    
+    chmod +x "$NODE_API_SCRIPT"
+    chown "$NODE_API_USER:$NODE_API_USER" "$NODE_API_SCRIPT"
+    
+    log "Node API скрипт создан"
 }
 
+# Создание systemd сервиса
 create_systemd_service() {
-  cat > "$SYSTEMD_SERVICE_FILE" << EOF
+    info "Создание systemd сервиса..."
+    
+    cat > "$SYSTEMD_SERVICE_FILE" << EOF
 [Unit]
-Description=Node API (simple)
-After=network.target docker.service
+Description=Node API (Optimized)
+Documentation=https://github.com/spakieone/node-api
+After=network-online.target docker.service
+Wants=network-online.target
+Requires=docker.service
 
 [Service]
 Type=simple
-User=root
-Group=root
+User=$NODE_API_USER
+Group=$NODE_API_USER
 WorkingDirectory=$NODE_API_DIR
+
+# Environment variables
 Environment="NODE_API_TOKEN=$NODE_API_TOKEN"
 Environment="PYTHONUNBUFFERED=1"
 Environment="VIRTUAL_ENV=$NODE_API_DIR/venv"
 Environment="PATH=$NODE_API_DIR/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+# Service configuration
 ExecStart=$NODE_API_DIR/venv/bin/python $NODE_API_SCRIPT
 Restart=always
 RestartSec=5
+StartLimitInterval=60
+StartLimitBurst=3
+
+# Security settings
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=$NODE_API_DIR
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+RestrictNamespaces=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+
+# Logging
 StandardOutput=journal
 StandardError=journal
+SyslogIdentifier=node-api
 
 [Install]
 WantedBy=multi-user.target
 EOF
+    
+    log "Systemd сервис создан"
 }
 
-main() {
-  require_root
+# Настройка firewall
+setup_firewall() {
+    info "Настройка firewall..."
+    
+    case "$OS_ID" in
+        ubuntu|debian)
+            if command -v ufw >/dev/null 2>&1; then
+                ufw --force enable 2>/dev/null || true
+                ufw allow 8080/tcp || warn "Не удалось открыть порт 8080 в UFW"
+                log "UFW настроен (порт 8080 открыт)"
+            else
+                warn "UFW не найден, пропускаем настройку firewall"
+            fi
+            ;;
+        centos|rhel|fedora)
+            if command -v firewall-cmd >/dev/null 2>&1; then
+                systemctl enable firewalld 2>/dev/null || true
+                systemctl start firewalld 2>/dev/null || true
+                firewall-cmd --permanent --add-port=8080/tcp || warn "Не удалось открыть порт 8080 в firewalld"
+                firewall-cmd --reload || true
+                log "Firewalld настроен (порт 8080 открыт)"
+            else
+                warn "Firewalld не найден, пропускаем настройку firewall"
+            fi
+            ;;
+        *)
+            warn "Неизвестная ОС, пропускаем настройку firewall"
+            ;;
+    esac
+}
 
-  if [ -z "$NODE_API_TOKEN" ]; then
-    echo -n "Введите NODE_API_TOKEN: "
-    read -r NODE_API_TOKEN
-    if [ -z "$NODE_API_TOKEN" ]; then
-      err "NODE_API_TOKEN пуст"
-      exit 1
+# Запуск сервиса
+start_service() {
+    info "Запуск Node API сервиса..."
+    
+    systemctl daemon-reload
+    systemctl enable node-api
+    
+    if systemctl start node-api; then
+        log "Node API сервис запущен"
+    else
+        err "Не удалось запустить Node API сервис"
+        info "Проверьте логи: journalctl -u node-api -f"
+        exit 1
     fi
-  fi
-
-  apt update -y
-  apt install -y python3 python3-venv python3-pip python3-flask python3-psutil curl docker.io || true
-
-  mkdir -p "$NODE_API_DIR"
-  chown -R "$NODE_MANAGER_USER":"$NODE_MANAGER_USER" "$NODE_API_DIR" 2>/dev/null || true
-
-  # venv и зависимости
-  if [ ! -d "$NODE_API_DIR/venv" ]; then
-    python3 -m venv "$NODE_API_DIR/venv"
-  fi
-  "$NODE_API_DIR/venv/bin/pip" install --upgrade pip
-  "$NODE_API_DIR/venv/bin/pip" install flask flask-cors psutil
-
-  create_node_api_script
-  create_systemd_service
-
-  systemctl daemon-reload
-  systemctl enable node-api || true
-  systemctl restart node-api || systemctl start node-api
-
-  if command -v ufw >/dev/null 2>&1; then
-    ufw allow 8080/tcp || true
-  fi
-
-  log "Готово. Проверка: curl -H 'Authorization: Bearer $NODE_API_TOKEN' http://localhost:8080/api/status"
+    
+    # Проверяем что сервис действительно работает
+    sleep 3
+    if systemctl is-active --quiet node-api; then
+        log "Node API сервис активен"
+    else
+        err "Node API сервис не активен после запуска"
+        info "Логи сервиса:"
+        journalctl -u node-api --no-pager -n 20
+        exit 1
+    fi
 }
 
+# Финальная проверка
+final_check() {
+    info "Выполнение финальной проверки..."
+    
+    # Проверяем health endpoint
+    sleep 2
+    if curl -s http://localhost:8080/health >/dev/null 2>&1; then
+        log "Health endpoint отвечает"
+    else
+        warn "Health endpoint не отвечает (возможно, сервис еще запускается)"
+    fi
+    
+    # Показываем информацию для проверки
+    echo
+    info "Установка завершена! Для проверки выполните:"
+    echo -e "${BLUE}curl -H 'Authorization: Bearer $NODE_API_TOKEN' http://localhost:8080/api/status${NC}"
+    echo
+    info "Логи сервиса: journalctl -u node-api -f"
+    info "Статус сервиса: systemctl status node-api"
+}
+
+# Cleanup функция
+cleanup() {
+    local exit_code=$?
+    if [[ $exit_code -ne 0 ]]; then
+        err "Установка прервана с ошибкой (код: $exit_code)"
+        warn "Для очистки выполните: sudo systemctl stop node-api && sudo rm -rf $NODE_API_DIR"
+    fi
+}
+
+# Основная функция
+main() {
+    echo -e "${BLUE}╔══════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${BLUE}║${NC}                 ${GREEN}Node API Installer v1.2.0${NC}                    ${BLUE}║${NC}"
+    echo -e "${BLUE}║${NC}                     ${YELLOW}Optimized Edition${NC}                       ${BLUE}║${NC}"
+    echo -e "${BLUE}╚══════════════════════════════════════════════════════════════╝${NC}"
+    echo
+    
+    trap cleanup EXIT
+    
+    require_root
+    detect_os
+    get_api_token
+    
+    info "Начинаем установку Node API + MTR..."
+    
+    install_system_packages
+    install_mtr
+    create_user
+    setup_directory
+    create_node_api_script
+    create_systemd_service
+    setup_firewall
+    start_service
+    final_check
+    
+    echo
+    log "🎉 Установка Node API успешно завершена!"
+}
+
+# Запуск
 main "$@"
-
-

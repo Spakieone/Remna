@@ -1,380 +1,429 @@
 #!/bin/bash
 
-# Node Exporter Installation Script
-# For Remnawave by Spakie
+# Оптимизированный установщик Node Exporter
+# Исправлены проблемы с версиями, скачиванием, проверками
 
-set -e
+set -euo pipefail
 
-# Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-WHITE='\033[1;37m'
-NC='\033[0m'
+# Цвета и константы
+readonly RED='\033[0;31m'
+readonly GREEN='\033[0;32m'
+readonly YELLOW='\033[1;33m'
+readonly BLUE='\033[0;34m'
+readonly NC='\033[0m'
 
-log() {
-    echo -e "${GREEN}[$(date '+%Y-%m-%d %H:%M:%S')]${NC} $1"
-}
+readonly NODE_EXPORTER_USER="node_exporter"
+readonly NODE_EXPORTER_SERVICE="/etc/systemd/system/node_exporter.service"
+readonly NODE_EXPORTER_BINARY="/usr/local/bin/node_exporter"
+readonly GITHUB_API="https://api.github.com/repos/prometheus/node_exporter/releases/latest"
+readonly DOWNLOAD_DIR="/tmp/node_exporter_install"
 
-error() {
-    echo -e "${RED}[ERROR]${NC} $1"
-}
+# Функции логирования
+log() { echo -e "${GREEN}[✓]${NC} $1"; }
+warn() { echo -e "${YELLOW}[⚠]${NC} $1"; }
+err() { echo -e "${RED}[✗]${NC} $1"; }
+info() { echo -e "${BLUE}[ℹ]${NC} $1"; }
 
-warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
-}
-
-success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
-}
-
-# ===== Helpers =====
-get_node_ip() {
-  local ip
-  ip=$(hostname -I 2>/dev/null | awk '{print $1}')
-  if [ -z "$ip" ]; then
-    ip=$(curl -s -4 ifconfig.me 2>/dev/null || true)
-  fi
-  echo "$ip"
-}
-
-get_installed_version() {
-  if command -v node_exporter >/dev/null 2>&1; then
-    local line
-    line=$(node_exporter --version 2>/dev/null | head -n1)
-    # Ищем первый токен вида X.Y.Z
-    echo "$line" | awk '{for(i=1;i<=NF;i++){if($i ~ /^[0-9]+\.[0-9]+\.[0-9]+$/){print $i; exit}}}'
-  fi
-}
-
-is_unit_present() {
-  systemctl list-unit-files 2>/dev/null | grep -q '^node_exporter\.service'
-}
-
-show_status_header() {
-  local state="Not installed"
-  local color='\033[38;5;244m'
-  if is_unit_present || command -v node_exporter >/dev/null 2>&1; then
-    state="STOPPED"
-    color="$RED"
-  fi
-  if systemctl is-active --quiet node_exporter 2>/dev/null; then
-    state="RUNNING"
-    color="$GREEN"
-  fi
-  local ip=$(get_node_ip)
-  local ver=$(get_installed_version)
-  [ -n "$ver" ] && ver="v$ver" || ver="—"
-  echo -e "${BLUE}================ Node Exporter =================${NC}"
-  echo -e "Статус: ${color}${state}${NC}  |  Версия: ${WHITE}${ver}${NC}  |  Порт: 9100"
-  echo -e "URL:    http://${ip:-127.0.0.1}:9100/metrics"
-  if ss -tln 2>/dev/null | grep -q ":9100 "; then
-    echo -e "Прослушивание порта: ${GREEN}✅ да${NC}"
-  else
-    echo -e "Прослушивание порта: ${RED}🔴 нет${NC}"
-  fi
-  echo -e "${BLUE}===============================================${NC}"
-}
-
-ensure_unit_with_envfile() {
-  # Создаём/обновляем unit с поддержкой EnvironmentFile
-  local unit="/etc/systemd/system/node_exporter.service"
-  if [ -f "$unit" ]; then
-    # Добавляем EnvironmentFile, если отсутствует
-    if ! grep -q '^EnvironmentFile=' "$unit"; then
-      sed -i '/^\[Service\]/a EnvironmentFile=/etc/default/node_exporter' "$unit"
+# Проверка прав root
+require_root() {
+    if [[ $EUID -ne 0 ]]; then
+        err "Требуются права root. Запустите: sudo $0"
+        exit 1
     fi
-    # Заменяем ExecStart на вариант с $OPTIONS
-    if grep -q '^ExecStart=' "$unit"; then
-      sed -i 's|^ExecStart=.*|ExecStart=/usr/local/bin/node_exporter $OPTIONS|g' "$unit"
+}
+
+# Определение архитектуры
+detect_architecture() {
+    local arch
+    arch=$(uname -m)
+    
+    case "$arch" in
+        x86_64)
+            echo "amd64"
+            ;;
+        aarch64|arm64)
+            echo "arm64"
+            ;;
+        armv7l)
+            echo "armv7"
+            ;;
+        armv6l)
+            echo "armv6"
+            ;;
+        i386|i686)
+            echo "386"
+            ;;
+        *)
+            err "Неподдерживаемая архитектура: $arch"
+            exit 1
+            ;;
+    esac
+}
+
+# Получение последней версии
+get_latest_version() {
+    info "Получение информации о последней версии Node Exporter..."
+    
+    local version
+    if command -v curl >/dev/null 2>&1; then
+        version=$(curl -s "$GITHUB_API" | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/' | head -1)
+    elif command -v wget >/dev/null 2>&1; then
+        version=$(wget -qO- "$GITHUB_API" | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/' | head -1)
+    else
+        err "Не найден curl или wget для скачивания"
+        exit 1
     fi
-  else
-    cat > "$unit" << 'EOF'
+    
+    if [[ -z "$version" || "$version" == "null" ]]; then
+        warn "Не удалось получить последнюю версию, используем 1.8.2"
+        version="1.8.2"
+    fi
+    
+    echo "$version"
+}
+
+# Проверка существующей установки
+check_existing_installation() {
+    if systemctl is-active --quiet node_exporter 2>/dev/null; then
+        local current_version
+        current_version=$($NODE_EXPORTER_BINARY --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || echo "unknown")
+        
+        warn "Node Exporter уже установлен и запущен (версия: $current_version)"
+        
+        if [[ "${FORCE_REINSTALL:-false}" != "true" ]]; then
+            echo -n "Переустановить? [y/N]: "
+            read -r response
+            if [[ "$response" != [yY] ]]; then
+                info "Установка отменена"
+                exit 0
+            fi
+        fi
+        
+        info "Останавливаем существующий сервис..."
+        systemctl stop node_exporter || true
+        systemctl disable node_exporter || true
+    fi
+}
+
+# Создание пользователя
+create_user() {
+    if id "$NODE_EXPORTER_USER" >/dev/null 2>&1; then
+        info "Пользователь $NODE_EXPORTER_USER уже существует"
+    else
+        info "Создание пользователя $NODE_EXPORTER_USER..."
+        useradd --system --no-create-home --shell /bin/false "$NODE_EXPORTER_USER" || {
+            err "Не удалось создать пользователя $NODE_EXPORTER_USER"
+            exit 1
+        }
+        log "Пользователь $NODE_EXPORTER_USER создан"
+    fi
+}
+
+# Скачивание и установка
+download_and_install() {
+    local version="$1"
+    local arch="$2"
+    local filename="node_exporter-${version}.linux-${arch}"
+    local tarball="${filename}.tar.gz"
+    local download_url="https://github.com/prometheus/node_exporter/releases/download/v${version}/${tarball}"
+    
+    info "Скачивание Node Exporter v$version для $arch..."
+    
+    # Создаем временную директорию
+    rm -rf "$DOWNLOAD_DIR"
+    mkdir -p "$DOWNLOAD_DIR"
+    cd "$DOWNLOAD_DIR"
+    
+    # Скачиваем с проверкой
+    local download_success=false
+    if command -v curl >/dev/null 2>&1; then
+        if curl -L -f -o "$tarball" "$download_url" 2>/dev/null; then
+            download_success=true
+        fi
+    fi
+    
+    if [[ "$download_success" == "false" ]] && command -v wget >/dev/null 2>&1; then
+        if wget -q -O "$tarball" "$download_url" 2>/dev/null; then
+            download_success=true
+        fi
+    fi
+    
+    if [[ "$download_success" == "false" ]]; then
+        err "Не удалось скачать Node Exporter"
+        err "URL: $download_url"
+        exit 1
+    fi
+    
+    # Проверяем размер файла
+    local file_size
+    file_size=$(stat -c%s "$tarball" 2>/dev/null || echo "0")
+    if [[ "$file_size" -lt 1000000 ]]; then  # Меньше 1MB
+        err "Скачанный файл слишком мал ($file_size байт), возможно поврежден"
+        exit 1
+    fi
+    
+    log "Файл скачан (размер: $file_size байт)"
+    
+    # Распаковываем
+    info "Распаковка архива..."
+    if ! tar xzf "$tarball" 2>/dev/null; then
+        err "Не удалось распаковать архив"
+        exit 1
+    fi
+    
+    # Проверяем что бинарник существует
+    if [[ ! -f "$filename/node_exporter" ]]; then
+        err "Бинарный файл node_exporter не найден в архиве"
+        exit 1
+    fi
+    
+    # Проверяем что бинарник исполняемый
+    if ! "$filename/node_exporter" --version >/dev/null 2>&1; then
+        err "Скачанный бинарник не работает"
+        exit 1
+    fi
+    
+    # Устанавливаем
+    info "Установка бинарного файла..."
+    cp "$filename/node_exporter" "$NODE_EXPORTER_BINARY"
+    chmod +x "$NODE_EXPORTER_BINARY"
+    chown root:root "$NODE_EXPORTER_BINARY"
+    
+    log "Node Exporter установлен в $NODE_EXPORTER_BINARY"
+    
+    # Проверяем установку
+    local installed_version
+    installed_version=$($NODE_EXPORTER_BINARY --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || echo "unknown")
+    log "Установленная версия: $installed_version"
+}
+
+# Создание systemd сервиса
+create_systemd_service() {
+    info "Создание systemd сервиса..."
+    
+    cat > "$NODE_EXPORTER_SERVICE" << EOF
 [Unit]
 Description=Node Exporter
-After=network.target
+Documentation=https://prometheus.io/docs/guides/node-exporter/
+Wants=network-online.target
+After=network-online.target
 
 [Service]
 Type=simple
-User=node_exporter
-Group=node_exporter
-EnvironmentFile=/etc/default/node_exporter
-ExecStart=/usr/local/bin/node_exporter $OPTIONS
+User=$NODE_EXPORTER_USER
+Group=$NODE_EXPORTER_USER
+ExecReload=/bin/kill -HUP \$MAINPID
+ExecStart=$NODE_EXPORTER_BINARY \\
+    --web.listen-address=:9100 \\
+    --path.procfs=/proc \\
+    --path.rootfs=/ \\
+    --path.sysfs=/sys \\
+    --collector.filesystem.mount-points-exclude='^/(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns|rootfs/var/lib/docker/aufs)($$|/)' \\
+    --collector.filesystem.fs-types-exclude='^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|iso9660|mqueue|nsfs|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tracefs)$$'
+
+# Security settings
+NoNewPrivileges=true
+ProtectHome=true
+ProtectSystem=strict
+ProtectHostname=true
+ProtectClock=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6
+RestrictNamespaces=true
+LockPersonality=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+RemoveIPC=true
+PrivateMounts=true
+
+# Restart settings
 Restart=always
+RestartSec=5
+StartLimitInterval=60
+StartLimitBurst=3
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=node_exporter
 
 [Install]
 WantedBy=multi-user.target
 EOF
-  fi
-  mkdir -p /etc/default
-  [ -f /etc/default/node_exporter ] || echo 'OPTIONS=""' > /etc/default/node_exporter
+    
+    log "Systemd сервис создан"
 }
 
-cmd_change_port() {
-  read -p "Введите порт для Node Exporter (текущий 9100): " NEW_PORT
-  NEW_PORT=${NEW_PORT:-9100}
-  if ! [[ "$NEW_PORT" =~ ^[0-9]{2,5}$ ]]; then
-    error "Некорректный порт"; return
-  fi
-  ensure_unit_with_envfile
-  sed -i 's/^OPTIONS=.*/OPTIONS="--web.listen-address=:'"$NEW_PORT"'"/' /etc/default/node_exporter
-  systemctl daemon-reload
-  systemctl restart node_exporter || systemctl start node_exporter
-  success "Порт обновлён на $NEW_PORT"
-}
-
-cmd_configure_collectors() {
-  ensure_unit_with_envfile
-  echo "Введите дополнительные опции (например: --collector.textfile.directory=/var/lib/node_exporter/textfile_collector)"
-  echo "Оставьте пустым, чтобы очистить. Текущие:"
-  grep -E '^OPTIONS=' /etc/default/node_exporter || true
-  read -p "OPTIONS= " EXTRA
-  echo "OPTIONS=\"$EXTRA\"" > /etc/default/node_exporter
-  systemctl daemon-reload
-  systemctl restart node_exporter || systemctl start node_exporter
-  success "Опции сохранены"
-}
-
-cmd_uninstall() {
-  systemctl stop node_exporter 2>/dev/null || true
-  systemctl disable node_exporter 2>/dev/null || true
-  rm -f /etc/systemd/system/node_exporter.service
-  systemctl daemon-reload 2>/dev/null || true
-  rm -f /usr/local/bin/node_exporter
-  userdel node_exporter 2>/dev/null || true
-  rm -f /etc/default/node_exporter
-  success "Node Exporter удалён"
-}
-
-cmd_status() {
-  show_status_header
-  systemctl status node_exporter --no-pager 2>/dev/null || true
-}
-
-cmd_menu() {
-  while true; do
-    clear
-    show_status_header
-    echo -e "${WHITE}\n🛠️  Установка:${NC}"
-    echo "  1) Установить/обновить (последняя версия)"
-    echo "  2) Установить конкретную версию…"
-    echo "  3) Удалить Node Exporter"
-    echo -e "\n${WHITE}▶️  Сервис:${NC}"
-    echo "  4) Запустить"
-    echo "  5) Остановить"
-    echo "  6) Перезапустить"
-    echo "  7) Включить автозапуск (enable)"
-    echo "  8) Отключить автозапуск (disable)"
-    echo -e "\n${WHITE}📊 Статус и диагностика:${NC}"
-    echo "  9) Показать статус"
-    echo "  10) Показать логи"
-    echo "  11) Информация (версия, путь, владелец)"
-    echo "  12) Проверить прослушивание порта 9100"
-    echo "  13) Показать URL метрик"
-    echo -e "\n${WHITE}⚙️  Настройки:${NC}"
-    echo "  14) Изменить порт…"
-    echo "  15) Открыть порт в firewall"
-    echo "  16) Закрыть порт в firewall"
-    echo "  17) Настроить collectors…"
-    echo "  0) Выход"
-    echo -n "Выбор: "
-    read choice
-    case "$choice" in
-      1) exec "$0" install ;; 
-      2) read -p "Введите версию (например v1.9.1): " VER; [ -n "$VER" ] && exec "$0" install-version "$VER" || true ;;
-      3) cmd_uninstall; echo; read -p "Нажмите Enter..." _ ;;
-      4) systemctl start node_exporter ;;
-      5) systemctl stop node_exporter ;;
-      6) systemctl restart node_exporter ;;
-      7) systemctl enable node_exporter ;;
-      8) systemctl disable node_exporter ;;
-      9) cmd_status; echo; read -p "Нажмите Enter..." _ ;;
-      10) journalctl -u node_exporter -n 200 --no-pager | sed -e 's/^/  /'; echo; read -p "Нажмите Enter..." _ ;;
-      11) which node_exporter 2>/dev/null || echo "/usr/local/bin/node_exporter"; ls -l /usr/local/bin/node_exporter 2>/dev/null || true; echo "Версия: $(get_installed_version || echo '-')"; echo; read -p "Нажмите Enter..." _ ;;
-      12) if ss -tln 2>/dev/null | grep -q ":9100 "; then echo "Порт 9100 слушается"; else echo "Порт 9100 не слушается"; fi; echo; read -p "Нажмите Enter..." _ ;;
-      13) echo "URL: http://$(get_node_ip):9100/metrics"; echo; read -p "Нажмите Enter..." _ ;;
-      14) cmd_change_port ;;
-      15) if command -v ufw >/dev/null 2>&1; then ufw allow 9100/tcp || true; elif command -v firewall-cmd >/dev/null 2>&1; then firewall-cmd --add-port=9100/tcp --permanent && firewall-cmd --reload; else echo "Нет поддерживаемого firewall (ufw/firewalld)"; fi ;;
-      16) if command -v ufw >/dev/null 2>&1; then ufw deny 9100/tcp || ufw delete allow 9100/tcp || true; elif command -v firewall-cmd >/dev/null 2>&1; then firewall-cmd --remove-port=9100/tcp --permanent && firewall-cmd --reload; else echo "Нет поддерживаемого firewall (ufw/firewalld)"; fi ;;
-      17) cmd_configure_collectors ;;
-      0) clear; return ;;
-      *) : ;;
+# Настройка firewall
+setup_firewall() {
+    info "Настройка firewall для порта 9100..."
+    
+    # Определяем ОС
+    if [[ -f /etc/os-release ]]; then
+        source /etc/os-release
+        local os_id="$ID"
+    else
+        warn "Не удалось определить ОС, пропускаем настройку firewall"
+        return 0
+    fi
+    
+    case "$os_id" in
+        ubuntu|debian)
+            if command -v ufw >/dev/null 2>&1; then
+                ufw --force enable 2>/dev/null || true
+                if ufw allow 9100/tcp 2>/dev/null; then
+                    log "Порт 9100 открыт в UFW"
+                else
+                    warn "Не удалось открыть порт 9100 в UFW"
+                fi
+            else
+                warn "UFW не найден"
+            fi
+            ;;
+        centos|rhel|fedora)
+            if command -v firewall-cmd >/dev/null 2>&1; then
+                systemctl enable firewalld 2>/dev/null || true
+                systemctl start firewalld 2>/dev/null || true
+                if firewall-cmd --permanent --add-port=9100/tcp 2>/dev/null && firewall-cmd --reload 2>/dev/null; then
+                    log "Порт 9100 открыт в firewalld"
+                else
+                    warn "Не удалось открыть порт 9100 в firewalld"
+                fi
+            else
+                warn "Firewalld не найден"
+            fi
+            ;;
+        *)
+            warn "Неизвестная ОС ($os_id), пропускаем настройку firewall"
+            ;;
     esac
-  done
 }
 
-# Обработка команд до установки
-install_version_by_tag() {
-  local TAG="$1"  # формата v1.9.1
-  [ -n "$TAG" ] || { error "Не указана версия"; return 1; }
-  log "Установка Node Exporter версии $TAG..."
-  # Определяем архитектуру
-  ARCH_SUFFIX=""
-  case "$(uname -m)" in
-    x86_64|amd64) ARCH_SUFFIX="linux-amd64" ;;
-    aarch64|arm64) ARCH_SUFFIX="linux-arm64" ;;
-    i386|i686) ARCH_SUFFIX="linux-386" ;;
-    armv7l) ARCH_SUFFIX="linux-armv7" ;;
-    *) ARCH_SUFFIX="linux-amd64" ;;
-  esac
-  cd /tmp
-  rm -f "node_exporter-${TAG#v}."*.tar.gz 2>/dev/null || true
-  wget -q "https://github.com/prometheus/node_exporter/releases/download/${TAG}/node_exporter-${TAG#v}.${ARCH_SUFFIX}.tar.gz" || { error "Не удалось скачать релиз ${TAG}"; return 1; }
-  tar xzf "node_exporter-${TAG#v}.${ARCH_SUFFIX}.tar.gz"
-  SRC_DIR="node_exporter-${TAG#v}.${ARCH_SUFFIX}"
-  TARGET_BIN="/usr/local/bin/node_exporter"
-  NEW_BIN="${TARGET_BIN}.new"
-  cp "${SRC_DIR}/node_exporter" "${NEW_BIN}"
-  chmod 0755 "${NEW_BIN}"
-  SERVICE_WAS_RUNNING=false
-  if systemctl is-active --quiet node_exporter 2>/dev/null; then SERVICE_WAS_RUNNING=true; fi
-  if mv -f "${NEW_BIN}" "${TARGET_BIN}" 2>/dev/null; then :; else systemctl stop node_exporter 2>/dev/null || true; mv -f "${NEW_BIN}" "${TARGET_BIN}"; fi
-  ensure_unit_with_envfile
-  useradd -r node_exporter 2>/dev/null || true
-  chown root:root /usr/local/bin/node_exporter 2>/dev/null || true
-  systemctl daemon-reload
-  systemctl enable node_exporter 2>/dev/null || true
-  if [ "$SERVICE_WAS_RUNNING" = true ]; then systemctl restart node_exporter || systemctl start node_exporter; else systemctl start node_exporter; fi
-  rm -rf /tmp/node_exporter-*
-  success "Node Exporter ${TAG} установлен"
+# Запуск сервиса
+start_service() {
+    info "Запуск Node Exporter сервиса..."
+    
+    systemctl daemon-reload
+    
+    if systemctl enable node_exporter; then
+        log "Node Exporter добавлен в автозапуск"
+    else
+        err "Не удалось добавить Node Exporter в автозапуск"
+        exit 1
+    fi
+    
+    if systemctl start node_exporter; then
+        log "Node Exporter сервис запущен"
+    else
+        err "Не удалось запустить Node Exporter сервис"
+        info "Проверьте логи: journalctl -u node_exporter -f"
+        exit 1
+    fi
+    
+    # Проверяем что сервис действительно работает
+    sleep 3
+    if systemctl is-active --quiet node_exporter; then
+        log "Node Exporter сервис активен"
+    else
+        err "Node Exporter сервис не активен после запуска"
+        info "Логи сервиса:"
+        journalctl -u node_exporter --no-pager -n 10
+        exit 1
+    fi
 }
 
-case "$1" in
-  status) cmd_status; exit 0 ;;
-  start) systemctl start node_exporter; cmd_status; exit 0 ;;
-  stop) systemctl stop node_exporter; cmd_status; exit 0 ;;
-  restart) systemctl restart node_exporter; cmd_status; exit 0 ;;
-  logs) journalctl -u node_exporter -n 200 --no-pager; exit 0 ;;
-  uninstall) cmd_uninstall; exit 0 ;;
-  port) cmd_change_port; exit 0 ;;
-  collectors) cmd_configure_collectors; exit 0 ;;
-  install-version) shift; install_version_by_tag "$1"; exit 0 ;;
-  menu) cmd_menu; exit 0 ;;
-  ""|install) : ;; # продолжим установку ниже
-  *) echo "Неизвестная команда: $1"; echo "Доступно: install|status|start|stop|restart|logs|menu"; exit 1 ;;
-esac
+# Финальная проверка
+final_check() {
+    info "Выполнение финальной проверки..."
+    
+    # Проверяем метрики endpoint
+    sleep 2
+    local metrics_available=false
+    
+    for i in {1..5}; do
+        if curl -s http://localhost:9100/metrics >/dev/null 2>&1; then
+            metrics_available=true
+            break
+        fi
+        sleep 1
+    done
+    
+    if [[ "$metrics_available" == "true" ]]; then
+        log "Endpoint метрик отвечает"
+        
+        # Проверяем количество метрик
+        local metrics_count
+        metrics_count=$(curl -s http://localhost:9100/metrics | wc -l)
+        if [[ "$metrics_count" -gt 100 ]]; then
+            log "Получено $metrics_count метрик"
+        else
+            warn "Получено только $metrics_count метрик (ожидалось больше 100)"
+        fi
+    else
+        warn "Endpoint метрик не отвечает (возможно, сервис еще запускается)"
+    fi
+    
+    # Показываем информацию
+    echo
+    info "Установка Node Exporter завершена!"
+    echo -e "${BLUE}Метрики доступны по адресу: http://localhost:9100/metrics${NC}"
+    echo -e "${BLUE}Проверка статуса: systemctl status node_exporter${NC}"
+    echo -e "${BLUE}Просмотр логов: journalctl -u node_exporter -f${NC}"
+}
 
-# Check if running as root
-if [[ $EUID -ne 0 ]]; then
-    error "Этот скрипт должен быть запущен с правами root"
-    exit 1
-fi
+# Cleanup функция
+cleanup() {
+    local exit_code=$?
+    
+    # Удаляем временную директорию
+    if [[ -d "$DOWNLOAD_DIR" ]]; then
+        rm -rf "$DOWNLOAD_DIR"
+    fi
+    
+    if [[ $exit_code -ne 0 ]]; then
+        err "Установка прервана с ошибкой (код: $exit_code)"
+        warn "Для очистки выполните:"
+        warn "sudo systemctl stop node_exporter"
+        warn "sudo systemctl disable node_exporter"
+        warn "sudo rm -f $NODE_EXPORTER_BINARY $NODE_EXPORTER_SERVICE"
+        warn "sudo userdel $NODE_EXPORTER_USER"
+    fi
+}
 
-log "Установка Node Exporter..."
+# Основная функция
+main() {
+    echo -e "${BLUE}╔══════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${BLUE}║${NC}              ${GREEN}Node Exporter Installer v1.2.0${NC}                 ${BLUE}║${NC}"
+    echo -e "${BLUE}║${NC}                     ${YELLOW}Optimized Edition${NC}                       ${BLUE}║${NC}"
+    echo -e "${BLUE}╚══════════════════════════════════════════════════════════════╝${NC}"
+    echo
+    
+    trap cleanup EXIT
+    
+    require_root
+    
+    local arch
+    arch=$(detect_architecture)
+    info "Определена архитектура: $arch"
+    
+    local version
+    version=$(get_latest_version)
+    info "Последняя версия: $version"
+    
+    check_existing_installation
+    create_user
+    download_and_install "$version" "$arch"
+    create_systemd_service
+    setup_firewall
+    start_service
+    final_check
+    
+    echo
+    log "🎉 Node Exporter успешно установлен!"
+}
 
-# Определяем архитектуру и подбираем архив
-ARCH_SUFFIX=""
-case "$(uname -m)" in
-  x86_64|amd64)
-    ARCH_SUFFIX="linux-amd64"
-    ;;
-  aarch64|arm64)
-    ARCH_SUFFIX="linux-arm64"
-    ;;
-  i386|i686)
-    ARCH_SUFFIX="linux-386"
-    ;;
-  armv7l)
-    ARCH_SUFFIX="linux-armv7"
-    ;;
-  *)
-    warning "Неподдерживаемая архитектура: $(uname -m). Пытаюсь использовать linux-amd64 по умолчанию."
-    ARCH_SUFFIX="linux-amd64"
-    ;;
-esac
-
-# Проверяем зависимости
-need_pkg=false
-command -v curl >/dev/null 2>&1 || need_pkg=true
-command -v wget >/dev/null 2>&1 || need_pkg=true
-if $need_pkg; then
-  warning "Не найдены зависимости (curl/wget). Пытаюсь установить..."
-  if command -v apt-get >/dev/null 2>&1; then
-    apt-get update -qq || true
-    apt-get install -y -qq curl wget || true
-  elif command -v yum >/dev/null 2>&1; then
-    yum install -y -q curl wget || true
-  elif command -v dnf >/dev/null 2>&1; then
-    dnf install -y -q curl wget || true
-  elif command -v zypper >/dev/null 2>&1; then
-    zypper --non-interactive install -y curl wget || true
-  fi
-fi
-
-# Get latest version
-LATEST_VERSION=$(curl -s https://api.github.com/repos/prometheus/node_exporter/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
-
-if [ -z "$LATEST_VERSION" ]; then
-    error "Не удалось получить версию Node Exporter"
-    exit 1
-fi
-
-log "Последняя версия: $LATEST_VERSION"
-
-# Проверка systemd
-if ! pidof systemd >/dev/null 2>&1 && [ ! -d /run/systemd/system ]; then
-  warning "Выглядит, что systemd недоступен. Юнит будет создан, но автозапуск может не сработать."
-fi
-
-# Download and install (latest)
-cd /tmp
-# Чистим возможные предыдущие архивы той же версии, чтобы избежать суффикса .2
-rm -f "node_exporter-${LATEST_VERSION#v}."*.tar.gz 2>/dev/null || true
-wget "https://github.com/prometheus/node_exporter/releases/download/${LATEST_VERSION}/node_exporter-${LATEST_VERSION#v}.${ARCH_SUFFIX}.tar.gz"
-
-tar xzf "node_exporter-${LATEST_VERSION#v}.${ARCH_SUFFIX}.tar.gz"
-
-# Безопасная замена бинарника (обходит ошибку "Text file busy")
-SRC_DIR="node_exporter-${LATEST_VERSION#v}.${ARCH_SUFFIX}"
-TARGET_BIN="/usr/local/bin/node_exporter"
-NEW_BIN="${TARGET_BIN}.new"
-cp "${SRC_DIR}/node_exporter" "${NEW_BIN}"
-chmod 0755 "${NEW_BIN}"
-
-# Если сервис запущен, пометим для перезапуска после замены
-SERVICE_WAS_RUNNING=false
-if systemctl is-active --quiet node_exporter 2>/dev/null; then
-  SERVICE_WAS_RUNNING=true
-fi
-
-# Пытаемся атомарно подменить бинарь
-if mv -f "${NEW_BIN}" "${TARGET_BIN}" 2>/dev/null; then
-  :
-else
-  # Если не удалось (редко), останавливаем и повторяем
-  systemctl stop node_exporter 2>/dev/null || true
-  mv -f "${NEW_BIN}" "${TARGET_BIN}"
-fi
-
-# Ensure systemd unit with EnvironmentFile
-ensure_unit_with_envfile
-
-# Create user
-useradd -r node_exporter 2>/dev/null || true
-chown root:root /usr/local/bin/node_exporter 2>/dev/null || true
-
-# Enable and start service
-systemctl daemon-reload
-systemctl enable node_exporter
-systemctl start node_exporter
-
-# Перезапускаем если ранее был запущен и был апдейт
-if [ "$SERVICE_WAS_RUNNING" = true ]; then
-  systemctl restart node_exporter || systemctl start node_exporter
-fi
-
-# Cleanup
-rm -rf /tmp/node_exporter-*
-
-success "Node Exporter установлен и запущен!"
-log "Порт: 9100"
-log "URL: http://$(curl -s ifconfig.me):9100/metrics"
-
-# Check status
-if systemctl is-active --quiet node_exporter; then
-    success "Node Exporter работает"
-else
-    error "Node Exporter не запустился"
-    systemctl status node_exporter
-fi
+# Запуск
+main "$@"

@@ -174,66 +174,442 @@ show_system_status() {
     read -p "Нажмите Enter для возврата в главное меню..."
 }
 
-# Меню Node Exporter + Node API
+# ===============================================================================
+# NODE MONITORING SETUP - Интегрированное меню
+# ===============================================================================
+
+# Дополнительные цвета для Node Monitoring
+readonly CYAN_BOLD='\033[1;36m'
+readonly PURPLE_BOLD='\033[1;35m'
+
+# Функции логирования для Node Monitoring
+log_success() { echo -e "${GREEN}[✓]${NC} $1"; }
+log_warn() { echo -e "${YELLOW}[⚠]${NC} $1"; }
+log_error() { echo -e "${RED}[✗]${NC} $1"; }
+log_info() { echo -e "${BLUE}[ℹ]${NC} $1"; }
+
+# Проверка статуса сервиса
+check_service_status() {
+    local service_name="$1"
+    if systemctl is-active --quiet "$service_name" 2>/dev/null; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+# Универсальная функция ожидания
+wait_for_user() {
+    echo
+    read -p "Нажмите Enter для продолжения..."
+}
+
+# Проверка существования скрипта
+check_script_exists() {
+    local script_path="$1"
+    local script_name="$2"
+    
+    if [[ ! -f "$script_path" ]]; then
+        log_error "$script_name не найден: $script_path"
+        return 1
+    fi
+    
+    if [[ ! -x "$script_path" ]]; then
+        log_warn "$script_name не исполняемый, делаем исполняемым..."
+        chmod +x "$script_path"
+    fi
+    
+    return 0
+}
+
+# Функции установки
+install_full_monitoring() {
+    show_header
+    log_info "🚀 Запуск полной установки..."
+    echo -e "${YELLOW}Устанавливаем: Node API + MTR + Node Exporter${NC}"
+    echo
+    
+    # Проверяем скрипты
+    local node_api_script="script/scripts-main/install_node_api.sh"
+    local node_exporter_script="script/scripts-main/install_node_exporter.sh"
+    
+    if ! check_script_exists "$node_api_script" "Node API скрипт"; then
+        log_error "Не удалось найти скрипт установки Node API"
+        wait_for_user
+        return 1
+    fi
+    
+    if ! check_script_exists "$node_exporter_script" "Node Exporter скрипт"; then
+        log_error "Не удалось найти скрипт установки Node Exporter"
+        wait_for_user
+        return 1
+    fi
+    
+    # Устанавливаем Node API + MTR
+    log_info "Этап 1/2: Установка Node API + MTR"
+    if INSTALL_MTR=true bash "$node_api_script"; then
+        log_success "Node API + MTR установлены успешно"
+    else
+        log_error "Ошибка установки Node API + MTR"
+        wait_for_user
+        return 1
+    fi
+    
+    echo
+    log_info "Этап 2/2: Установка Node Exporter"
+    if bash "$node_exporter_script"; then
+        log_success "Node Exporter установлен успешно"
+    else
+        log_error "Ошибка установки Node Exporter"
+        wait_for_user
+        return 1
+    fi
+    
+    echo
+    log_success "✅ Полная установка завершена успешно!"
+    wait_for_user
+}
+
+install_node_api_only() {
+    show_header
+    log_info "🔧 Установка Node API + MTR..."
+    echo
+    
+    local node_api_script="script/scripts-main/install_node_api.sh"
+    if ! check_script_exists "$node_api_script" "Node API скрипт"; then
+        log_error "Не удалось найти скрипт установки Node API"
+        wait_for_user
+        return 1
+    fi
+    
+    if INSTALL_MTR=true bash "$node_api_script"; then
+        log_success "✅ Node API + MTR установлены успешно!"
+    else
+        log_error "Ошибка установки Node API + MTR"
+        wait_for_user
+        return 1
+    fi
+    
+    wait_for_user
+}
+
+install_node_exporter_only() {
+    show_header
+    log_info "📊 Установка Node Exporter..."
+    echo
+    
+    local node_exporter_script="script/scripts-main/install_node_exporter.sh"
+    if ! check_script_exists "$node_exporter_script" "Node Exporter скрипт"; then
+        log_error "Не удалось найти скрипт установки Node Exporter"
+        wait_for_user
+        return 1
+    fi
+    
+    if bash "$node_exporter_script"; then
+        log_success "✅ Node Exporter установлен успешно!"
+    else
+        log_error "Ошибка установки Node Exporter"
+        wait_for_user
+        return 1
+    fi
+    
+    wait_for_user
+}
+
+# Функции тестирования
+test_node_api() {
+    show_header
+    log_info "🧪 Тестирование Node API..."
+    echo
+    
+    if ! check_service_status "node-api"; then
+        log_error "Node API не запущен"
+        log_info "Попробуйте: sudo systemctl start node-api"
+        wait_for_user
+        return 1
+    fi
+    
+    log_success "Node API сервис активен"
+    
+    # Проверяем health endpoint
+    log_info "Проверка health endpoint..."
+    if timeout 5 curl -s http://localhost:8080/health >/dev/null 2>&1; then
+        log_success "Health endpoint отвечает"
+        
+        # Показываем ответ
+        echo -e "${CYAN}Ответ health endpoint:${NC}"
+        curl -s http://localhost:8080/health | python3 -m json.tool 2>/dev/null || curl -s http://localhost:8080/health
+    else
+        log_warn "Health endpoint не отвечает"
+    fi
+    
+    echo
+    log_info "Статус сервиса:"
+    systemctl status node-api --no-pager -l | head -20
+    
+    wait_for_user
+}
+
+test_mtr() {
+    show_header
+    log_info "🌐 Тестирование MTR диагностики..."
+    echo
+    
+    if ! command -v mtr >/dev/null 2>&1; then
+        log_error "MTR не установлен"
+        log_info "Установите MTR: sudo apt install mtr-tiny"
+        wait_for_user
+        return 1
+    fi
+    
+    log_success "MTR найден"
+    
+    # Показываем версию
+    log_info "Версия MTR:"
+    mtr --version 2>/dev/null || echo "Версия недоступна"
+    
+    echo
+    log_info "Запуск MTR диагностики до 8.8.8.8 (5 циклов)..."
+    echo
+    
+    if mtr --report --report-cycles 5 8.8.8.8; then
+        log_success "MTR диагностика завершена успешно"
+    else
+        log_error "Ошибка выполнения MTR"
+    fi
+    
+    wait_for_user
+}
+
+test_node_exporter() {
+    show_header
+    log_info "📊 Проверка метрик Node Exporter..."
+    echo
+    
+    if ! check_service_status "node_exporter"; then
+        log_error "Node Exporter не запущен"
+        log_info "Попробуйте: sudo systemctl start node_exporter"
+        wait_for_user
+        return 1
+    fi
+    
+    log_success "Node Exporter сервис активен"
+    
+    # Проверяем метрики endpoint
+    log_info "Проверка endpoint метрик..."
+    if timeout 5 curl -s http://localhost:9100/metrics >/dev/null 2>&1; then
+        log_success "Endpoint метрик отвечает"
+        
+        # Показываем статистику метрик
+        local metrics_count
+        metrics_count=$(curl -s http://localhost:9100/metrics | wc -l)
+        log_info "Доступно метрик: $metrics_count"
+        
+        echo
+        log_info "Примеры метрик:"
+        curl -s http://localhost:9100/metrics | grep -E "^(node_cpu|node_memory|node_filesystem)" | head -5
+    else
+        log_warn "Endpoint метрик не отвечает"
+    fi
+    
+    echo
+    log_info "Статус сервиса:"
+    systemctl status node_exporter --no-pager -l | head -20
+    
+    wait_for_user
+}
+
+show_monitoring_logs() {
+    show_header
+    log_info "🔍 Просмотр логов..."
+    echo
+    
+    echo "Выберите логи для просмотра:"
+    echo "1. Node API"
+    echo "2. Node Exporter"
+    echo "3. Системные логи (последние ошибки)"
+    echo "4. Все сервисы мониторинга"
+    echo "0. Назад"
+    echo
+    read -p "Выберите [0-4]: " log_choice
+    
+    case $log_choice in
+        1)
+            if check_service_status "node-api"; then
+                echo -e "${CYAN}📋 Логи Node API (последние 50 строк):${NC}"
+                journalctl -u node-api -n 50 --no-pager
+            else
+                log_warn "Node API не запущен"
+            fi
+            ;;
+        2)
+            if check_service_status "node_exporter"; then
+                echo -e "${CYAN}📋 Логи Node Exporter (последние 50 строк):${NC}"
+                journalctl -u node_exporter -n 50 --no-pager
+            else
+                log_warn "Node Exporter не запущен"
+            fi
+            ;;
+        3)
+            echo -e "${CYAN}📋 Системные ошибки (последние 30 минут):${NC}"
+            journalctl --since "30 minutes ago" --priority=err --no-pager
+            ;;
+        4)
+            echo -e "${CYAN}📋 Все сервисы мониторинга:${NC}"
+            for service in node-api node_exporter; do
+                if systemctl is-enabled "$service" >/dev/null 2>&1; then
+                    echo -e "\n${YELLOW}=== $service ===${NC}"
+                    journalctl -u "$service" -n 10 --no-pager
+                fi
+            done
+            ;;
+        0)
+            return
+            ;;
+        *)
+            log_error "Неверный выбор"
+            ;;
+    esac
+    
+    wait_for_user
+}
+
+# Функции удаления
+remove_node_api() {
+    show_header
+    log_info "❌ Удаление Node API..."
+    echo
+    
+    log_warn "Это удалит Node API, все его файлы и конфигурации"
+    read -p "Вы уверены? [y/N]: " confirm
+    if [[ "$confirm" != [yY] ]]; then
+        log_info "Отменено"
+        wait_for_user
+        return
+    fi
+    
+    log_info "Остановка и отключение сервиса..."
+    systemctl stop node-api 2>/dev/null || true
+    systemctl disable node-api 2>/dev/null || true
+    
+    log_info "Удаление файлов..."
+    rm -f /etc/systemd/system/node-api.service
+    rm -rf /opt/node-api
+    
+    log_info "Удаление пользователя..."
+    userdel node-api 2>/dev/null || true
+    
+    systemctl daemon-reload
+    
+    log_success "✅ Node API удален"
+    wait_for_user
+}
+
+remove_node_exporter() {
+    show_header
+    log_info "❌ Удаление Node Exporter..."
+    echo
+    
+    log_warn "Это удалит Node Exporter, все его файлы и конфигурации"
+    read -p "Вы уверены? [y/N]: " confirm
+    if [[ "$confirm" != [yY] ]]; then
+        log_info "Отменено"
+        wait_for_user
+        return
+    fi
+    
+    log_info "Остановка и отключение сервиса..."
+    systemctl stop node_exporter 2>/dev/null || true
+    systemctl disable node_exporter 2>/dev/null || true
+    
+    log_info "Удаление файлов..."
+    rm -f /etc/systemd/system/node_exporter.service
+    rm -f /usr/local/bin/node_exporter
+    
+    log_info "Удаление пользователя..."
+    userdel node_exporter 2>/dev/null || true
+    
+    systemctl daemon-reload
+    
+    log_success "✅ Node Exporter удален"
+    wait_for_user
+}
+
+# Главное меню Node Monitoring
 show_node_exporter_menu() {
     while true; do
         show_header
-        echo -e "${BOLD}${WHITE}┌─ 📈 NODE EXPORTER + NODE API ────────────────────────┐${NC}"
-        echo -e "${BOLD}${WHITE}│${NC}                                                      ${BOLD}${WHITE}│${NC}"
-        echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}1.${NC} ${YELLOW}📊 Установить Node Exporter${NC}    ${GRAY}┃${NC} ${WHITE}Мониторинг системы${NC}      ${BOLD}${WHITE}│${NC}"
-        echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}2.${NC} ${YELLOW}🔧 Установить Node API${NC}        ${GRAY}┃${NC} ${WHITE}Управление нодами${NC}        ${BOLD}${WHITE}│${NC}"
-        echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}3.${NC} ${YELLOW}🔄 Перезапустить Node Exporter${NC} ${GRAY}┃${NC} ${WHITE}Перезапуск сервиса${NC}      ${BOLD}${WHITE}│${NC}"
-        echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}4.${NC} ${YELLOW}🔄 Перезапустить Node API${NC}      ${GRAY}┃${NC} ${WHITE}Перезапуск сервиса${NC}      ${BOLD}${WHITE}│${NC}"
-        echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}5.${NC} ${YELLOW}📈 Статус Node Exporter${NC}       ${GRAY}┃${NC} ${WHITE}Проверка работы${NC}         ${BOLD}${WHITE}│${NC}"
-        echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}6.${NC} ${YELLOW}🔧 Статус Node API${NC}            ${GRAY}┃${NC} ${WHITE}Проверка работы${NC}         ${BOLD}${WHITE}│${NC}"
-        echo -e "${BOLD}${WHITE}│${NC}                                                      ${BOLD}${WHITE}│${NC}"
-        echo -e "${BOLD}${WHITE}└──────────────────────────────────────────────────────┘${NC}"
-        echo ""
-        echo -e "${BOLD}${WHITE}┌─🚪ВЫХОД ─────────────────────────────────────────────┐${NC}"
-        echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}0.${NC} ${WHITE}Назад в главное меню${NC}                        ${BOLD}${WHITE}│${NC}"
-        echo -e "${BOLD}${WHITE}└──────────────────────────────────────────────────────┘${NC}"
-        echo ""
-        echo -e "${WHITE}Выберите действие:${NC} "
+        echo -e "${CYAN_BOLD}┌─────────────────────────────────────────────────────────────────┐${NC}"
+        echo -e "${CYAN_BOLD}│${NC}                    ${PURPLE_BOLD}NODE MONITORING SETUP${NC}                       ${CYAN_BOLD}│${NC}"
+        echo -e "${CYAN_BOLD}│${NC}                   ${BLUE}Management by Spakieone${NC}                      ${CYAN_BOLD}│${NC}"
+        echo -e "${CYAN_BOLD}│${NC}                     ${YELLOW}Optimized v1.2.0${NC}                         ${CYAN_BOLD}│${NC}"
+        echo -e "${CYAN_BOLD}└─────────────────────────────────────────────────────────────────┘${NC}"
+        echo
+        
+        echo -e "${GREEN}┌─ 🚀 УСТАНОВКА ──────────────────────────────────────────────────┐${NC}"
+        echo -e "${GREEN}│${NC} 1. 🚀 Полная установка (рекомендуется)  ${CYAN}│${NC} Node API + Exporter   ${GREEN}│${NC}"
+        echo -e "${GREEN}│${NC} 2. 🔧 Установить только Node API       ${CYAN}│${NC} API + диагностика     ${GREEN}│${NC}"
+        echo -e "${GREEN}│${NC} 3. 📊 Установить только Node Exporter   ${CYAN}│${NC} Метрики системы       ${GREEN}│${NC}"
+        echo -e "${GREEN}└─────────────────────────────────────────────────────────────────┘${NC}"
+        echo
+        
+        echo -e "${YELLOW}┌─ 🔧 ИНСТРУМЕНТЫ ────────────────────────────────────────────────┐${NC}"
+        echo -e "${YELLOW}│${NC} 4. 🧪 Тест Node API                     ${CYAN}│${NC} Проверка API          ${YELLOW}│${NC}"
+        echo -e "${YELLOW}│${NC} 5. 🌐 Тест MTR диагностики              ${CYAN}│${NC} Тест сети             ${YELLOW}│${NC}"
+        echo -e "${YELLOW}│${NC} 6. 📊 Проверить метрики Node Exporter   ${CYAN}│${NC} Статус метрик         ${YELLOW}│${NC}"
+        echo -e "${YELLOW}│${NC} 7. 🔍 Показать логи                     ${CYAN}│${NC} Системные логи        ${YELLOW}│${NC}"
+        echo -e "${YELLOW}└─────────────────────────────────────────────────────────────────┘${NC}"
+        echo
+        
+        echo -e "${RED}┌─ 🗑️ УДАЛЕНИЕ ──────────────────────────────────────────────────┐${NC}"
+        echo -e "${RED}│${NC} 8. ❌ Удалить Node API                  ${CYAN}│${NC} Только API            ${RED}│${NC}"
+        echo -e "${RED}│${NC} 9. ❌ Удалить Node Exporter             ${CYAN}│${NC} Только метрики        ${RED}│${NC}"
+        echo -e "${RED}└─────────────────────────────────────────────────────────────────┘${NC}"
+        echo
+        
+        echo -e "${BLUE}┌─ 🚪 ВЫХОД ──────────────────────────────────────────────────────┐${NC}"
+        echo -e "${BLUE}│${NC} 0. 🔙 Назад в главное меню             ${CYAN}│${NC} Возврат               ${BLUE}│${NC}"
+        echo -e "${BLUE}└─────────────────────────────────────────────────────────────────┘${NC}"
+        echo
+        
+        echo -e "${CYAN}Выберите инструмент [1-9, 0-выход]: ${NC}"
         echo -n "   ➤ "
         
         read -r choice
         
         case $choice in
-            1) 
-                echo -e "${CYAN}📊 Установка Node Exporter...${NC}"
-                call_script "install_node_exporter.sh" "menu"
+            1)
+                install_full_monitoring
                 ;;
-            2) 
-                echo -e "${YELLOW}🔧 Установка Node API...${NC}"
-                call_script "install_node_api.sh" "menu"
+            2)
+                install_node_api_only
                 ;;
-            3) 
-                echo -e "${BLUE}🔄 Перезапуск Node Exporter...${NC}"
-                sudo systemctl restart node_exporter
-                echo -e "${GREEN}✅ Node Exporter перезапущен${NC}"
-                read -p "Нажмите Enter для продолжения..."
+            3)
+                install_node_exporter_only
                 ;;
-            4) 
-                echo -e "${PURPLE}🔄 Перезапуск Node API...${NC}"
-                sudo systemctl restart node-api
-                echo -e "${GREEN}✅ Node API перезапущен${NC}"
-                read -p "Нажмите Enter для продолжения..."
+            4)
+                test_node_api
                 ;;
-            5) 
-                echo -e "${CYAN}📈 Статус Node Exporter...${NC}"
-                sudo systemctl status node_exporter --no-pager
-                read -p "Нажмите Enter для продолжения..."
+            5)
+                test_mtr
                 ;;
-            6) 
-                echo -e "${YELLOW}🔧 Статус Node API...${NC}"
-                sudo systemctl status node-api --no-pager
-                read -p "Нажмите Enter для продолжения..."
+            6)
+                test_node_exporter
                 ;;
-            0) 
+            7)
+                show_monitoring_logs
+                ;;
+            8)
+                remove_node_api
+                ;;
+            9)
+                remove_node_exporter
+                ;;
+            0)
                 return
                 ;;
-            *) 
-                echo -e "${RED}❌ Неверный выбор! Пожалуйста, выберите опцию от 0 до 6.${NC}"
+            *)
+                log_error "Неверный выбор. Попробуйте снова."
                 sleep 2
                 ;;
         esac

@@ -204,6 +204,22 @@ wait_for_user() {
     read -p "Нажмите Enter для продолжения..."
 }
 
+# Универсальная функция поиска скрипта
+find_script() {
+    local script_name="$1"
+    
+    # Проверяем разные возможные пути
+    if [[ -f "script/scripts-main/$script_name" ]]; then
+        echo "script/scripts-main/$script_name"
+    elif [[ -f "./$script_name" ]]; then
+        echo "./$script_name"
+    elif [[ -f "$script_name" ]]; then
+        echo "$script_name"
+    else
+        return 1
+    fi
+}
+
 # Проверка существования скрипта
 check_script_exists() {
     local script_path="$1"
@@ -229,9 +245,25 @@ install_full_monitoring() {
     echo -e "${YELLOW}Устанавливаем: Node API + MTR + Node Exporter${NC}"
     echo
     
-    # Проверяем скрипты
-    local node_api_script="script/scripts-main/install_node_api.sh"
-    local node_exporter_script="script/scripts-main/install_node_exporter.sh"
+    # Ищем скрипты установки
+    local node_api_script
+    local node_exporter_script
+    
+    if node_api_script=$(find_script "install_node_api.sh"); then
+        log_info "Найден Node API скрипт: $node_api_script"
+    else
+        log_error "Скрипт install_node_api.sh не найден"
+        wait_for_user
+        return 1
+    fi
+    
+    if node_exporter_script=$(find_script "install_node_exporter.sh"); then
+        log_info "Найден Node Exporter скрипт: $node_exporter_script"
+    else
+        log_error "Скрипт install_node_exporter.sh не найден"
+        wait_for_user
+        return 1
+    fi
     
     if ! check_script_exists "$node_api_script" "Node API скрипт"; then
         log_error "Не удалось найти скрипт установки Node API"
@@ -275,7 +307,16 @@ install_node_api_only() {
     log_info "🔧 Установка Node API + MTR..."
     echo
     
-    local node_api_script="script/scripts-main/install_node_api.sh"
+    # Ищем скрипт установки
+    local node_api_script
+    if node_api_script=$(find_script "install_node_api.sh"); then
+        log_info "Найден Node API скрипт: $node_api_script"
+    else
+        log_error "Скрипт install_node_api.sh не найден"
+        wait_for_user
+        return 1
+    fi
+    
     if ! check_script_exists "$node_api_script" "Node API скрипт"; then
         log_error "Не удалось найти скрипт установки Node API"
         wait_for_user
@@ -298,7 +339,16 @@ install_node_exporter_only() {
     log_info "📊 Установка Node Exporter..."
     echo
     
-    local node_exporter_script="script/scripts-main/install_node_exporter.sh"
+    # Ищем скрипт установки
+    local node_exporter_script
+    if node_exporter_script=$(find_script "install_node_exporter.sh"); then
+        log_info "Найден Node Exporter скрипт: $node_exporter_script"
+    else
+        log_error "Скрипт install_node_exporter.sh не найден"
+        wait_for_user
+        return 1
+    fi
+    
     if ! check_script_exists "$node_exporter_script" "Node Exporter скрипт"; then
         log_error "Не удалось найти скрипт установки Node Exporter"
         wait_for_user

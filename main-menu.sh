@@ -296,7 +296,7 @@ install_full_monitoring() {
     
     log_info "🔍 Поиск скрипта install_node_api.sh..."
     if find_script "install_node_api.sh" >/dev/null 2>&1; then
-        node_api_script=$(find_script "install_node_api.sh")
+        node_api_script=$(find_script "install_node_api.sh" | tail -n 1)
         log_info "✅ Найден Node API скрипт: $node_api_script"
     else
         log_warn "⚠️ Скрипт install_node_api.sh не найден, пробуем скачать..."
@@ -318,7 +318,7 @@ install_full_monitoring() {
     
     log_info "🔍 Поиск скрипта install_node_exporter.sh..."
     if find_script "install_node_exporter.sh" >/dev/null 2>&1; then
-        node_exporter_script=$(find_script "install_node_exporter.sh")
+        node_exporter_script=$(find_script "install_node_exporter.sh" | tail -n 1)
         log_info "✅ Найден Node Exporter скрипт: $node_exporter_script"
     else
         log_warn "⚠️ Скрипт install_node_exporter.sh не найден, пробуем скачать..."

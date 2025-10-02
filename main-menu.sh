@@ -670,7 +670,7 @@ show_node_exporter_menu() {
         echo -e "${CYAN_BOLD}┌─────────────────────────────────────────────────────────────────┐${NC}"
         echo -e "${CYAN_BOLD}│${NC}                    ${PURPLE_BOLD}NODE MONITORING SETUP${NC}                        ${CYAN_BOLD}│${NC}"
         echo -e "${CYAN_BOLD}│${NC}                   ${BLUE}Management by Spakieone${NC}                       ${CYAN_BOLD}│${NC}"
-        echo -e "${CYAN_BOLD}│${NC}                     ${YELLOW}Optimized v1.2.0${NC}                          ${CYAN_BOLD}│${NC}"
+        echo -e "${CYAN_BOLD}│${NC}                     ${YELLOW}Optimized v1.2.0${NC}                            ${CYAN_BOLD}│${NC}"
         echo -e "${CYAN_BOLD}└─────────────────────────────────────────────────────────────────┘${NC}"
         echo
         

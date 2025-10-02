@@ -98,20 +98,32 @@ install_system_packages() {
     
     case "$OS_ID" in
         ubuntu|debian)
+            export DEBIAN_FRONTEND=noninteractive
             apt-get update -qq
-            apt-get install -y \
+            # Базовые зависимости без спорных пакетов (docker/systemctl)
+            if ! apt-get install -y -qq \
                 python3 \
                 python3-venv \
                 python3-pip \
                 python3-dev \
                 curl \
                 wget \
-                docker.io \
-                systemctl \
-                ufw || {
+                ufw; then
                 err "Ошибка установки системных пакетов"
                 exit 1
-            }
+            fi
+            
+            # Если docker отсутствует — мягкая установка через официальный скрипт
+            if ! command -v docker >/dev/null 2>&1; then
+                warn "Docker не обнаружен. Пытаюсь установить через get.docker.com"
+                if command -v curl >/dev/null 2>&1; then
+                    sh -c "$(curl -fsSL https://get.docker.com)" || warn "Не удалось установить Docker автоматически. Продолжаю без Docker"
+                elif command -v wget >/dev/null 2>&1; then
+                    wget -qO- https://get.docker.com | sh || warn "Не удалось установить Docker автоматически. Продолжаю без Docker"
+                else
+                    warn "curl/wget недоступны — пропускаю установку Docker"
+                fi
+            fi
             ;;
         centos|rhel|fedora)
             if command -v dnf >/dev/null 2>&1; then
@@ -781,7 +793,7 @@ cleanup() {
 main() {
     echo -e "${BLUE}╔══════════════════════════════════════════════════════════════╗${NC}"
     echo -e "${BLUE}║${NC}                 ${GREEN}Node API Installer v1.2.0${NC}                    ${BLUE}║${NC}"
-    echo -e "${BLUE}║${NC}                     ${YELLOW}Optimized Edition${NC}                       ${BLUE}║${NC}"
+    echo -e "${BLUE}║${NC}                     ${YELLOW}Optimized Edition${NC}                        ${BLUE}║${NC}"
     echo -e "${BLUE}╚══════════════════════════════════════════════════════════════╝${NC}"
     echo
     

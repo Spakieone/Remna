@@ -299,10 +299,21 @@ install_full_monitoring() {
         node_api_script=$(find_script "install_node_api.sh")
         log_info "✅ Найден Node API скрипт: $node_api_script"
     else
-        log_error "❌ Скрипт install_node_api.sh не найден"
-        find_script "install_node_api.sh" || true  # Показываем отладочную информацию
-        wait_for_user
-        return 1
+        log_warn "⚠️ Скрипт install_node_api.sh не найден, пробуем скачать..."
+        find_script "install_node_api.sh" || true
+        # После попытки скачивания определяем путь
+        if [[ -f "script/scripts-main/install_node_api.sh" ]]; then
+            node_api_script="script/scripts-main/install_node_api.sh"
+        elif [[ -f "./install_node_api.sh" ]]; then
+            node_api_script="./install_node_api.sh"
+        elif [[ -f "install_node_api.sh" ]]; then
+            node_api_script="install_node_api.sh"
+        else
+            log_error "❌ Не удалось подготовить install_node_api.sh"
+            wait_for_user
+            return 1
+        fi
+        log_info "✅ Используем: $node_api_script"
     fi
     
     log_info "🔍 Поиск скрипта install_node_exporter.sh..."
@@ -310,10 +321,20 @@ install_full_monitoring() {
         node_exporter_script=$(find_script "install_node_exporter.sh")
         log_info "✅ Найден Node Exporter скрипт: $node_exporter_script"
     else
-        log_error "❌ Скрипт install_node_exporter.sh не найден"
-        find_script "install_node_exporter.sh" || true  # Показываем отладочную информацию
-        wait_for_user
-        return 1
+        log_warn "⚠️ Скрипт install_node_exporter.sh не найден, пробуем скачать..."
+        find_script "install_node_exporter.sh" || true
+        if [[ -f "script/scripts-main/install_node_exporter.sh" ]]; then
+            node_exporter_script="script/scripts-main/install_node_exporter.sh"
+        elif [[ -f "./install_node_exporter.sh" ]]; then
+            node_exporter_script="./install_node_exporter.sh"
+        elif [[ -f "install_node_exporter.sh" ]]; then
+            node_exporter_script="install_node_exporter.sh"
+        else
+            log_error "❌ Не удалось подготовить install_node_exporter.sh"
+            wait_for_user
+            return 1
+        fi
+        log_info "✅ Используем: $node_exporter_script"
     fi
     
     if ! check_script_exists "$node_api_script" "Node API скрипт"; then

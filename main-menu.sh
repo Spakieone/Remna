@@ -41,7 +41,7 @@ show_main_menu() {
     echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}2.${NC} ${YELLOW}🖥️ RemnaNode Core${NC}      ${GRAY}┃${NC} ${WHITE}Узлы и сервисы${NC}          ${BOLD}${WHITE}│${NC}"
     echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}3.${NC} ${YELLOW}🛡️ Reality Caddy${NC}       ${GRAY}┃${NC} ${WHITE}Маскировка трафика${NC}      ${BOLD}${WHITE}│${NC}"
     echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}4.${NC} ${YELLOW}🚀 Network Tools${NC}       ${GRAY}┃${NC} ${WHITE}Диагностика сети${NC}        ${BOLD}${WHITE}│${NC}"
-    echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}5.${NC} ${YELLOW}📈 Node Exporter + Node API${NC} ${GRAY}┃${NC} ${WHITE}Мониторинг и управление${NC}  ${BOLD}${WHITE}│${NC}"
+    echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}5.${NC} ${YELLOW}📈 Node Exporter + API${NC} ${GRAY}┃${NC} ${WHITE}Мониторинг и управление${NC} ${BOLD}${WHITE}│${NC}"
     echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}6.${NC} ${YELLOW}📊 System Status${NC}       ${GRAY}┃${NC} ${WHITE}Детальная информация${NC}    ${BOLD}${WHITE}│${NC}"
     echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}7.${NC} ${YELLOW}⚙️ Настройка ноды${NC}       ${GRAY}┃${NC} ${WHITE}UFW и IPv6${NC}              ${BOLD}${WHITE}│${NC}"
     echo -e "${BOLD}${WHITE}│${NC}                                                      ${BOLD}${WHITE}│${NC}"
@@ -208,14 +208,26 @@ wait_for_user() {
 find_script() {
     local script_name="$1"
     
+    log_info "🔍 Ищем скрипт: $script_name"
+    log_info "📁 Текущая директория: $(pwd)"
+    
     # Проверяем разные возможные пути
     if [[ -f "script/scripts-main/$script_name" ]]; then
+        log_info "✅ Найден в: script/scripts-main/$script_name"
         echo "script/scripts-main/$script_name"
     elif [[ -f "./$script_name" ]]; then
+        log_info "✅ Найден в: ./$script_name"
         echo "./$script_name"
     elif [[ -f "$script_name" ]]; then
+        log_info "✅ Найден в: $script_name"
         echo "$script_name"
     else
+        log_error "❌ Скрипт $script_name не найден в:"
+        log_error "   - script/scripts-main/$script_name"
+        log_error "   - ./$script_name"
+        log_error "   - $script_name"
+        log_info "📋 Содержимое текущей директории:"
+        ls -la 2>/dev/null || dir 2>/dev/null || echo "Не удалось получить список файлов"
         return 1
     fi
 }
@@ -590,15 +602,15 @@ show_node_exporter_menu() {
     while true; do
         show_header
         echo -e "${CYAN_BOLD}┌─────────────────────────────────────────────────────────────────┐${NC}"
-        echo -e "${CYAN_BOLD}│${NC}                    ${PURPLE_BOLD}NODE MONITORING SETUP${NC}                       ${CYAN_BOLD}│${NC}"
-        echo -e "${CYAN_BOLD}│${NC}                   ${BLUE}Management by Spakieone${NC}                      ${CYAN_BOLD}│${NC}"
-        echo -e "${CYAN_BOLD}│${NC}                     ${YELLOW}Optimized v1.2.0${NC}                         ${CYAN_BOLD}│${NC}"
+        echo -e "${CYAN_BOLD}│${NC}                    ${PURPLE_BOLD}NODE MONITORING SETUP${NC}                        ${CYAN_BOLD}│${NC}"
+        echo -e "${CYAN_BOLD}│${NC}                   ${BLUE}Management by Spakieone${NC}                       ${CYAN_BOLD}│${NC}"
+        echo -e "${CYAN_BOLD}│${NC}                     ${YELLOW}Optimized v1.2.0${NC}  ${CYAN_BOLD}│${NC}"
         echo -e "${CYAN_BOLD}└─────────────────────────────────────────────────────────────────┘${NC}"
         echo
         
         echo -e "${GREEN}┌─ 🚀 УСТАНОВКА ──────────────────────────────────────────────────┐${NC}"
         echo -e "${GREEN}│${NC} 1. 🚀 Полная установка (рекомендуется)  ${CYAN}│${NC} Node API + Exporter   ${GREEN}│${NC}"
-        echo -e "${GREEN}│${NC} 2. 🔧 Установить только Node API       ${CYAN}│${NC} API + диагностика     ${GREEN}│${NC}"
+        echo -e "${GREEN}│${NC} 2. 🔧 Установить только Node API        ${CYAN}│${NC} API + диагностика     ${GREEN}│${NC}"
         echo -e "${GREEN}│${NC} 3. 📊 Установить только Node Exporter   ${CYAN}│${NC} Метрики системы       ${GREEN}│${NC}"
         echo -e "${GREEN}└─────────────────────────────────────────────────────────────────┘${NC}"
         echo
@@ -611,14 +623,14 @@ show_node_exporter_menu() {
         echo -e "${YELLOW}└─────────────────────────────────────────────────────────────────┘${NC}"
         echo
         
-        echo -e "${RED}┌─ 🗑️ УДАЛЕНИЕ ──────────────────────────────────────────────────┐${NC}"
+        echo -e "${RED}┌─ 🗑️ УДАЛЕНИЕ ───────────────────────────────────────────────────┐${NC}"
         echo -e "${RED}│${NC} 8. ❌ Удалить Node API                  ${CYAN}│${NC} Только API            ${RED}│${NC}"
         echo -e "${RED}│${NC} 9. ❌ Удалить Node Exporter             ${CYAN}│${NC} Только метрики        ${RED}│${NC}"
         echo -e "${RED}└─────────────────────────────────────────────────────────────────┘${NC}"
         echo
         
         echo -e "${BLUE}┌─ 🚪 ВЫХОД ──────────────────────────────────────────────────────┐${NC}"
-        echo -e "${BLUE}│${NC} 0. 🔙 Назад в главное меню             ${CYAN}│${NC} Возврат               ${BLUE}│${NC}"
+        echo -e "${BLUE}│${NC} 0. 🔙 Назад в главное меню              ${CYAN}│${NC} Возврат               ${BLUE}│${NC}"
         echo -e "${BLUE}└─────────────────────────────────────────────────────────────────┘${NC}"
         echo
         

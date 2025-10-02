@@ -295,6 +295,29 @@ download_latest_to_tmp() {
     echo "$tmp_path"
 }
 
+# Запуск скрипта напрямую с GitHub без сохранения на диск
+run_github_script() {
+    local script_name="$1"; shift
+    local extra_env="$1"; shift
+    local url="https://raw.githubusercontent.com/Spakieone/Remna/main/$script_name"
+    log_info "🌐 Запуск $script_name напрямую с GitHub"
+    if command -v curl >/dev/null 2>&1; then
+        if ! curl -fsSL "$url" | env $extra_env bash -s -- "$@"; then
+            log_error "Ошибка запуска $script_name через curl"
+            return 1
+        fi
+    elif command -v wget >/dev/null 2>&1; then
+        if ! wget -qO- "$url" | env $extra_env bash -s -- "$@"; then
+            log_error "Ошибка запуска $script_name через wget"
+            return 1
+        fi
+    else
+        log_error "Нет curl/wget для запуска $script_name"
+        return 1
+    fi
+    return 0
+}
+
 # Проверка существования скрипта
 check_script_exists() {
     local script_path="$1"
@@ -325,7 +348,7 @@ install_full_monitoring() {
     local node_exporter_script
     
     log_info "📥 Скачиваем свежий install_node_api.sh с GitHub..."
-    node_api_script=$(download_latest_to_tmp "install_node_api.sh") || {
+    node_api_script="$(download_latest_to_tmp "install_node_api.sh" 2>/dev/null | tail -n 1 | tr -d '\r')" || {
         log_error "❌ Не удалось скачать install_node_api.sh"
         wait_for_user
         return 1
@@ -333,25 +356,25 @@ install_full_monitoring() {
     log_info "✅ Используем: $node_api_script"
     
     log_info "📥 Скачиваем свежий install_node_exporter.sh с GitHub..."
-    node_exporter_script=$(download_latest_to_tmp "install_node_exporter.sh") || {
+    node_exporter_script="$(download_latest_to_tmp "install_node_exporter.sh" 2>/dev/null | tail -n 1 | tr -d '\r')" || {
         log_error "❌ Не удалось скачать install_node_exporter.sh"
         wait_for_user
         return 1
     }
     log_info "✅ Используем: $node_exporter_script"
     
-    if ! check_script_exists "$node_api_script" "Node API скрипт"; then
+    if [[ -z "$node_api_script" ]] || ! check_script_exists "$node_api_script" "Node API скрипт"; then
         log_warn "Локальный Node API скрипт не найден или не исполняемый, берем свежий с GitHub"
-        node_api_script=$(download_latest_to_tmp "install_node_api.sh") || {
+        node_api_script="$(download_latest_to_tmp "install_node_api.sh" 2>/dev/null | tail -n 1 | tr -d '\r')" || {
             log_error "Не удалось подготовить install_node_api.sh"
             wait_for_user
             return 1
         }
     fi
     
-    if ! check_script_exists "$node_exporter_script" "Node Exporter скрипт"; then
+    if [[ -z "$node_exporter_script" ]] || ! check_script_exists "$node_exporter_script" "Node Exporter скрипт"; then
         log_warn "Локальный Node Exporter скрипт не найден или не исполняемый, берем свежий с GitHub"
-        node_exporter_script=$(download_latest_to_tmp "install_node_exporter.sh") || {
+        node_exporter_script="$(download_latest_to_tmp "install_node_exporter.sh" 2>/dev/null | tail -n 1 | tr -d '\r')" || {
             log_error "Не удалось подготовить install_node_exporter.sh"
             wait_for_user
             return 1
@@ -360,7 +383,7 @@ install_full_monitoring() {
     
     # Устанавливаем Node API + MTR
     log_info "Этап 1/2: Установка Node API + MTR"
-    if SKIP_APT=true INSTALL_MTR=true bash "$node_api_script"; then
+    if run_github_script "install_node_api.sh" "SKIP_APT=true INSTALL_MTR=true"; then
         log_success "Node API + MTR установлены успешно"
     else
         log_error "Ошибка установки Node API + MTR"
@@ -420,7 +443,7 @@ install_node_api_only() {
         }
     fi
     
-    if SKIP_APT=true INSTALL_MTR=true bash "$node_api_script"; then
+    if run_github_script "install_node_api.sh" "SKIP_APT=true INSTALL_MTR=true"; then
         log_success "✅ Node API + MTR установлены успешно!"
     else
         log_error "Ошибка установки Node API + MTR"

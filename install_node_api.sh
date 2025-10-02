@@ -124,13 +124,14 @@ install_system_packages() {
                 curl \
                 wget \
                 ufw \
-                mtr-tiny; then
+                mtr-tiny \
+                traceroute; then
                 warn "apt install завершился с ошибкой. Пробую исправить зависимости..."
                 dpkg --configure -a || true
                 apt-get -y --fix-broken install || true
                 apt-get update -qq || true
                 if ! apt-get install -y -qq --no-install-recommends \
-                    python3 python3-venv python3-pip python3-dev curl wget ufw mtr-tiny; then
+                    python3 python3-venv python3-pip python3-dev curl wget ufw mtr-tiny traceroute; then
                     # Если после попытки починки всё равно ошибка — продолжаем, если python уже доступен
                     if command -v python3 >/dev/null 2>&1 && python3 -c 'import venv' 2>/dev/null; then
                         warn "Не удалось установить пакеты через apt, но Python/venv доступны — продолжаю установку"
@@ -668,18 +669,22 @@ def mtr_report():
     target = request.args.get('target', '8.8.8.8')
     cycles = request.args.get('cycles', '10')
     
-    # Проверяем наличие MTR
-    mtr_check = run_command(['which', 'mtr'], timeout=5)
-    if not mtr_check["success"]:
-        return jsonify({
-            "error": "MTR не установлен",
-            "success": False
-        })
-    
-    # Запускаем MTR с sudo (требует root права для ICMP)
-    result = run_command([
-        'sudo', 'mtr', '--report', '--report-cycles', str(cycles), '--no-dns', target
-    ], timeout=60)
+    # Используем traceroute по умолчанию (не требует root прав)
+    traceroute_check = run_command(['which', 'traceroute'], timeout=5)
+    if traceroute_check["success"]:
+        result = run_command(['traceroute', '-n', target], timeout=60)
+    else:
+        # Fallback на MTR без sudo
+        mtr_check = run_command(['which', 'mtr'], timeout=5)
+        if mtr_check["success"]:
+            result = run_command([
+                'mtr', '--report', '--report-cycles', str(cycles), '--no-dns', target
+            ], timeout=60)
+        else:
+            return jsonify({
+                "error": "Ни traceroute, ни MTR не установлены",
+                "success": False
+            })
     
     if result["success"]:
         return jsonify({

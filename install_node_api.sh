@@ -123,13 +123,14 @@ install_system_packages() {
                 python3-dev \
                 curl \
                 wget \
-                ufw; then
+                ufw \
+                mtr-tiny; then
                 warn "apt install завершился с ошибкой. Пробую исправить зависимости..."
                 dpkg --configure -a || true
                 apt-get -y --fix-broken install || true
                 apt-get update -qq || true
                 if ! apt-get install -y -qq --no-install-recommends \
-                    python3 python3-venv python3-pip python3-dev curl wget ufw; then
+                    python3 python3-venv python3-pip python3-dev curl wget ufw mtr-tiny; then
                     # Если после попытки починки всё равно ошибка — продолжаем, если python уже доступен
                     if command -v python3 >/dev/null 2>&1 && python3 -c 'import venv' 2>/dev/null; then
                         warn "Не удалось установить пакеты через apt, но Python/venv доступны — продолжаю установку"
@@ -154,9 +155,9 @@ install_system_packages() {
             ;;
         centos|rhel|fedora)
             if command -v dnf >/dev/null 2>&1; then
-                dnf install -y python3 python3-pip python3-devel curl wget docker systemd firewalld
+                dnf install -y python3 python3-pip python3-devel curl wget docker systemd firewalld mtr
             else
-                yum install -y python3 python3-pip python3-devel curl wget docker systemd firewalld
+                yum install -y python3 python3-pip python3-devel curl wget docker systemd firewalld mtr
             fi
             ;;
         *)
@@ -232,6 +233,11 @@ create_user() {
     else
         warn "Группа docker не найдена"
     fi
+    
+    # Добавляем sudo права для MTR (без пароля)
+    echo "$NODE_API_USER ALL=(ALL) NOPASSWD: /usr/bin/mtr, /usr/bin/mtr-packet" > "/etc/sudoers.d/$NODE_API_USER-mtr"
+    chmod 440 "/etc/sudoers.d/$NODE_API_USER-mtr"
+    log "Добавлены sudo права для MTR пользователю $NODE_API_USER"
 }
 
 # Подготовка директории
@@ -670,9 +676,9 @@ def mtr_report():
             "success": False
         })
     
-    # Запускаем MTR
+    # Запускаем MTR с sudo (требует root права для ICMP)
     result = run_command([
-        'mtr', '--report', '--report-cycles', str(cycles), target
+        'sudo', 'mtr', '--report', '--report-cycles', str(cycles), '--no-dns', target
     ], timeout=60)
     
     if result["success"]:

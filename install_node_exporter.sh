@@ -24,6 +24,9 @@ warn() { echo -e "${YELLOW}[⚠]${NC} $1" >&2; }
 err()  { echo -e "${RED}[✗]${NC} $1" >&2; }
 info() { echo -e "${BLUE}[ℹ]${NC} $1" >&2; }
 
+# Конфигурируемый порт (по умолчанию 9100)
+PORT="${NODE_EXPORTER_PORT:-9100}"
+
 # Проверка прав root
 require_root() {
     if [[ $EUID -ne 0 ]]; then
@@ -82,26 +85,114 @@ get_latest_version() {
     echo "$version"
 }
 
-# Проверка существующей установки
+# Проверка и удаление всех существующих установок Node Exporter
 check_existing_installation() {
-    if systemctl is-active --quiet node_exporter 2>/dev/null; then
-        local current_version
-        current_version=$($NODE_EXPORTER_BINARY --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || echo "unknown")
-        
-        warn "Node Exporter уже установлен и запущен (версия: $current_version)"
-        
-        if [[ "${FORCE_REINSTALL:-false}" != "true" ]]; then
-            echo -n "Переустановить? [y/N]: "
-            read -r response
-            if [[ "$response" != [yY] ]]; then
-                info "Установка отменена"
-                exit 0
+    info "Проверка существующих установок Node Exporter..."
+    
+    # Список возможных сервисов Node Exporter
+    local services=("node_exporter" "node-exporter" "prometheus-node-exporter" "exporterd")
+    local found_services=()
+    
+    # Находим все активные сервисы
+    for service in "${services[@]}"; do
+        if systemctl is-active --quiet "$service" 2>/dev/null || systemctl is-enabled --quiet "$service" 2>/dev/null; then
+            found_services+=("$service")
+        fi
+    done
+    
+    # Проверяем кто слушает порт 9100-9110
+    local port_conflicts=()
+    for port in {9100..9110}; do
+        if is_port_in_use "$port"; then
+            local process_info
+            process_info=$(ss -ltnp 2>/dev/null | grep ":${port}" | head -1)
+            if [[ "$process_info" == *"node_exporter"* || "$process_info" == *"exporterd"* ]]; then
+                port_conflicts+=("$port")
             fi
         fi
+    done
+    
+    if [[ ${#found_services[@]} -gt 0 ]] || [[ ${#port_conflicts[@]} -gt 0 ]]; then
+        warn "Обнаружены существующие установки Node Exporter:"
+        [[ ${#found_services[@]} -gt 0 ]] && warn "Сервисы: ${found_services[*]}"
+        [[ ${#port_conflicts[@]} -gt 0 ]] && warn "Занятые порты: ${port_conflicts[*]}"
         
-        info "Останавливаем существующий сервис..."
-        systemctl stop node_exporter || true
-        systemctl disable node_exporter || true
+        info "Автоматическое удаление существующих установок..."
+        
+        # Останавливаем и отключаем все найденные сервисы
+        for service in "${found_services[@]}"; do
+            info "Останавливаем сервис: $service"
+            systemctl stop "$service" 2>/dev/null || true
+            systemctl disable "$service" 2>/dev/null || true
+            
+            # Удаляем unit файлы
+            local unit_files=(
+                "/etc/systemd/system/${service}.service"
+                "/lib/systemd/system/${service}.service"
+                "/usr/lib/systemd/system/${service}.service"
+            )
+            for unit_file in "${unit_files[@]}"; do
+                if [[ -f "$unit_file" ]]; then
+                    info "Удаляем unit файл: $unit_file"
+                    rm -f "$unit_file"
+                fi
+            done
+        done
+        
+        # Удаляем пакетные установки
+        info "Удаление пакетных версий Node Exporter..."
+        apt-get remove -y prometheus-node-exporter node-exporter 2>/dev/null || true
+        apt-get purge -y prometheus-node-exporter node-exporter 2>/dev/null || true
+        
+        # Удаляем старые бинарники
+        local binary_paths=(
+            "/usr/local/bin/node_exporter"
+            "/usr/bin/node_exporter"
+            "/usr/sbin/node_exporter"
+            "/opt/node_exporter/node_exporter"
+        )
+        for binary in "${binary_paths[@]}"; do
+            if [[ -f "$binary" ]]; then
+                info "Удаляем старый бинарник: $binary"
+                rm -f "$binary"
+            fi
+        done
+        
+        # Удаляем пользователей
+        local users=("node_exporter" "node-exporter" "prometheus")
+        for user in "${users[@]}"; do
+            if id "$user" >/dev/null 2>&1; then
+                info "Удаляем пользователя: $user"
+                userdel "$user" 2>/dev/null || true
+            fi
+        done
+        
+        # Перезагружаем systemd
+        systemctl daemon-reload
+        
+        # Ждем освобождения портов
+        info "Ожидание освобождения портов..."
+        local wait_count=0
+        while [[ $wait_count -lt 10 ]]; do
+            local ports_still_busy=false
+            for port in "${port_conflicts[@]}"; do
+                if is_port_in_use "$port"; then
+                    ports_still_busy=true
+                    break
+                fi
+            done
+            
+            if [[ "$ports_still_busy" == "false" ]]; then
+                break
+            fi
+            
+            sleep 1
+            ((wait_count++))
+        done
+        
+        log "Существующие установки удалены"
+    else
+        info "Существующих установок не обнаружено"
     fi
 }
 
@@ -117,6 +208,34 @@ create_user() {
         }
         log "Пользователь $NODE_EXPORTER_USER создан"
     fi
+}
+
+# Проверка занятости порта
+is_port_in_use() {
+    local port="$1"
+    if command -v ss >/dev/null 2>&1; then
+        ss -ltnp 2>/dev/null | grep -q ":${port}"
+    elif command -v lsof >/dev/null 2>&1; then
+        lsof -i :"${port}" -sTCP:LISTEN >/dev/null 2>&1
+    else
+        netstat -tlnp 2>/dev/null | grep -q ":${port}"
+    fi
+}
+
+# Подбор свободного порта, если заданный занят
+detect_listen_port() {
+    if is_port_in_use "$PORT"; then
+        warn "Порт ${PORT} уже занят. Ищу свободный..."
+        local candidate
+        for candidate in 9101 9102 9103 9104 9105 9106 9107 9108 9109 9110; do
+            if ! is_port_in_use "$candidate"; then
+                PORT="$candidate"
+                log "Выбран свободный порт: ${PORT}"
+                break
+            fi
+        done
+    fi
+    info "Слушающий порт Node Exporter: ${PORT}"
 }
 
 # Скачивание и установка
@@ -214,10 +333,18 @@ User=$NODE_EXPORTER_USER
 Group=$NODE_EXPORTER_USER
 ExecReload=/bin/kill -HUP \$MAINPID
 ExecStart=$NODE_EXPORTER_BINARY \\
-    --web.listen-address=:9100 \\
+    --web.listen-address=:$PORT \\
     --path.procfs=/proc \\
     --path.rootfs=/ \\
     --path.sysfs=/sys \\
+    --collector.disable-defaults \\
+    --collector.cpu \\
+    --collector.meminfo \\
+    --collector.filesystem \\
+    --collector.loadavg \\
+    --collector.time \\
+    --collector.uname \\
+    --collector.stat \\
     --collector.filesystem.mount-points-exclude='^/(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns|rootfs/var/lib/docker/aufs)($$|/)' \\
     --collector.filesystem.fs-types-exclude='^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|iso9660|mqueue|nsfs|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tracefs)$$'
 
@@ -412,6 +539,9 @@ main() {
     local version
     version=$(get_latest_version)
     info "Последняя версия: $version"
+    
+    # Определяем свободный порт
+    detect_listen_port
     
     check_existing_installation
     create_user

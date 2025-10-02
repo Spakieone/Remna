@@ -18,11 +18,11 @@ readonly NODE_EXPORTER_BINARY="/usr/local/bin/node_exporter"
 readonly GITHUB_API="https://api.github.com/repos/prometheus/node_exporter/releases/latest"
 readonly DOWNLOAD_DIR="/tmp/node_exporter_install"
 
-# Функции логирования
-log() { echo -e "${GREEN}[✓]${NC} $1"; }
-warn() { echo -e "${YELLOW}[⚠]${NC} $1"; }
-err() { echo -e "${RED}[✗]${NC} $1"; }
-info() { echo -e "${BLUE}[ℹ]${NC} $1"; }
+# Функции логирования (пишем в stderr, чтобы не мешать командным подстановкам)
+log()  { echo -e "${GREEN}[✓]${NC} $1" >&2; }
+warn() { echo -e "${YELLOW}[⚠]${NC} $1" >&2; }
+err()  { echo -e "${RED}[✗]${NC} $1" >&2; }
+info() { echo -e "${BLUE}[ℹ]${NC} $1" >&2; }
 
 # Проверка прав root
 require_root() {
@@ -66,9 +66,9 @@ get_latest_version() {
     
     local version
     if command -v curl >/dev/null 2>&1; then
-        version=$(curl -s "$GITHUB_API" | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/' | head -1)
+        version=$(curl -s "$GITHUB_API" | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/' | head -1 | tr -d '\r')
     elif command -v wget >/dev/null 2>&1; then
-        version=$(wget -qO- "$GITHUB_API" | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/' | head -1)
+        version=$(wget -qO- "$GITHUB_API" | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/' | head -1 | tr -d '\r')
     else
         err "Не найден curl или wget для скачивания"
         exit 1
@@ -306,15 +306,15 @@ setup_firewall() {
 start_service() {
     info "Запуск Node Exporter сервиса..."
     
-    systemctl daemon-reload
+  systemctl daemon-reload
     
     if systemctl enable node_exporter; then
         log "Node Exporter добавлен в автозапуск"
     else
         err "Не удалось добавить Node Exporter в автозапуск"
-        exit 1
-    fi
-    
+    exit 1
+fi
+
     if systemctl start node_exporter; then
         log "Node Exporter сервис запущен"
     else
@@ -331,8 +331,8 @@ start_service() {
         err "Node Exporter сервис не активен после запуска"
         info "Логи сервиса:"
         journalctl -u node_exporter --no-pager -n 10
-        exit 1
-    fi
+    exit 1
+fi
 }
 
 # Финальная проверка

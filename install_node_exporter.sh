@@ -333,7 +333,7 @@ User=$NODE_EXPORTER_USER
 Group=$NODE_EXPORTER_USER
 ExecReload=/bin/kill -HUP \$MAINPID
 ExecStart=$NODE_EXPORTER_BINARY \\
-    --web.listen-address=:$PORT \\
+    --web.listen-address=:${PORT} \\
     --path.procfs=/proc \\
     --path.rootfs=/ \\
     --path.sysfs=/sys \\
@@ -471,7 +471,7 @@ final_check() {
     local metrics_available=false
     
     for i in {1..5}; do
-        if curl -s http://localhost:9100/metrics >/dev/null 2>&1; then
+        if curl -s "http://localhost:${PORT}/metrics" >/dev/null 2>&1; then
             metrics_available=true
             break
         fi
@@ -483,7 +483,7 @@ final_check() {
         
         # Проверяем количество метрик
         local metrics_count
-        metrics_count=$(curl -s http://localhost:9100/metrics | wc -l)
+        metrics_count=$(curl -s "http://localhost:${PORT}/metrics" | wc -l)
         if [[ "$metrics_count" -gt 100 ]]; then
             log "Получено $metrics_count метрик"
         else
@@ -496,7 +496,7 @@ final_check() {
     # Показываем информацию
     echo
     info "Установка Node Exporter завершена!"
-    echo -e "${BLUE}Метрики доступны по адресу: http://localhost:9100/metrics${NC}"
+    echo -e "${BLUE}Метрики доступны по адресу: http://localhost:${PORT}/metrics${NC}"
     echo -e "${BLUE}Проверка статуса: systemctl status node_exporter${NC}"
     echo -e "${BLUE}Просмотр логов: journalctl -u node_exporter -f${NC}"
 }
@@ -540,10 +540,11 @@ main() {
     version=$(get_latest_version)
     info "Последняя версия: $version"
     
-    # Определяем свободный порт
-    detect_listen_port
-    
+    # СНАЧАЛА удаляем существующие установки
     check_existing_installation
+    
+    # ПОТОМ определяем порт (теперь 9100 должен быть свободен)
+    detect_listen_port
     create_user
     download_and_install "$version" "$arch"
     create_systemd_service

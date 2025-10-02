@@ -738,8 +738,7 @@ RestartSec=5
 StartLimitInterval=60
 StartLimitBurst=3
 
-# Security settings
-NoNewPrivileges=true
+# Security settings (NoNewPrivileges отключен для sudo MTR)
 ProtectSystem=strict
 ProtectHome=true
 ReadWritePaths=$NODE_API_DIR

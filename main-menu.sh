@@ -351,7 +351,7 @@ install_full_monitoring() {
     
     # Устанавливаем Node API + MTR
     log_info "Этап 1/2: Установка Node API + MTR"
-    if INSTALL_MTR=true bash "$node_api_script"; then
+    if SKIP_APT=true INSTALL_MTR=true bash "$node_api_script"; then
         log_success "Node API + MTR установлены успешно"
     else
         log_error "Ошибка установки Node API + MTR"
@@ -383,13 +383,23 @@ install_node_api_only() {
     local node_api_script
     log_info "🔍 Поиск скрипта install_node_api.sh..."
     if find_script "install_node_api.sh" >/dev/null 2>&1; then
-        node_api_script=$(find_script "install_node_api.sh")
+        node_api_script=$(find_script "install_node_api.sh" | tail -n 1)
         log_info "✅ Найден Node API скрипт: $node_api_script"
     else
-        log_error "❌ Скрипт install_node_api.sh не найден"
-        find_script "install_node_api.sh" || true  # Показываем отладочную информацию
-        wait_for_user
-        return 1
+        log_warn "⚠️ Скрипт install_node_api.sh не найден, пробуем скачать..."
+        find_script "install_node_api.sh" || true
+        if [[ -f "script/scripts-main/install_node_api.sh" ]]; then
+            node_api_script="script/scripts-main/install_node_api.sh"
+        elif [[ -f "./install_node_api.sh" ]]; then
+            node_api_script="./install_node_api.sh"
+        elif [[ -f "install_node_api.sh" ]]; then
+            node_api_script="install_node_api.sh"
+        else
+            log_error "❌ Не удалось подготовить install_node_api.sh"
+            wait_for_user
+            return 1
+        fi
+        log_info "✅ Используем: $node_api_script"
     fi
     
     if ! check_script_exists "$node_api_script" "Node API скрипт"; then
@@ -398,7 +408,7 @@ install_node_api_only() {
         return 1
     fi
     
-    if INSTALL_MTR=true bash "$node_api_script"; then
+    if SKIP_APT=true INSTALL_MTR=true bash "$node_api_script"; then
         log_success "✅ Node API + MTR установлены успешно!"
     else
         log_error "Ошибка установки Node API + MTR"

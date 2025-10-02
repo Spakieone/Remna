@@ -261,18 +261,24 @@ install_full_monitoring() {
     local node_api_script
     local node_exporter_script
     
-    if node_api_script=$(find_script "install_node_api.sh"); then
-        log_info "Найден Node API скрипт: $node_api_script"
+    log_info "🔍 Поиск скрипта install_node_api.sh..."
+    if find_script "install_node_api.sh" >/dev/null 2>&1; then
+        node_api_script=$(find_script "install_node_api.sh")
+        log_info "✅ Найден Node API скрипт: $node_api_script"
     else
-        log_error "Скрипт install_node_api.sh не найден"
+        log_error "❌ Скрипт install_node_api.sh не найден"
+        find_script "install_node_api.sh" || true  # Показываем отладочную информацию
         wait_for_user
         return 1
     fi
     
-    if node_exporter_script=$(find_script "install_node_exporter.sh"); then
-        log_info "Найден Node Exporter скрипт: $node_exporter_script"
+    log_info "🔍 Поиск скрипта install_node_exporter.sh..."
+    if find_script "install_node_exporter.sh" >/dev/null 2>&1; then
+        node_exporter_script=$(find_script "install_node_exporter.sh")
+        log_info "✅ Найден Node Exporter скрипт: $node_exporter_script"
     else
-        log_error "Скрипт install_node_exporter.sh не найден"
+        log_error "❌ Скрипт install_node_exporter.sh не найден"
+        find_script "install_node_exporter.sh" || true  # Показываем отладочную информацию
         wait_for_user
         return 1
     fi
@@ -321,10 +327,13 @@ install_node_api_only() {
     
     # Ищем скрипт установки
     local node_api_script
-    if node_api_script=$(find_script "install_node_api.sh"); then
-        log_info "Найден Node API скрипт: $node_api_script"
+    log_info "🔍 Поиск скрипта install_node_api.sh..."
+    if find_script "install_node_api.sh" >/dev/null 2>&1; then
+        node_api_script=$(find_script "install_node_api.sh")
+        log_info "✅ Найден Node API скрипт: $node_api_script"
     else
-        log_error "Скрипт install_node_api.sh не найден"
+        log_error "❌ Скрипт install_node_api.sh не найден"
+        find_script "install_node_api.sh" || true  # Показываем отладочную информацию
         wait_for_user
         return 1
     fi
@@ -353,10 +362,13 @@ install_node_exporter_only() {
     
     # Ищем скрипт установки
     local node_exporter_script
-    if node_exporter_script=$(find_script "install_node_exporter.sh"); then
-        log_info "Найден Node Exporter скрипт: $node_exporter_script"
+    log_info "🔍 Поиск скрипта install_node_exporter.sh..."
+    if find_script "install_node_exporter.sh" >/dev/null 2>&1; then
+        node_exporter_script=$(find_script "install_node_exporter.sh")
+        log_info "✅ Найден Node Exporter скрипт: $node_exporter_script"
     else
-        log_error "Скрипт install_node_exporter.sh не найден"
+        log_error "❌ Скрипт install_node_exporter.sh не найден"
+        find_script "install_node_exporter.sh" || true  # Показываем отладочную информацию
         wait_for_user
         return 1
     fi
@@ -604,7 +616,7 @@ show_node_exporter_menu() {
         echo -e "${CYAN_BOLD}┌─────────────────────────────────────────────────────────────────┐${NC}"
         echo -e "${CYAN_BOLD}│${NC}                    ${PURPLE_BOLD}NODE MONITORING SETUP${NC}                        ${CYAN_BOLD}│${NC}"
         echo -e "${CYAN_BOLD}│${NC}                   ${BLUE}Management by Spakieone${NC}                       ${CYAN_BOLD}│${NC}"
-        echo -e "${CYAN_BOLD}│${NC}                     ${YELLOW}Optimized v1.2.0${NC}  ${CYAN_BOLD}│${NC}"
+        echo -e "${CYAN_BOLD}│${NC}                     ${YELLOW}Optimized v1.2.0${NC}                          ${CYAN_BOLD}│${NC}"
         echo -e "${CYAN_BOLD}└─────────────────────────────────────────────────────────────────┘${NC}"
         echo
         

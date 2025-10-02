@@ -94,14 +94,29 @@ get_api_token() {
 
 # Установка системных пакетов
 install_system_packages() {
+    # Если явно попросили пропустить apt — выходим
+    if [[ "${SKIP_APT:-false}" == "true" ]]; then
+        warn "Пропускаем установку системных пакетов (SKIP_APT=true)"
+        return 0
+    fi
+
+    # Если всё уже есть — тоже пропускаем
+    if command -v python3 >/dev/null 2>&1 \
+        && python3 -c 'import venv' 2>/dev/null \
+        && { command -v curl >/dev/null 2>&1 || command -v wget >/dev/null 2>&1; }
+    then
+        info "Базовые инструменты уже установлены — пропускаю apt"
+        return 0
+    fi
+
     info "Обновление списка пакетов..."
-    
+
     case "$OS_ID" in
         ubuntu|debian)
             export DEBIAN_FRONTEND=noninteractive
             apt-get update -qq
             # Базовые зависимости без спорных пакетов (docker/systemctl)
-            if ! apt-get install -y -qq \
+            if ! apt-get install -y -qq --no-install-recommends \
                 python3 \
                 python3-venv \
                 python3-pip \
@@ -109,8 +124,20 @@ install_system_packages() {
                 curl \
                 wget \
                 ufw; then
-                err "Ошибка установки системных пакетов"
-                exit 1
+                warn "apt install завершился с ошибкой. Пробую исправить зависимости..."
+                dpkg --configure -a || true
+                apt-get -y --fix-broken install || true
+                apt-get update -qq || true
+                if ! apt-get install -y -qq --no-install-recommends \
+                    python3 python3-venv python3-pip python3-dev curl wget ufw; then
+                    # Если после попытки починки всё равно ошибка — продолжаем, если python уже доступен
+                    if command -v python3 >/dev/null 2>&1 && python3 -c 'import venv' 2>/dev/null; then
+                        warn "Не удалось установить пакеты через apt, но Python/venv доступны — продолжаю установку"
+                    else
+                        err "Ошибка установки системных пакетов и Python не доступен"
+                        exit 1
+                    fi
+                fi
             fi
             
             # Если docker отсутствует — мягкая установка через официальный скрипт
@@ -385,44 +412,66 @@ def detect_server_type():
     docker_result = run_command(['docker', 'ps', '--format', '{{.Names}}'], timeout=5)
     if docker_result["success"]:
         container_names = docker_result["output"].lower()
-        if 'remnawave' in container_names and 'remnanode' not in container_names:
+        if 'remnawave' in container_names:
             return "panel"
-    return "node"
+        elif 'remnanode' in container_names:
+            return "node"
+    
+    # Дополнительная проверка через docker-compose файлы
+    panel_compose = run_command(['ls', '/opt/remnawave/docker-compose.yml'], timeout=3)
+    node_compose = run_command(['ls', '/opt/remnanode/docker-compose.yml'], timeout=3)
+    
+    if panel_compose["success"]:
+        return "panel"
+    elif node_compose["success"]:
+        return "node"
+    
+    return "node"  # default
 
 def get_xray_info():
     """Получение информации о Xray (только для нод)"""
     version = "N/A"
     status = "inactive"
     
-    # Версия Xray
-    version_result = run_command([
-        'docker', 'exec', 'remnanode', 
-        '/usr/local/bin/xray', '-version'
-    ], timeout=5)
+    # Сначала проверяем, что контейнер remnanode запущен
+    container_check = run_command(['docker', 'ps', '--filter', 'name=remnanode', '--format', '{{.Names}}'], timeout=5)
+    if not container_check["success"] or 'remnanode' not in container_check["output"]:
+        return version, status
     
-    if version_result["success"]:
-        version_line = version_result["output"].split('\n')[0]
-        if 'Xray' in version_line:
+    # Версия Xray - пробуем разные пути
+    version_commands = [
+        ['docker', 'exec', 'remnanode', '/usr/local/bin/xray', '-version'],
+        ['docker', 'exec', 'remnanode', '/app/xray', '-version'],
+        ['docker', 'exec', 'remnanode', 'xray', '-version']
+    ]
+    
+    for cmd in version_commands:
+        version_result = run_command(cmd, timeout=5)
+        if version_result["success"] and 'Xray' in version_result["output"]:
+            version_line = version_result["output"].split('\n')[0]
             parts = version_line.split()
-            version = parts[1] if len(parts) > 1 else "N/A"
+            if len(parts) > 1:
+                version = parts[1]
+                break
     
-    # Статус Xray
-    status_result = run_command([
-        'docker', 'exec', 'remnanode', 
-        'supervisorctl', 'status', 'xray'
-    ], timeout=5)
+    # Статус Xray - пробуем разные методы
+    status_commands = [
+        ['docker', 'exec', 'remnanode', 'supervisorctl', 'status', 'xray'],
+        ['docker', 'exec', 'remnanode', 'ps', 'aux']
+    ]
     
-    if status_result["success"]:
-        if 'RUNNING' in status_result["output"] or 'active' in status_result["output"].lower():
-            status = "running"
-    
-    # Дополнительная проверка через ps
-    if status == "inactive":
-        ps_result = run_command([
-            'docker', 'exec', 'remnanode', 'ps', 'aux'
-        ], timeout=5)
-        if ps_result["success"] and 'xray' in ps_result["output"].lower():
-            status = "running"
+    for i, cmd in enumerate(status_commands):
+        status_result = run_command(cmd, timeout=5)
+        if status_result["success"]:
+            output = status_result["output"].lower()
+            if i == 0:  # supervisorctl
+                if 'running' in output or 'active' in output:
+                    status = "running"
+                    break
+            else:  # ps aux
+                if 'xray' in output:
+                    status = "running"
+                    break
     
     return version, status
 

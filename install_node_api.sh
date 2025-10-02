@@ -224,6 +224,14 @@ create_user() {
         }
         log "Пользователь $NODE_API_USER создан"
     fi
+    
+    # Добавляем пользователя в группу docker для доступа к Docker API
+    if getent group docker > /dev/null 2>&1; then
+        usermod -aG docker "$NODE_API_USER"
+        log "Пользователь $NODE_API_USER добавлен в группу docker"
+    else
+        warn "Группа docker не найдена"
+    fi
 }
 
 # Подготовка директории
@@ -435,7 +443,9 @@ def get_xray_info():
     
     # Сначала проверяем, что контейнер remnanode запущен
     container_check = run_command(['docker', 'ps', '--filter', 'name=remnanode', '--format', '{{.Names}}'], timeout=5)
+    print(f"[DEBUG] Container check: success={container_check['success']}, output='{container_check['output']}'")
     if not container_check["success"] or 'remnanode' not in container_check["output"]:
+        print(f"[DEBUG] remnanode container not found or not running")
         return version, status
     
     # Версия Xray - пробуем разные пути
@@ -447,11 +457,13 @@ def get_xray_info():
     
     for cmd in version_commands:
         version_result = run_command(cmd, timeout=5)
+        print(f"[DEBUG] Xray version cmd {cmd}: success={version_result['success']}, output='{version_result['output'][:100]}'")
         if version_result["success"] and 'Xray' in version_result["output"]:
             version_line = version_result["output"].split('\n')[0]
             parts = version_line.split()
             if len(parts) > 1:
                 version = parts[1]
+                print(f"[DEBUG] Found Xray version: {version}")
                 break
     
     # Статус Xray - пробуем разные методы

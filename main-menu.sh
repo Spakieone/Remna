@@ -314,52 +314,25 @@ install_full_monitoring() {
     echo -e "${YELLOW}Устанавливаем: Node API + MTR + Node Exporter${NC}"
     echo
     
-    # Ищем скрипты установки
+    # Принудительно скачиваем свежие скрипты с GitHub
     local node_api_script
     local node_exporter_script
     
-    log_info "🔍 Поиск скрипта install_node_api.sh..."
-    if find_script "install_node_api.sh" >/dev/null 2>&1; then
-        node_api_script=$(find_script "install_node_api.sh" | tail -n 1)
-        log_info "✅ Найден Node API скрипт: $node_api_script"
-    else
-        log_warn "⚠️ Скрипт install_node_api.sh не найден, пробуем скачать..."
-        find_script "install_node_api.sh" || true
-        # После попытки скачивания определяем путь
-        if [[ -f "script/scripts-main/install_node_api.sh" ]]; then
-            node_api_script="script/scripts-main/install_node_api.sh"
-        elif [[ -f "./install_node_api.sh" ]]; then
-            node_api_script="./install_node_api.sh"
-        elif [[ -f "install_node_api.sh" ]]; then
-            node_api_script="install_node_api.sh"
-        else
-            log_error "❌ Не удалось подготовить install_node_api.sh"
-            wait_for_user
-            return 1
-        fi
-        log_info "✅ Используем: $node_api_script"
-    fi
+    log_info "📥 Скачиваем свежий install_node_api.sh с GitHub..."
+    node_api_script=$(download_latest_to_tmp "install_node_api.sh") || {
+        log_error "❌ Не удалось скачать install_node_api.sh"
+        wait_for_user
+        return 1
+    }
+    log_info "✅ Используем: $node_api_script"
     
-    log_info "🔍 Поиск скрипта install_node_exporter.sh..."
-    if find_script "install_node_exporter.sh" >/dev/null 2>&1; then
-        node_exporter_script=$(find_script "install_node_exporter.sh" | tail -n 1)
-        log_info "✅ Найден Node Exporter скрипт: $node_exporter_script"
-    else
-        log_warn "⚠️ Скрипт install_node_exporter.sh не найден, пробуем скачать..."
-        find_script "install_node_exporter.sh" || true
-        if [[ -f "script/scripts-main/install_node_exporter.sh" ]]; then
-            node_exporter_script="script/scripts-main/install_node_exporter.sh"
-        elif [[ -f "./install_node_exporter.sh" ]]; then
-            node_exporter_script="./install_node_exporter.sh"
-        elif [[ -f "install_node_exporter.sh" ]]; then
-            node_exporter_script="install_node_exporter.sh"
-        else
-            log_error "❌ Не удалось подготовить install_node_exporter.sh"
-            wait_for_user
-            return 1
-        fi
-        log_info "✅ Используем: $node_exporter_script"
-    fi
+    log_info "📥 Скачиваем свежий install_node_exporter.sh с GitHub..."
+    node_exporter_script=$(download_latest_to_tmp "install_node_exporter.sh") || {
+        log_error "❌ Не удалось скачать install_node_exporter.sh"
+        wait_for_user
+        return 1
+    }
+    log_info "✅ Используем: $node_exporter_script"
     
     if ! check_script_exists "$node_api_script" "Node API скрипт"; then
         log_warn "Локальный Node API скрипт не найден или не исполняемый, берем свежий с GitHub"

@@ -295,28 +295,7 @@ download_latest_to_tmp() {
     echo "$tmp_path"
 }
 
-# Запуск скрипта напрямую с GitHub без сохранения на диск
-run_github_script() {
-    local script_name="$1"; shift
-    local extra_env="$1"; shift
-    local url="https://raw.githubusercontent.com/Spakieone/Remna/main/$script_name"
-    log_info "🌐 Запуск $script_name напрямую с GitHub"
-    if command -v curl >/dev/null 2>&1; then
-        if ! curl -fsSL "$url" | env $extra_env bash -s -- "$@"; then
-            log_error "Ошибка запуска $script_name через curl"
-            return 1
-        fi
-    elif command -v wget >/dev/null 2>&1; then
-        if ! wget -qO- "$url" | env $extra_env bash -s -- "$@"; then
-            log_error "Ошибка запуска $script_name через wget"
-            return 1
-        fi
-    else
-        log_error "Нет curl/wget для запуска $script_name"
-        return 1
-    fi
-    return 0
-}
+# (упрощено) Запуск из локального временного файла — см. download_latest_to_tmp
 
 # Проверка существования скрипта
 check_script_exists() {
@@ -383,7 +362,14 @@ install_full_monitoring() {
     
     # Устанавливаем Node API + MTR
     log_info "Этап 1/2: Установка Node API + MTR"
-    if run_github_script "install_node_api.sh" "SKIP_APT=true INSTALL_MTR=true"; then
+    # Для интерактивного ввода токена запускаем из файла, а не через pipe
+    node_api_script="$(download_latest_to_tmp "install_node_api.sh" 2>/dev/null | tail -n 1 | tr -d '\r')"
+    if [[ -z "$node_api_script" ]]; then
+        log_error "Не удалось подготовить install_node_api.sh"
+        wait_for_user
+        return 1
+    fi
+    if SKIP_APT=true INSTALL_MTR=true bash "$node_api_script"; then
         log_success "Node API + MTR установлены успешно"
     else
         log_error "Ошибка установки Node API + MTR"
@@ -411,39 +397,15 @@ install_node_api_only() {
     log_info "🔧 Установка Node API + MTR..."
     echo
     
-    # Ищем скрипт установки
+    # Упрощённо: всегда скачиваем свежий скрипт в /tmp и запускаем из файла
     local node_api_script
-    log_info "🔍 Поиск скрипта install_node_api.sh..."
-    if find_script "install_node_api.sh" >/dev/null 2>&1; then
-        node_api_script=$(find_script "install_node_api.sh" | tail -n 1)
-        log_info "✅ Найден Node API скрипт: $node_api_script"
-    else
-        log_warn "⚠️ Скрипт install_node_api.sh не найден, пробуем скачать..."
-        find_script "install_node_api.sh" || true
-        if [[ -f "script/scripts-main/install_node_api.sh" ]]; then
-            node_api_script="script/scripts-main/install_node_api.sh"
-        elif [[ -f "./install_node_api.sh" ]]; then
-            node_api_script="./install_node_api.sh"
-        elif [[ -f "install_node_api.sh" ]]; then
-            node_api_script="install_node_api.sh"
-        else
-            log_error "❌ Не удалось подготовить install_node_api.sh"
-            wait_for_user
-            return 1
-        fi
-        log_info "✅ Используем: $node_api_script"
+    node_api_script="$(download_latest_to_tmp "install_node_api.sh" 2>/dev/null | tail -n 1 | tr -d '\r')"
+    if [[ -z "$node_api_script" ]]; then
+        log_error "Не удалось скачать install_node_api.sh"
+        wait_for_user
+        return 1
     fi
-    
-    if ! check_script_exists "$node_api_script" "Node API скрипт"; then
-        log_warn "Локальный Node API скрипт не найден или не исполняемый, берем свежий с GitHub"
-        node_api_script=$(download_latest_to_tmp "install_node_api.sh") || {
-            log_error "Не удалось подготовить install_node_api.sh"
-            wait_for_user
-            return 1
-        }
-    fi
-    
-    if run_github_script "install_node_api.sh" "SKIP_APT=true INSTALL_MTR=true"; then
+    if SKIP_APT=true INSTALL_MTR=true bash "$node_api_script"; then
         log_success "✅ Node API + MTR установлены успешно!"
     else
         log_error "Ошибка установки Node API + MTR"
@@ -459,25 +421,14 @@ install_node_exporter_only() {
     log_info "📊 Установка Node Exporter..."
     echo
     
-    # Ищем скрипт установки
+    # Упрощённо: всегда скачиваем свежий скрипт в /tmp и запускаем
     local node_exporter_script
-    log_info "🔍 Поиск скрипта install_node_exporter.sh..."
-    if find_script "install_node_exporter.sh" >/dev/null 2>&1; then
-        node_exporter_script=$(find_script "install_node_exporter.sh")
-        log_info "✅ Найден Node Exporter скрипт: $node_exporter_script"
-    else
-        log_error "❌ Скрипт install_node_exporter.sh не найден"
-        find_script "install_node_exporter.sh" || true  # Показываем отладочную информацию
+    node_exporter_script="$(download_latest_to_tmp "install_node_exporter.sh" 2>/dev/null | tail -n 1 | tr -d '\r')"
+    if [[ -z "$node_exporter_script" ]]; then
+        log_error "Не удалось скачать install_node_exporter.sh"
         wait_for_user
         return 1
     fi
-    
-    if ! check_script_exists "$node_exporter_script" "Node Exporter скрипт"; then
-        log_error "Не удалось найти скрипт установки Node Exporter"
-        wait_for_user
-        return 1
-    fi
-    
     if bash "$node_exporter_script"; then
         log_success "✅ Node Exporter установлен успешно!"
     else

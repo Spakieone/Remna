@@ -204,6 +204,31 @@ wait_for_user() {
     read -p "Нажмите Enter для продолжения..."
 }
 
+# Функция скачивания скрипта с GitHub
+download_script() {
+    local script_name="$1"
+    local github_url="https://raw.githubusercontent.com/Spakieone/Remna/main/$script_name"
+    
+    log_info "📥 Скачиваем $script_name с GitHub..."
+    
+    if command -v wget >/dev/null 2>&1; then
+        if wget -q "$github_url" -O "$script_name"; then
+            chmod +x "$script_name"
+            log_info "✅ Скрипт $script_name успешно скачан"
+            return 0
+        fi
+    elif command -v curl >/dev/null 2>&1; then
+        if curl -s "$github_url" -o "$script_name"; then
+            chmod +x "$script_name"
+            log_info "✅ Скрипт $script_name успешно скачан"
+            return 0
+        fi
+    fi
+    
+    log_error "❌ Не удалось скачать $script_name"
+    return 1
+}
+
 # Универсальная функция поиска скрипта
 find_script() {
     local script_name="$1"
@@ -228,6 +253,14 @@ find_script() {
         log_error "   - $script_name"
         log_info "📋 Содержимое текущей директории:"
         ls -la 2>/dev/null || dir 2>/dev/null || echo "Не удалось получить список файлов"
+        
+        # Пытаемся скачать недостающий скрипт
+        log_info "🔄 Пытаемся скачать недостающий скрипт..."
+        if download_script "$script_name"; then
+            echo "$script_name"
+            return 0
+        fi
+        
         return 1
     fi
 }

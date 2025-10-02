@@ -270,22 +270,28 @@ download_latest_to_tmp() {
     local script_name="$1"
     local tmp_path="/tmp/$script_name"
     local github_url="https://raw.githubusercontent.com/Spakieone/Remna/main/$script_name"
-    log_info "📥 Скачиваем свежий $script_name из GitHub в $tmp_path"
+    
+    # Логи выводим в stderr, чтобы не мешали возврату пути
+    log_info "📥 Скачиваем свежий $script_name из GitHub в $tmp_path" >&2
+    
     if command -v curl >/dev/null 2>&1; then
-        if ! curl -fsSL "$github_url" -o "$tmp_path"; then
-            log_error "Не удалось скачать $script_name через curl"
+        if ! curl -fsSL "$github_url" -o "$tmp_path" 2>/dev/null; then
+            log_error "Не удалось скачать $script_name через curl" >&2
             return 1
         fi
     elif command -v wget >/dev/null 2>&1; then
-        if ! wget -q "$github_url" -O "$tmp_path"; then
-            log_error "Не удалось скачать $script_name через wget"
+        if ! wget -q "$github_url" -O "$tmp_path" 2>/dev/null; then
+            log_error "Не удалось скачать $script_name через wget" >&2
             return 1
         fi
     else
-        log_error "Нет curl/wget для скачивания $script_name"
+        log_error "Нет curl/wget для скачивания $script_name" >&2
         return 1
     fi
-    chmod +x "$tmp_path" || true
+    
+    chmod +x "$tmp_path" 2>/dev/null || true
+    
+    # Возвращаем только путь
     echo "$tmp_path"
 }
 

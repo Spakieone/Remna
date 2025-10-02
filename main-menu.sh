@@ -380,15 +380,14 @@ install_full_monitoring() {
     echo
     log_info "Этап 2/2: Установка Node Exporter"
     if bash "$node_exporter_script"; then
-        log_success "Node Exporter установлен успешно"
+        echo
+        log_success "✅ Полная установка завершена успешно!"
     else
         log_error "Ошибка установки Node Exporter"
         wait_for_user
         return 1
     fi
     
-    echo
-    log_success "✅ Полная установка завершена успешно!"
     wait_for_user
 }
 
@@ -430,7 +429,7 @@ install_node_exporter_only() {
         return 1
     fi
     if bash "$node_exporter_script"; then
-        log_success "✅ Node Exporter установлен успешно!"
+        log_success "Node Exporter установлен"
     else
         log_error "Ошибка установки Node Exporter"
         wait_for_user

@@ -747,8 +747,14 @@ def speedtest():
                 "error": "speedtest-cli не установлен. Установите: apt install speedtest-cli"
             })
         
-        # Запускаем speedtest
-        result = run_command(['speedtest-cli', '--json'], timeout=60)
+        # Запускаем speedtest с более детальными параметрами
+        result = run_command([
+            'speedtest-cli', 
+            '--json', 
+            '--secure',  # Используем HTTPS
+            '--timeout', '30',  # Увеличиваем timeout для каждого этапа
+            '--single'  # Одиночный поток для более точного измерения
+        ], timeout=90)
         
         if result["success"]:
             try:
@@ -759,7 +765,13 @@ def speedtest():
                         "download": round(speedtest_data.get("download", 0) / 1000000, 2),  # MB/s
                         "upload": round(speedtest_data.get("upload", 0) / 1000000, 2),    # MB/s
                         "ping": round(speedtest_data.get("ping", 0), 2),                 # ms
-                        "server": speedtest_data.get("server", {}).get("name", "Unknown")
+                        "server": speedtest_data.get("server", {}).get("name", "Unknown"),
+                        "server_id": speedtest_data.get("server", {}).get("id", "Unknown"),
+                        "server_country": speedtest_data.get("server", {}).get("country", "Unknown"),
+                        "server_sponsor": speedtest_data.get("server", {}).get("sponsor", "Unknown"),
+                        "client_ip": speedtest_data.get("client", {}).get("ip", "Unknown"),
+                        "client_isp": speedtest_data.get("client", {}).get("isp", "Unknown"),
+                        "test_duration": "~30-60 сек"  # Примерное время
                     },
                     "ts": datetime.now().isoformat()
                 })

@@ -251,6 +251,24 @@ setup_directory() {
     # Создаем директорию
     mkdir -p "$NODE_API_DIR"
     
+    # Устанавливаем python3-venv перед созданием виртуального окружения
+    info "Установка python3-venv..."
+    case "$OS_ID" in
+        ubuntu|debian)
+            DEBIAN_FRONTEND=noninteractive apt-get update -qq || warn "Не удалось обновить apt"
+            DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
+                python3-venv \
+                python3.12-venv \
+                || warn "Не удалось установить python3-venv"
+            ;;
+        centos|rhel|fedora)
+            yum install -y -q python3-venv || warn "Не удалось установить python3-venv"
+            ;;
+        *)
+            warn "Неизвестная ОС ($OS_ID), пропускаем установку python3-venv"
+            ;;
+    esac
+    
     # Создаем Python venv
     info "Создание виртуального окружения Python..."
     if [[ -d "$NODE_API_DIR/venv" ]]; then
@@ -280,6 +298,8 @@ setup_directory() {
         ubuntu|debian)
             DEBIAN_FRONTEND=noninteractive apt-get update -qq || warn "Не удалось обновить apt"
             DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
+                python3-venv \
+                python3.12-venv \
                 speedtest-cli \
                 netcat-openbsd \
                 nmap \

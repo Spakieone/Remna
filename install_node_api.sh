@@ -480,7 +480,6 @@ def get_compose_command():
     # Проверяем новую версию (docker compose) - пробуем разные варианты
     test_commands = [
         ['docker', 'compose', 'version'],
-        ['sudo', 'docker', 'compose', 'version'],
         ['/usr/bin/docker', 'compose', 'version']
     ]
     
@@ -498,8 +497,17 @@ def get_compose_command():
         print("[DEBUG] Found docker-compose (old version)")
         return "docker-compose"
     
+    # Если ничего не работает, попробуем установить docker-compose
+    print("[DEBUG] No compose command found, trying to install docker-compose...")
+    install_result = run_command(['apt', 'install', '-y', 'docker-compose'], timeout=30)
+    print(f"[DEBUG] Install docker-compose: success={install_result['success']}")
+    
+    if install_result["success"]:
+        print("[DEBUG] docker-compose installed, using it")
+        return "docker-compose"
+    
     # Fallback на docker-compose
-    print("[DEBUG] No compose command found, using docker-compose as fallback")
+    print("[DEBUG] Using docker-compose as fallback")
     return "docker-compose"
 
 def detect_server_type():

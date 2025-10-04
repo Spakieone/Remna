@@ -754,9 +754,7 @@ def update_panel():
         logger.info(f"Found docker-compose file: {compose_file}")
         
         commands = [
-            f"cd {compose_dir} && docker compose pull",
-            f"cd {compose_dir} && docker compose down", 
-            f"cd {compose_dir} && docker compose up -d"
+            f"cd {compose_dir} && docker compose pull && docker compose down && docker compose up -d"
         ]
         
         results = []
@@ -793,6 +791,33 @@ def update_panel():
         return jsonify({
             "success": False,
             "error": f"Update failed: {str(e)}"
+        })
+
+@app.route('/api/debug_files')
+def debug_files():
+    """Отладка файлов"""
+    if not check_auth():
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    try:
+        # Проверяем директории
+        dirs_to_check = ["/opt/remnanode", "/opt/remnawave", "/root/remnanode", "/root/remnawave", "/home/remnanode", "/home/remnawave"]
+        
+        results = {}
+        for dir_path in dirs_to_check:
+            ls_result = run_command(f"ls -la {dir_path} 2>/dev/null || echo 'Directory not found'", timeout=10, shell=True)
+            results[dir_path] = ls_result.get("output", "N/A")
+        
+        return jsonify({
+            "success": True,
+            "directories": results,
+            "ts": datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": f"Debug failed: {str(e)}"
         })
 
 @app.route('/api/update_node', methods=['POST'])
@@ -833,9 +858,7 @@ def update_node():
         logger.info(f"Found docker-compose file: {compose_file}")
         
         commands = [
-            f"cd {compose_dir} && docker compose pull",
-            f"cd {compose_dir} && docker compose down", 
-            f"cd {compose_dir} && docker compose up -d"
+            f"cd {compose_dir} && docker compose pull && docker compose down && docker compose up -d"
         ]
         
         results = []

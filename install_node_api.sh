@@ -477,12 +477,19 @@ def get_compose_command():
     """Определяет правильную команду для docker-compose"""
     print("[DEBUG] Testing docker compose commands...")
     
-    # Проверяем новую версию (docker compose)
-    new_version = run_command(['docker', 'compose', 'version'], timeout=5)
-    print(f"[DEBUG] docker compose version: success={new_version['success']}, output='{new_version['output'][:50]}'")
-    if new_version["success"]:
-        print("[DEBUG] Found docker compose (new version)")
-        return "docker compose"
+    # Проверяем новую версию (docker compose) - пробуем разные варианты
+    test_commands = [
+        ['docker', 'compose', 'version'],
+        ['sudo', 'docker', 'compose', 'version'],
+        ['/usr/bin/docker', 'compose', 'version']
+    ]
+    
+    for i, cmd in enumerate(test_commands):
+        new_version = run_command(cmd, timeout=5)
+        print(f"[DEBUG] docker compose test {i+1}: {' '.join(cmd)} -> success={new_version['success']}, output='{new_version['output'][:50]}'")
+        if new_version["success"]:
+            print("[DEBUG] Found docker compose (new version)")
+            return "docker compose"
     
     # Проверяем старую версию (docker-compose)
     old_version = run_command(['docker-compose', 'version'], timeout=5)

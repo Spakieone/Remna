@@ -475,17 +475,24 @@ def get_system_metrics():
 
 def get_compose_command():
     """Определяет правильную команду для docker-compose"""
+    print("[DEBUG] Testing docker compose commands...")
+    
     # Проверяем новую версию (docker compose)
     new_version = run_command(['docker', 'compose', 'version'], timeout=5)
+    print(f"[DEBUG] docker compose version: success={new_version['success']}, output='{new_version['output'][:50]}'")
     if new_version["success"]:
+        print("[DEBUG] Found docker compose (new version)")
         return "docker compose"
     
     # Проверяем старую версию (docker-compose)
     old_version = run_command(['docker-compose', 'version'], timeout=5)
+    print(f"[DEBUG] docker-compose version: success={old_version['success']}, output='{old_version['output'][:50]}'")
     if old_version["success"]:
+        print("[DEBUG] Found docker-compose (old version)")
         return "docker-compose"
     
     # Fallback на docker-compose
+    print("[DEBUG] No compose command found, using docker-compose as fallback")
     return "docker-compose"
 
 def detect_server_type():

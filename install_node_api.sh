@@ -473,6 +473,21 @@ def get_system_metrics():
     
     return metrics
 
+def get_compose_command():
+    """Определяет правильную команду для docker compose"""
+    # Проверяем новую версию (docker compose)
+    new_version = run_command(['docker', 'compose', 'version'], timeout=5)
+    if new_version["success"]:
+        return "docker compose"
+    
+    # Проверяем старую версию (docker-compose)
+    old_version = run_command(['docker-compose', 'version'], timeout=5)
+    if old_version["success"]:
+        return "docker-compose"
+    
+    # Fallback на docker-compose
+    return "docker-compose"
+
 def detect_server_type():
     """Определение типа сервера"""
     docker_result = run_command(['docker', 'ps', '--format', '{{.Names}}'], timeout=5)
@@ -862,6 +877,120 @@ def debug_update():
         return jsonify({
             "success": False,
             "error": f"Debug failed: {str(e)}"
+        })
+
+@app.route('/api/test_update_node')
+def test_update_node():
+    """Тестовый endpoint для диагностики проблем обновления ноды"""
+    if not check_auth():
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    try:
+        # Ищем docker-compose файл ноды
+        compose_paths = [
+            "/opt/remnanode/docker-compose.yml",
+            "/opt/remnanode/docker-compose.yaml",
+            "/root/remnanode/docker-compose.yml", 
+            "/root/remnanode/docker-compose.yaml",
+            "/home/remnanode/docker-compose.yml",
+            "/home/remnanode/docker-compose.yaml"
+        ]
+        
+        compose_file = None
+        compose_dir = None
+        
+        # Проверяем существование файлов
+        for path in compose_paths:
+            check_result = run_command(f"test -f {path}", timeout=5, shell=True)
+            if check_result["success"]:
+                compose_file = path
+                compose_dir = os.path.dirname(path)
+                break
+        
+        if not compose_file:
+            return jsonify({
+                "success": False,
+                "error": "Docker compose file not found",
+                "searched_paths": compose_paths
+            })
+        
+        # Выполняем диагностические команды
+        diagnostic_commands = [
+            f"cd {compose_dir} && pwd",
+            f"cd {compose_dir} && ls -la",
+            f"cd {compose_dir} && docker --version",
+            f"cd {compose_dir} && docker compose version",
+            f"cd {compose_dir} && docker compose config",
+            f"cd {compose_dir} && docker compose ps"
+        ]
+        
+        results = []
+        for i, cmd in enumerate(diagnostic_commands):
+            step_name = ["check_dir", "list_files", "docker_version", "compose_version", "compose_config", "compose_status"][i]
+            print(f"[DEBUG] Executing diagnostic step {i+1}/{len(diagnostic_commands)}: {step_name}")
+            
+            result = run_command(cmd, timeout=30, shell=True)
+            results.append({
+                "step": step_name,
+                "command": cmd,
+                "success": result["success"],
+                "output": result["output"],
+                "error": result["error"]
+            })
+            
+            print(f"[DEBUG] Diagnostic step {step_name}: success={result['success']}")
+            if result["error"]:
+                print(f"[DEBUG] Error: {result['error']}")
+        
+        return jsonify({
+            "success": True,
+            "compose_file": compose_file,
+            "compose_dir": compose_dir,
+            "diagnostic_results": results,
+            "ts": datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        print(f"[ERROR] Error in test_update_node: {e}")
+        return jsonify({
+            "success": False,
+            "error": f"Test failed: {str(e)}"
+        })
+
+@app.route('/api/test_compose')
+def test_compose():
+    """Тест команд docker compose"""
+    if not check_auth():
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    try:
+        # Тестируем разные варианты команд
+        commands_to_test = [
+            "docker compose version",
+            "docker-compose version", 
+            "docker compose --version",
+            "docker-compose --version"
+        ]
+        
+        results = {}
+        for cmd in commands_to_test:
+            result = run_command(cmd, timeout=10, shell=True)
+            results[cmd] = {
+                "success": result["success"],
+                "output": result["output"],
+                "error": result["error"]
+            }
+        
+        return jsonify({
+            "success": True,
+            "compose_tests": results,
+            "ts": datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": f"Test failed: {str(e)}"
         })
 
 @app.route('/api/update_node', methods=['POST'])

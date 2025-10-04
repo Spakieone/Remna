@@ -723,10 +723,40 @@ def update_panel():
         return jsonify({"error": "Unauthorized"}), 401
     
     try:
+        # Ищем docker-compose файл панели
+        compose_paths = [
+            "/opt/remnawave/docker-compose.yml",
+            "/opt/remnawave/docker-compose.yaml", 
+            "/root/remnawave/docker-compose.yml",
+            "/root/remnawave/docker-compose.yaml",
+            "/home/remnawave/docker-compose.yml",
+            "/home/remnawave/docker-compose.yaml"
+        ]
+        
+        compose_file = None
+        compose_dir = None
+        
+        # Проверяем существование файлов
+        for path in compose_paths:
+            check_result = run_command(f"test -f {path}", timeout=5, shell=True)
+            if check_result["success"]:
+                compose_file = path
+                compose_dir = os.path.dirname(path)
+                break
+        
+        if not compose_file:
+            return jsonify({
+                "success": False,
+                "error": "Docker compose file not found",
+                "searched_paths": compose_paths
+            })
+        
+        logger.info(f"Found docker-compose file: {compose_file}")
+        
         commands = [
-            "cd /opt/remnawave && docker compose pull",
-            "cd /opt/remnawave && docker compose down", 
-            "cd /opt/remnawave && docker compose up -d"
+            f"cd {compose_dir} && docker compose pull",
+            f"cd {compose_dir} && docker compose down", 
+            f"cd {compose_dir} && docker compose up -d"
         ]
         
         results = []
@@ -753,6 +783,8 @@ def update_panel():
             "success": True,
             "message": "Panel updated successfully",
             "steps": results,
+            "compose_file": compose_file,
+            "compose_dir": compose_dir,
             "ts": datetime.now().isoformat()
         })
         
@@ -761,6 +793,181 @@ def update_panel():
         return jsonify({
             "success": False,
             "error": f"Update failed: {str(e)}"
+        })
+
+@app.route('/api/update_node', methods=['POST'])
+def update_node():
+    """Обновление ноды RemnaNode"""
+    if not check_auth():
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    try:
+        # Ищем docker-compose файл ноды
+        compose_paths = [
+            "/opt/remnanode/docker-compose.yml",
+            "/opt/remnanode/docker-compose.yaml",
+            "/root/remnanode/docker-compose.yml", 
+            "/root/remnanode/docker-compose.yaml",
+            "/home/remnanode/docker-compose.yml",
+            "/home/remnanode/docker-compose.yaml"
+        ]
+        
+        compose_file = None
+        compose_dir = None
+        
+        # Проверяем существование файлов
+        for path in compose_paths:
+            check_result = run_command(f"test -f {path}", timeout=5, shell=True)
+            if check_result["success"]:
+                compose_file = path
+                compose_dir = os.path.dirname(path)
+                break
+        
+        if not compose_file:
+            return jsonify({
+                "success": False,
+                "error": "Docker compose file not found",
+                "searched_paths": compose_paths
+            })
+        
+        logger.info(f"Found docker-compose file: {compose_file}")
+        
+        commands = [
+            f"cd {compose_dir} && docker compose pull",
+            f"cd {compose_dir} && docker compose down", 
+            f"cd {compose_dir} && docker compose up -d"
+        ]
+        
+        results = []
+        for cmd in commands:
+            logger.info(f"Executing node update command: {cmd}")
+            result = run_command(cmd, timeout=120, shell=True)
+            results.append({
+                "command": cmd,
+                "success": result["success"],
+                "output": result["output"],
+                "error": result["error"]
+            })
+            
+            # Если команда не удалась, останавливаем процесс
+            if not result["success"]:
+                return jsonify({
+                    "success": False,
+                    "error": f"Command failed: {cmd}",
+                    "details": result["error"],
+                    "steps": results
+                })
+        
+        return jsonify({
+            "success": True,
+            "message": "Node updated successfully",
+            "steps": results,
+            "compose_file": compose_file,
+            "compose_dir": compose_dir,
+            "ts": datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        logger.error(f"Error updating node: {e}")
+        return jsonify({
+            "success": False,
+            "error": f"Update failed: {str(e)}"
+        })
+
+@app.route('/api/test_node_update')
+def test_node_update():
+    """Тестовый эндпоинт для проверки обновления ноды"""
+    if not check_auth():
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    try:
+        # Проверяем Docker
+        docker_check = run_command("docker --version", timeout=10, shell=True)
+        
+        # Проверяем docker-compose
+        compose_check = run_command("docker compose version", timeout=10, shell=True)
+        
+        # Ищем файлы ноды
+        compose_paths = [
+            "/opt/remnanode/docker-compose.yml",
+            "/opt/remnanode/docker-compose.yaml",
+            "/root/remnanode/docker-compose.yml", 
+            "/root/remnanode/docker-compose.yaml",
+            "/home/remnanode/docker-compose.yml",
+            "/home/remnanode/docker-compose.yaml"
+        ]
+        
+        found_files = []
+        for path in compose_paths:
+            check_result = run_command(f"test -f {path}", timeout=5, shell=True)
+            if check_result["success"]:
+                found_files.append(path)
+        
+        # Проверяем текущие контейнеры
+        containers_check = run_command("docker ps -a --format 'table {{.Names}}\t{{.Status}}\t{{.Image}}'", timeout=10, shell=True)
+        
+        return jsonify({
+            "success": True,
+            "docker_version": docker_check.get("output", "N/A"),
+            "compose_version": compose_check.get("output", "N/A"),
+            "found_compose_files": found_files,
+            "searched_paths": compose_paths,
+            "current_containers": containers_check.get("output", "N/A"),
+            "ts": datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": f"Test failed: {str(e)}"
+        })
+
+@app.route('/api/test_panel_update')
+def test_panel_update():
+    """Тестовый эндпоинт для проверки обновления панели"""
+    if not check_auth():
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    try:
+        # Проверяем Docker
+        docker_check = run_command("docker --version", timeout=10, shell=True)
+        
+        # Проверяем docker-compose
+        compose_check = run_command("docker compose version", timeout=10, shell=True)
+        
+        # Ищем файлы панели
+        compose_paths = [
+            "/opt/remnawave/docker-compose.yml",
+            "/opt/remnawave/docker-compose.yaml", 
+            "/root/remnawave/docker-compose.yml",
+            "/root/remnawave/docker-compose.yaml",
+            "/home/remnawave/docker-compose.yml",
+            "/home/remnawave/docker-compose.yaml"
+        ]
+        
+        found_files = []
+        for path in compose_paths:
+            check_result = run_command(f"test -f {path}", timeout=5, shell=True)
+            if check_result["success"]:
+                found_files.append(path)
+        
+        # Проверяем текущие контейнеры
+        containers_check = run_command("docker ps -a --format 'table {{.Names}}\t{{.Status}}\t{{.Image}}'", timeout=10, shell=True)
+        
+        return jsonify({
+            "success": True,
+            "docker_version": docker_check.get("output", "N/A"),
+            "compose_version": compose_check.get("output", "N/A"),
+            "found_compose_files": found_files,
+            "searched_paths": compose_paths,
+            "current_containers": containers_check.get("output", "N/A"),
+            "ts": datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": f"Test failed: {str(e)}"
         })
 
 @app.route('/api/mtr')

@@ -993,6 +993,104 @@ def test_compose():
             "error": f"Test failed: {str(e)}"
         })
 
+@app.route('/api/test_update_fixed')
+def test_update_fixed():
+    """Тест обновления с правильной командой docker-compose"""
+    if not check_auth():
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    try:
+        # Ищем docker-compose файл ноды
+        compose_paths = [
+            "/opt/remnanode/docker-compose.yml",
+            "/opt/remnanode/docker-compose.yaml",
+            "/root/remnanode/docker-compose.yml", 
+            "/root/remnanode/docker-compose.yaml",
+            "/home/remnanode/docker-compose.yml",
+            "/home/remnanode/docker-compose.yaml"
+        ]
+        
+        compose_file = None
+        compose_dir = None
+        
+        # Проверяем существование файлов
+        for path in compose_paths:
+            check_result = run_command(f"test -f {path}", timeout=5, shell=True)
+            if check_result["success"]:
+                compose_file = path
+                compose_dir = os.path.dirname(path)
+                break
+        
+        if not compose_file:
+            return jsonify({
+                "success": False,
+                "error": "Docker compose file not found",
+                "searched_paths": compose_paths
+            })
+        
+        print(f"[DEBUG] Found docker-compose file: {compose_file}")
+        
+        # Используем docker-compose (с дефисом) для совместимости
+        compose_cmd = "docker-compose"
+        print(f"[DEBUG] Using compose command: {compose_cmd}")
+        
+        # Выполняем команды пошагово для лучшей диагностики
+        commands = [
+            f"cd {compose_dir}",
+            f"cd {compose_dir} && pwd && ls -la",
+            f"cd {compose_dir} && {compose_cmd} --version",
+            f"cd {compose_dir} && {compose_cmd} pull",
+            f"cd {compose_dir} && {compose_cmd} down",
+            f"cd {compose_dir} && {compose_cmd} up -d"
+        ]
+        
+        results = []
+        for i, cmd in enumerate(commands):
+            step_name = ["change_dir", "list_files", "check_compose", "pull_images", "stop_containers", "start_containers"][i]
+            print(f"[DEBUG] Executing step {i+1}/{len(commands)}: {step_name}")
+            print(f"[DEBUG] Command: {cmd}")
+            
+            result = run_command(cmd, timeout=120, shell=True)
+            results.append({
+                "step": step_name,
+                "command": cmd,
+                "success": result["success"],
+                "output": result["output"],
+                "error": result["error"]
+            })
+            
+            print(f"[DEBUG] Step {step_name}: success={result['success']}")
+            if result["error"]:
+                print(f"[DEBUG] Error: {result['error']}")
+            if result["output"]:
+                print(f"[DEBUG] Output: {result['output'][:200]}...")
+            
+            # Если команда не удалась, останавливаем процесс
+            if not result["success"]:
+                return jsonify({
+                    "success": False,
+                    "error": f"Step {step_name} failed: {cmd}",
+                    "details": result["error"],
+                    "output": result["output"],
+                    "steps": results
+                })
+        
+        return jsonify({
+            "success": True,
+            "message": "Node updated successfully with docker-compose",
+            "steps": results,
+            "compose_file": compose_file,
+            "compose_dir": compose_dir,
+            "ts": datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        print(f"[ERROR] Error updating node: {e}")
+        return jsonify({
+            "success": False,
+            "error": f"Update failed: {str(e)}"
+        })
+
 @app.route('/api/update_node', methods=['POST'])
 def update_node():
     """Обновление ноды RemnaNode"""
@@ -1605,6 +1703,97 @@ final_check() {
     info "Статус сервиса: systemctl status node-api"
 }
 
+# Функция обновления кода
+update_code() {
+    info "Обновление кода Node API..."
+    
+    # Проверяем, что сервис существует
+    if ! systemctl is-enabled node-api >/dev/null 2>&1; then
+        warn "Сервис node-api не найден. Запускаем полную установку..."
+        return 0
+    fi
+    
+    # Останавливаем сервис
+    info "Остановка сервиса node-api..."
+    systemctl stop node-api 2>/dev/null || true
+    
+    # Обновляем скрипт
+    info "Обновление Node API скрипта..."
+    create_node_api_script
+    
+    # Перезапускаем сервис
+    info "Перезапуск сервиса node-api..."
+    systemctl daemon-reload
+    systemctl start node-api
+    
+    # Проверяем статус
+    sleep 3
+    if systemctl is-active --quiet node-api; then
+        log "✅ Сервис node-api успешно обновлен и запущен"
+    else
+        err "❌ Не удалось запустить обновленный сервис"
+        info "Логи сервиса:"
+        journalctl -u node-api --no-pager -n 10
+        return 1
+    fi
+    
+    return 0
+}
+
+# Функция массового обновления всех нод
+update_all_nodes() {
+    info "Массовое обновление всех нод..."
+    
+    # Список IP адресов нод (замените на ваши)
+    NODES_IPS=(
+        "217.144.187.104"  # GERMANY
+        "77.110.105.82"     # RU1
+        "77.110.105.83"     # RU2
+        "77.110.105.84"     # RU3
+        "77.110.105.85"     # RU4
+        "77.110.105.86"     # RU5
+        "77.110.105.87"     # RU6
+        "77.110.105.88"     # RU7
+        "77.110.105.89"     # RU8
+        "77.110.105.90"     # RU9
+    )
+    
+    TOKEN="jfwfQ4RrVMdCspg8alk"  # Ваш токен
+    
+    success_count=0
+    total_count=${#NODES_IPS[@]}
+    
+    for ip in "${NODES_IPS[@]}"; do
+        info "Обновление ноды $ip..."
+        
+        # Отправляем запрос на обновление
+        if curl -s -H "Authorization: Bearer $TOKEN" \
+           -X POST "http://$ip:8080/api/test_update_fixed" \
+           --connect-timeout 10 --max-time 300 >/dev/null 2>&1; then
+            log "✅ Нода $ip обновлена успешно"
+            ((success_count++))
+        else
+            warn "❌ Ошибка обновления ноды $ip"
+        fi
+        
+        # Небольшая пауза между обновлениями
+        sleep 2
+    done
+    
+    echo
+    log "📊 Результат массового обновления:"
+    log "✅ Успешно: $success_count из $total_count"
+    log "❌ Ошибок: $((total_count - success_count))"
+    
+    if [[ $success_count -eq $total_count ]]; then
+        log "🎉 Все ноды обновлены успешно!"
+        return 0
+    else
+        warn "⚠️ Некоторые ноды не удалось обновить"
+        return 1
+    fi
+}
+
 # Cleanup функция
 cleanup() {
     local exit_code=$?
@@ -1616,6 +1805,47 @@ cleanup() {
 
 # Основная функция
 main() {
+    # Проверяем аргументы командной строки
+    if [[ "${1:-}" == "--update" ]]; then
+        echo -e "${BLUE}╔══════════════════════════════════════════════════════════════╗${NC}"
+        echo -e "${BLUE}║${NC}                 ${GREEN}Node API Updater v1.2.0${NC}                     ${BLUE}║${NC}"
+        echo -e "${BLUE}║${NC}                     ${YELLOW}Code Update Mode${NC}                         ${BLUE}║${NC}"
+        echo -e "${BLUE}╚══════════════════════════════════════════════════════════════╝${NC}"
+        echo
+        
+        require_root
+        detect_os
+        
+        if update_code; then
+            echo
+            log "🎉 Обновление Node API успешно завершено!"
+            info "Для проверки выполните: curl -H 'Authorization: Bearer YOUR_TOKEN' http://localhost:8080/api/status"
+        else
+            err "❌ Обновление завершилось с ошибкой"
+            exit 1
+        fi
+        return
+    fi
+    
+    if [[ "${1:-}" == "--update-all" ]]; then
+        echo -e "${BLUE}╔══════════════════════════════════════════════════════════════╗${NC}"
+        echo -e "${BLUE}║${NC}                 ${GREEN}Mass Node Updater v1.2.0${NC}                   ${BLUE}║${NC}"
+        echo -e "${BLUE}║${NC}                     ${YELLOW}Update All Nodes Mode${NC}                     ${BLUE}║${NC}"
+        echo -e "${BLUE}╚══════════════════════════════════════════════════════════════╝${NC}"
+        echo
+        
+        require_root
+        
+        if update_all_nodes; then
+            echo
+            log "🎉 Массовое обновление всех нод завершено успешно!"
+        else
+            err "❌ Массовое обновление завершилось с ошибками"
+            exit 1
+        fi
+        return
+    fi
+    
     echo -e "${BLUE}╔══════════════════════════════════════════════════════════════╗${NC}"
     echo -e "${BLUE}║${NC}                 ${GREEN}Node API Installer v1.2.0${NC}                    ${BLUE}║${NC}"
     echo -e "${BLUE}║${NC}                     ${YELLOW}Optimized Edition${NC}                        ${BLUE}║${NC}"
@@ -1642,6 +1872,15 @@ main() {
     
     echo
     log "🎉 Установка Node API успешно завершена!"
+    echo
+    info "💡 Команды для управления:"
+    echo -e "${BLUE}sudo $0 --update${NC}        # Обновить код Node API"
+    echo -e "${BLUE}sudo $0 --update-all${NC}    # Обновить все ноды массово"
+    echo
+    info "🔧 Управление сервисом:"
+    echo -e "${BLUE}sudo systemctl restart node-api${NC}  # Перезапуск"
+    echo -e "${BLUE}sudo systemctl status node-api${NC}   # Статус"
+    echo -e "${BLUE}journalctl -u node-api -f${NC}        # Логи"
 }
 
 # Запуск

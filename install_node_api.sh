@@ -474,11 +474,11 @@ def get_system_metrics():
     return metrics
 
 def get_compose_command():
-    """Определяет правильную команду для docker compose"""
-    # Проверяем новую версию (docker compose)
+    """Определяет правильную команду для docker-compose"""
+    # Проверяем новую версию (docker-compose)
     new_version = run_command(['docker', 'compose', 'version'], timeout=5)
     if new_version["success"]:
-        return "docker compose"
+        return "docker-compose"
     
     # Проверяем старую версию (docker-compose)
     old_version = run_command(['docker-compose', 'version'], timeout=5)
@@ -771,9 +771,9 @@ def update_panel():
         # Выполняем команды пошагово для лучшей диагностики
         commands = [
             f"cd {compose_dir}",
-            f"cd {compose_dir} && docker compose pull",
-            f"cd {compose_dir} && docker compose down",
-            f"cd {compose_dir} && docker compose up -d"
+            f"cd {compose_dir} && docker-compose pull",
+            f"cd {compose_dir} && docker-compose down",
+            f"cd {compose_dir} && docker-compose up -d"
         ]
         
         results = []
@@ -831,7 +831,7 @@ def debug_update():
         docker_check = run_command("docker --version", timeout=10, shell=True)
         
         # Проверяем docker-compose
-        compose_check = run_command("docker compose version", timeout=10, shell=True)
+        compose_check = run_command("docker-compose version", timeout=10, shell=True)
         
         # Проверяем права доступа к директориям
         dirs_to_check = ["/opt/remnanode", "/opt/remnawave", "/root/remnanode", "/root/remnawave"]
@@ -919,9 +919,9 @@ def test_update_node():
             f"cd {compose_dir} && pwd",
             f"cd {compose_dir} && ls -la",
             f"cd {compose_dir} && docker --version",
-            f"cd {compose_dir} && docker compose version",
-            f"cd {compose_dir} && docker compose config",
-            f"cd {compose_dir} && docker compose ps"
+            f"cd {compose_dir} && docker-compose version",
+            f"cd {compose_dir} && docker-compose config",
+            f"cd {compose_dir} && docker-compose ps"
         ]
         
         results = []
@@ -959,16 +959,16 @@ def test_update_node():
 
 @app.route('/api/test_compose')
 def test_compose():
-    """Тест команд docker compose"""
+    """Тест команд docker-compose"""
     if not check_auth():
         return jsonify({"error": "Unauthorized"}), 401
     
     try:
         # Тестируем разные варианты команд
         commands_to_test = [
-            "docker compose version",
+            "docker-compose version",
             "docker-compose version", 
-            "docker compose --version",
+            "docker-compose --version",
             "docker-compose --version"
         ]
         
@@ -1131,9 +1131,9 @@ def update_node():
         # Выполняем команды пошагово для лучшей диагностики
         commands = [
             f"cd {compose_dir}",
-            f"cd {compose_dir} && docker compose pull",
-            f"cd {compose_dir} && docker compose down",
-            f"cd {compose_dir} && docker compose up -d"
+            f"cd {compose_dir} && docker-compose pull",
+            f"cd {compose_dir} && docker-compose down",
+            f"cd {compose_dir} && docker-compose up -d"
         ]
         
         results = []
@@ -1191,7 +1191,7 @@ def test_node_update():
         docker_check = run_command("docker --version", timeout=10, shell=True)
         
         # Проверяем docker-compose
-        compose_check = run_command("docker compose version", timeout=10, shell=True)
+        compose_check = run_command("docker-compose version", timeout=10, shell=True)
         
         # Ищем файлы ноды
         compose_paths = [
@@ -1239,7 +1239,7 @@ def test_panel_update():
         docker_check = run_command("docker --version", timeout=10, shell=True)
         
         # Проверяем docker-compose
-        compose_check = run_command("docker compose version", timeout=10, shell=True)
+        compose_check = run_command("docker-compose version", timeout=10, shell=True)
         
         # Ищем файлы панели
         compose_paths = [

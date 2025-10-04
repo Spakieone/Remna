@@ -497,18 +497,9 @@ def get_compose_command():
         print("[DEBUG] Found docker-compose (old version)")
         return "docker-compose"
     
-    # Если ничего не работает, попробуем установить docker-compose
-    print("[DEBUG] No compose command found, trying to install docker-compose...")
-    install_result = run_command(['apt', 'install', '-y', 'docker-compose'], timeout=30)
-    print(f"[DEBUG] Install docker-compose: success={install_result['success']}")
-    
-    if install_result["success"]:
-        print("[DEBUG] docker-compose installed, using it")
-        return "docker-compose"
-    
-    # Fallback на docker-compose
-    print("[DEBUG] Using docker-compose as fallback")
-    return "docker-compose"
+    # Если ничего не работает, используем прямые docker команды
+    print("[DEBUG] No compose command found, using direct docker commands")
+    return "docker_direct"
 
 def detect_server_type():
     """Определение типа сервера"""
@@ -811,12 +802,33 @@ def update_panel():
         print(f"[DEBUG] Using compose command: {compose_cmd}")
         
         # Выполняем команды пошагово для лучшей диагностики
-        commands = [
-            f"cd {compose_dir}",
-            f"cd {compose_dir} && {compose_cmd} pull",
-            f"cd {compose_dir} && {compose_cmd} down",
-            f"cd {compose_dir} && {compose_cmd} up -d"
-        ]
+        if compose_cmd == "docker_direct":
+            # Используем прямые docker команды без compose
+            if "remnawave" in compose_dir:
+                # Обновление панели
+                commands = [
+                    f"cd {compose_dir}",
+                    f"cd {compose_dir} && docker pull remnawave/backend:latest",
+                    f"cd {compose_dir} && docker stop remnawave",
+                    f"cd {compose_dir} && docker rm remnawave", 
+                    f"cd {compose_dir} && docker run -d --name remnawave --restart unless-stopped -p 3001:3001 -p 3000:3000 -v /opt/remnawave:/app remnawave/backend:latest"
+                ]
+            else:
+                # Обновление ноды
+                commands = [
+                    f"cd {compose_dir}",
+                    f"cd {compose_dir} && docker pull remnawave/node:latest",
+                    f"cd {compose_dir} && docker stop remnanode",
+                    f"cd {compose_dir} && docker rm remnanode", 
+                    f"cd {compose_dir} && docker run -d --name remnanode --restart unless-stopped --network host -v /var/lib/remna:/var/lib/remna -v /var/log/remna:/var/log/remna remnawave/node:latest"
+                ]
+        else:
+            commands = [
+                f"cd {compose_dir}",
+                f"cd {compose_dir} && {compose_cmd} pull",
+                f"cd {compose_dir} && {compose_cmd} down",
+                f"cd {compose_dir} && {compose_cmd} up -d"
+            ]
         
         results = []
         for i, cmd in enumerate(commands):
@@ -1175,12 +1187,33 @@ def update_node():
         print(f"[DEBUG] Using compose command: {compose_cmd}")
         
         # Выполняем команды пошагово для лучшей диагностики
-        commands = [
-            f"cd {compose_dir}",
-            f"cd {compose_dir} && {compose_cmd} pull",
-            f"cd {compose_dir} && {compose_cmd} down",
-            f"cd {compose_dir} && {compose_cmd} up -d"
-        ]
+        if compose_cmd == "docker_direct":
+            # Используем прямые docker команды без compose
+            if "remnawave" in compose_dir:
+                # Обновление панели
+                commands = [
+                    f"cd {compose_dir}",
+                    f"cd {compose_dir} && docker pull remnawave/backend:latest",
+                    f"cd {compose_dir} && docker stop remnawave",
+                    f"cd {compose_dir} && docker rm remnawave", 
+                    f"cd {compose_dir} && docker run -d --name remnawave --restart unless-stopped -p 3001:3001 -p 3000:3000 -v /opt/remnawave:/app remnawave/backend:latest"
+                ]
+            else:
+                # Обновление ноды
+                commands = [
+                    f"cd {compose_dir}",
+                    f"cd {compose_dir} && docker pull remnawave/node:latest",
+                    f"cd {compose_dir} && docker stop remnanode",
+                    f"cd {compose_dir} && docker rm remnanode", 
+                    f"cd {compose_dir} && docker run -d --name remnanode --restart unless-stopped --network host -v /var/lib/remna:/var/lib/remna -v /var/log/remna:/var/log/remna remnawave/node:latest"
+                ]
+        else:
+            commands = [
+                f"cd {compose_dir}",
+                f"cd {compose_dir} && {compose_cmd} pull",
+                f"cd {compose_dir} && {compose_cmd} down",
+                f"cd {compose_dir} && {compose_cmd} up -d"
+            ]
         
         results = []
         for i, cmd in enumerate(commands):

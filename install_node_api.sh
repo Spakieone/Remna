@@ -751,28 +751,40 @@ def update_panel():
                 "searched_paths": compose_paths
             })
         
-        logger.info(f"Found docker-compose file: {compose_file}")
+        print(f"[DEBUG] Found docker-compose file: {compose_file}")
         
+        # Выполняем команды пошагово для лучшей диагностики
         commands = [
-            f"cd {compose_dir} && docker compose pull && docker compose down && docker compose up -d"
+            f"cd {compose_dir}",
+            f"cd {compose_dir} && docker compose pull",
+            f"cd {compose_dir} && docker compose down",
+            f"cd {compose_dir} && docker compose up -d"
         ]
         
         results = []
-        for cmd in commands:
-            logger.info(f"Executing panel update command: {cmd}")
+        for i, cmd in enumerate(commands):
+            step_name = ["change_dir", "pull_images", "stop_containers", "start_containers"][i]
+            print(f"[DEBUG] Executing step {i+1}/{len(commands)}: {step_name}")
+            print(f"[DEBUG] Command: {cmd}")
+            
             result = run_command(cmd, timeout=120, shell=True)
             results.append({
+                "step": step_name,
                 "command": cmd,
                 "success": result["success"],
                 "output": result["output"],
                 "error": result["error"]
             })
             
+            print(f"[DEBUG] Step {step_name}: success={result['success']}")
+            if result["error"]:
+                print(f"[DEBUG] Error: {result['error']}")
+            
             # Если команда не удалась, останавливаем процесс
             if not result["success"]:
                 return jsonify({
                     "success": False,
-                    "error": f"Command failed: {cmd}",
+                    "error": f"Step {step_name} failed: {cmd}",
                     "details": result["error"],
                     "steps": results
                 })
@@ -787,30 +799,62 @@ def update_panel():
         })
         
     except Exception as e:
-        logger.error(f"Error updating panel: {e}")
+        print(f"[ERROR] Error updating panel: {e}")
         return jsonify({
             "success": False,
             "error": f"Update failed: {str(e)}"
         })
 
-@app.route('/api/debug_files')
-def debug_files():
-    """Отладка файлов"""
+@app.route('/api/debug_update')
+def debug_update():
+    """Отладочный endpoint для диагностики проблем обновления"""
     if not check_auth():
         return jsonify({"error": "Unauthorized"}), 401
     
     try:
-        # Проверяем директории
-        dirs_to_check = ["/opt/remnanode", "/opt/remnawave", "/root/remnanode", "/root/remnawave", "/home/remnanode", "/home/remnawave"]
+        # Проверяем Docker
+        docker_check = run_command("docker --version", timeout=10, shell=True)
         
-        results = {}
+        # Проверяем docker-compose
+        compose_check = run_command("docker compose version", timeout=10, shell=True)
+        
+        # Проверяем права доступа к директориям
+        dirs_to_check = ["/opt/remnanode", "/opt/remnawave", "/root/remnanode", "/root/remnawave"]
+        dir_permissions = {}
+        
         for dir_path in dirs_to_check:
             ls_result = run_command(f"ls -la {dir_path} 2>/dev/null || echo 'Directory not found'", timeout=10, shell=True)
-            results[dir_path] = ls_result.get("output", "N/A")
+            dir_permissions[dir_path] = ls_result.get("output", "N/A")
+        
+        # Проверяем текущие контейнеры
+        containers_check = run_command("docker ps -a --format 'table {{.Names}}\t{{.Status}}\t{{.Image}}'", timeout=10, shell=True)
+        
+        # Проверяем docker-compose файлы
+        compose_files = {}
+        compose_paths = [
+            "/opt/remnanode/docker-compose.yml",
+            "/opt/remnanode/docker-compose.yaml",
+            "/root/remnanode/docker-compose.yml", 
+            "/root/remnanode/docker-compose.yaml",
+            "/opt/remnawave/docker-compose.yml",
+            "/opt/remnawave/docker-compose.yaml", 
+            "/root/remnawave/docker-compose.yml",
+            "/root/remnawave/docker-compose.yaml"
+        ]
+        
+        for path in compose_paths:
+            check_result = run_command(f"test -f {path} && echo 'EXISTS' || echo 'NOT_FOUND'", timeout=5, shell=True)
+            compose_files[path] = check_result.get("output", "N/A")
         
         return jsonify({
             "success": True,
-            "directories": results,
+            "docker_version": docker_check.get("output", "N/A"),
+            "compose_version": compose_check.get("output", "N/A"),
+            "directory_permissions": dir_permissions,
+            "compose_files": compose_files,
+            "current_containers": containers_check.get("output", "N/A"),
+            "user_info": run_command("whoami && id", timeout=5, shell=True).get("output", "N/A"),
+            "working_directory": run_command("pwd", timeout=5, shell=True).get("output", "N/A"),
             "ts": datetime.now().isoformat()
         })
         
@@ -855,28 +899,40 @@ def update_node():
                 "searched_paths": compose_paths
             })
         
-        logger.info(f"Found docker-compose file: {compose_file}")
+        print(f"[DEBUG] Found docker-compose file: {compose_file}")
         
+        # Выполняем команды пошагово для лучшей диагностики
         commands = [
-            f"cd {compose_dir} && docker compose pull && docker compose down && docker compose up -d"
+            f"cd {compose_dir}",
+            f"cd {compose_dir} && docker compose pull",
+            f"cd {compose_dir} && docker compose down",
+            f"cd {compose_dir} && docker compose up -d"
         ]
         
         results = []
-        for cmd in commands:
-            logger.info(f"Executing node update command: {cmd}")
+        for i, cmd in enumerate(commands):
+            step_name = ["change_dir", "pull_images", "stop_containers", "start_containers"][i]
+            print(f"[DEBUG] Executing step {i+1}/{len(commands)}: {step_name}")
+            print(f"[DEBUG] Command: {cmd}")
+            
             result = run_command(cmd, timeout=120, shell=True)
             results.append({
+                "step": step_name,
                 "command": cmd,
                 "success": result["success"],
                 "output": result["output"],
                 "error": result["error"]
             })
             
+            print(f"[DEBUG] Step {step_name}: success={result['success']}")
+            if result["error"]:
+                print(f"[DEBUG] Error: {result['error']}")
+            
             # Если команда не удалась, останавливаем процесс
             if not result["success"]:
                 return jsonify({
                     "success": False,
-                    "error": f"Command failed: {cmd}",
+                    "error": f"Step {step_name} failed: {cmd}",
                     "details": result["error"],
                     "steps": results
                 })
@@ -891,7 +947,7 @@ def update_node():
         })
         
     except Exception as e:
-        logger.error(f"Error updating node: {e}")
+        print(f"[ERROR] Error updating node: {e}")
         return jsonify({
             "success": False,
             "error": f"Update failed: {str(e)}"

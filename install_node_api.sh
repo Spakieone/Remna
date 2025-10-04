@@ -493,10 +493,11 @@ def detect_server_type():
     docker_result = run_command(['docker', 'ps', '--format', '{{.Names}}'], timeout=5)
     if docker_result["success"]:
         container_names = docker_result["output"].lower()
-        if 'remnawave' in container_names:
-            return "panel"
-        elif 'remnanode' in container_names:
+        # Приоритет у ноды - если есть remnanode, то это нода
+        if 'remnanode' in container_names:
             return "node"
+        elif 'remnawave' in container_names:
+            return "panel"
     
     # Дополнительная проверка через docker-compose файлы
     panel_compose = run_command(['ls', '/opt/remnawave/docker-compose.yml'], timeout=3)

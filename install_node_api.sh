@@ -784,12 +784,16 @@ def update_panel():
         
         print(f"[DEBUG] Found docker-compose file: {compose_file}")
         
+        # Определяем правильную команду для docker-compose
+        compose_cmd = get_compose_command()
+        print(f"[DEBUG] Using compose command: {compose_cmd}")
+        
         # Выполняем команды пошагово для лучшей диагностики
         commands = [
             f"cd {compose_dir}",
-            f"cd {compose_dir} && docker-compose pull",
-            f"cd {compose_dir} && docker-compose down",
-            f"cd {compose_dir} && docker-compose up -d"
+            f"cd {compose_dir} && {compose_cmd} pull",
+            f"cd {compose_dir} && {compose_cmd} down",
+            f"cd {compose_dir} && {compose_cmd} up -d"
         ]
         
         results = []
@@ -1144,12 +1148,16 @@ def update_node():
         
         print(f"[DEBUG] Found docker-compose file: {compose_file}")
         
+        # Определяем правильную команду для docker-compose
+        compose_cmd = get_compose_command()
+        print(f"[DEBUG] Using compose command: {compose_cmd}")
+        
         # Выполняем команды пошагово для лучшей диагностики
         commands = [
             f"cd {compose_dir}",
-            f"cd {compose_dir} && docker-compose pull",
-            f"cd {compose_dir} && docker-compose down",
-            f"cd {compose_dir} && docker-compose up -d"
+            f"cd {compose_dir} && {compose_cmd} pull",
+            f"cd {compose_dir} && {compose_cmd} down",
+            f"cd {compose_dir} && {compose_cmd} up -d"
         ]
         
         results = []

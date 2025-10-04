@@ -689,7 +689,12 @@ def exec_command():
         return jsonify({"error": "Unauthorized"}), 401
     
     cmd = request.args.get('command', 'echo ok')
-    result = run_command(cmd.split(), timeout=15)
+    
+    # Для Docker команд используем shell=True и больший timeout
+    if 'docker' in cmd.lower():
+        result = run_command(cmd, timeout=120, shell=True)
+    else:
+        result = run_command(cmd.split(), timeout=30)
     
     return jsonify({
         "command": cmd,
@@ -710,6 +715,53 @@ def reboot():
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@app.route('/api/update_panel', methods=['POST'])
+def update_panel():
+    """Обновление панели Remnawave"""
+    if not check_auth():
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    try:
+        commands = [
+            "cd /opt/remnawave && docker compose pull",
+            "cd /opt/remnawave && docker compose down", 
+            "cd /opt/remnawave && docker compose up -d"
+        ]
+        
+        results = []
+        for cmd in commands:
+            logger.info(f"Executing panel update command: {cmd}")
+            result = run_command(cmd, timeout=120, shell=True)
+            results.append({
+                "command": cmd,
+                "success": result["success"],
+                "output": result["output"],
+                "error": result["error"]
+            })
+            
+            # Если команда не удалась, останавливаем процесс
+            if not result["success"]:
+                return jsonify({
+                    "success": False,
+                    "error": f"Command failed: {cmd}",
+                    "details": result["error"],
+                    "steps": results
+                })
+        
+        return jsonify({
+            "success": True,
+            "message": "Panel updated successfully",
+            "steps": results,
+            "ts": datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        logger.error(f"Error updating panel: {e}")
+        return jsonify({
+            "success": False,
+            "error": f"Update failed: {str(e)}"
+        })
 
 @app.route('/api/mtr')
 def mtr_report():

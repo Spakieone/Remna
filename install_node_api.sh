@@ -521,11 +521,26 @@ def get_xray_info():
         print(f"[DEBUG] remnanode container not found or not running")
         return version, status
     
+    # Дополнительная диагностика - проверяем что внутри контейнера
+    ls_result = run_command(['docker', 'exec', 'remnanode', 'ls', '-la', '/usr/local/bin/'], timeout=5)
+    print(f"[DEBUG] /usr/local/bin/ contents: {ls_result['output'][:200]}")
+    
+    # Проверяем альтернативные пути
+    alt_paths = ['/usr/local/bin/xray', '/app/xray', '/usr/bin/xray', 'xray']
+    for path in alt_paths:
+        test_result = run_command(['docker', 'exec', 'remnanode', 'test', '-f', path], timeout=3)
+        print(f"[DEBUG] Testing path {path}: exists={test_result['success']}")
+        if test_result["success"]:
+            print(f"[DEBUG] Found Xray binary at: {path}")
+    
     # Версия Xray - пробуем разные пути
     version_commands = [
         ['docker', 'exec', 'remnanode', '/usr/local/bin/xray', '-version'],
         ['docker', 'exec', 'remnanode', '/app/xray', '-version'],
-        ['docker', 'exec', 'remnanode', 'xray', '-version']
+        ['docker', 'exec', 'remnanode', '/usr/bin/xray', '-version'],
+        ['docker', 'exec', 'remnanode', 'xray', '-version'],
+        ['docker', 'exec', 'remnanode', 'which', 'xray'],
+        ['docker', 'exec', 'remnanode', 'find', '/', '-name', 'xray', '-type', 'f', '2>/dev/null']
     ]
     
     for cmd in version_commands:

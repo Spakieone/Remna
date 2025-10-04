@@ -475,10 +475,10 @@ def get_system_metrics():
 
 def get_compose_command():
     """Определяет правильную команду для docker-compose"""
-    # Проверяем новую версию (docker-compose)
+    # Проверяем новую версию (docker compose)
     new_version = run_command(['docker', 'compose', 'version'], timeout=5)
     if new_version["success"]:
-        return "docker-compose"
+        return "docker compose"
     
     # Проверяем старую версию (docker-compose)
     old_version = run_command(['docker-compose', 'version'], timeout=5)

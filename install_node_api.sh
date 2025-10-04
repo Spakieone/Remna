@@ -831,8 +831,10 @@ def update_panel():
             ]
         
         results = []
+        step_names = ["change_dir", "pull_images", "stop_containers", "remove_containers", "start_containers"]
+        
         for i, cmd in enumerate(commands):
-            step_name = ["change_dir", "pull_images", "stop_containers", "start_containers"][i]
+            step_name = step_names[i] if i < len(step_names) else f"step_{i+1}"
             print(f"[DEBUG] Executing step {i+1}/{len(commands)}: {step_name}")
             print(f"[DEBUG] Command: {cmd}")
             
@@ -1216,8 +1218,10 @@ def update_node():
             ]
         
         results = []
+        step_names = ["change_dir", "pull_images", "stop_containers", "remove_containers", "start_containers"]
+        
         for i, cmd in enumerate(commands):
-            step_name = ["change_dir", "pull_images", "stop_containers", "start_containers"][i]
+            step_name = step_names[i] if i < len(step_names) else f"step_{i+1}"
             print(f"[DEBUG] Executing step {i+1}/{len(commands)}: {step_name}")
             print(f"[DEBUG] Command: {cmd}")
             

@@ -746,34 +746,120 @@ install_remnanode() {
     colorized_echo blue "Создание директории $DATA_DIR"
     mkdir -p "$DATA_DIR"
 
-    # Prompt the user to input the SSL certificate
-    colorized_echo blue "Вставьте содержимое SSL публичного ключа из Remnawave-Panel, нажмите ENTER на новой строке когда закончите: "
-    SSL_CERT=""
+    # Create log directory for tBlocker compatibility
+    colorized_echo blue "Создание директории логов /var/log/remnanode"
+    mkdir -p /var/log/remnanode
+
+    echo
+    echo -e "\033[1;37m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+    echo -e "\033[1;36m📋 Вставка конфигурации Docker Compose\033[0m"
+    echo -e "\033[38;5;8m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+    echo
+    colorized_echo yellow "Вставьте содержимое docker-compose.yml из Remnawave-Panel"
+    colorized_echo blue "Нажмите ENTER на пустой строке, когда закончите вставку:"
+    echo
+    
+    COMPOSE_CONTENT=""
+    line_count=0
     while IFS= read -r line; do
-        if [[ -z $line ]]; then
+        if [[ -z "$line" ]] && [[ $line_count -gt 0 ]]; then
             break
         fi
-        SSL_CERT="$SSL_CERT$line"
-    done
-
-    get_occupied_ports
-    while true; do
-        read -p "Введите APP_PORT (по умолчанию 3000): " -r APP_PORT
-        APP_PORT=${APP_PORT:-3000}
-        
-        if validate_port "$APP_PORT"; then
-            if is_port_occupied "$APP_PORT"; then
-                colorized_echo red "Порт $APP_PORT уже используется. Введите другой порт."
-                colorized_echo blue "Занятые порты: $(echo $OCCUPIED_PORTS | tr '\n' ' ')"
-            else
-                break
-            fi
-        else
-            colorized_echo red "Неверный порт. Введите значение от 1 до 65535."
+        if [[ -n "$line" ]]; then
+            COMPOSE_CONTENT="$COMPOSE_CONTENT$line"$'\n'
+            ((line_count++))
         fi
     done
 
+    if [[ -z "$COMPOSE_CONTENT" ]]; then
+        colorized_echo red "❌ Ошибка: docker-compose.yml не может быть пустым!"
+        exit 1
+    fi
+
+    # Save original compose file
+    echo "$COMPOSE_CONTENT" > "$COMPOSE_FILE.tmp"
+    
+    # Add log volume to docker-compose.yml
+    colorized_echo blue "Добавление volume для логов в docker-compose.yml..."
+    
+    # Check if volumes section exists
+    if grep -q "^[[:space:]]*volumes:" "$COMPOSE_FILE.tmp"; then
+        # Volumes section exists - check if log volume already present
+        if grep -q "/var/log/remnanode:/var/log/remnanode" "$COMPOSE_FILE.tmp"; then
+            colorized_echo green "✅ Volume для логов уже присутствует"
+            mv "$COMPOSE_FILE.tmp" "$COMPOSE_FILE"
+        else
+            # Add log volume to existing volumes section
+            awk '
+                /^[[:space:]]*volumes:/ {
+                    print $0
+                    # Detect indentation of the volumes line
+                    match($0, /^[[:space:]]*/)
+                    base_indent = substr($0, RSTART, RLENGTH)
+                    # Detect if using tabs or spaces for items
+                    getline next_line
+                    if (match(next_line, /^[[:space:]]*-/)) {
+                        match(next_line, /^[[:space:]]*/)
+                        item_indent = substr(next_line, RSTART, RLENGTH)
+                        print item_indent "- /var/log/remnanode:/var/log/remnanode"
+                        print next_line
+                    } else {
+                        print base_indent "  - /var/log/remnanode:/var/log/remnanode"
+                        print next_line
+                    }
+                    next
+                }
+                { print }
+            ' "$COMPOSE_FILE.tmp" > "$COMPOSE_FILE"
+            rm "$COMPOSE_FILE.tmp"
+            colorized_echo green "✅ Volume для логов добавлен в существующую секцию volumes"
+        fi
+    else
+        # No volumes section - add it
+        # Detect service indentation
+        service_indent=$(grep -m1 "^[[:space:]]*container_name:" "$COMPOSE_FILE.tmp" | sed 's/container_name:.*//' || echo "    ")
+        
+        # Add volumes section before the end
+        awk -v indent="$service_indent" '
+            # Track if we are inside remnanode service
+            /services:/ { in_services=1 }
+            /remnanode:/ && in_services { in_remnanode=1 }
+            
+            # If we find next service or end of file, add volumes before it
+            /^[[:space:]]*[a-zA-Z_-]+:/ && in_remnanode && !/remnanode:/ {
+                print indent "volumes:"
+                print indent "  - /var/log/remnanode:/var/log/remnanode"
+                in_remnanode=0
+            }
+            
+            { print }
+            
+            # Add at end if still in remnanode service
+            END {
+                if (in_remnanode) {
+                    print indent "volumes:"
+                    print indent "  - /var/log/remnanode:/var/log/remnanode"
+                }
+            }
+        ' "$COMPOSE_FILE.tmp" > "$COMPOSE_FILE"
+        rm "$COMPOSE_FILE.tmp"
+        colorized_echo green "✅ Секция volumes с логами успешно добавлена"
+    fi
+
+    colorized_echo green "Файл Docker Compose сохранён в $COMPOSE_FILE"
+    
+    # Show the final compose file
+    echo
+    echo -e "\033[1;37m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+    echo -e "\033[1;36m📄 Итоговый docker-compose.yml:\033[0m"
+    echo -e "\033[38;5;8m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+    echo
+    cat "$COMPOSE_FILE"
+    echo
+    echo -e "\033[38;5;8m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+
     # Ask about installing Xray-core
+    echo
     read -p "Установить последнюю версию Xray-core? (y/n): " -r install_xray
     INSTALL_XRAY=false
     if [[ "$install_xray" =~ ^[Yy]$ ]]; then
@@ -783,78 +869,38 @@ install_remnanode() {
 
     # Ask about installing tBlocker
     echo
-    read -p "Установить tBlocker (блокировка торрентов по iptables)? (y/n): " -r install_tb
+    echo -e "\033[1;37m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+    echo -e "\033[1;36m🛡️  Установка tBlocker\033[0m"
+    echo -e "\033[38;5;8m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+    echo
+    echo -e "\033[38;5;250mtBlocker - система блокировки торрент-трафика через iptables\033[0m"
+    echo -e "\033[38;5;250mОбнаруживает и блокирует торрент-подключения пользователей\033[0m"
+    echo
+    read -p "Установить tBlocker? (y/n): " -r install_tb
     INSTALL_TB=false
     if [[ "$install_tb" =~ ^[Yy]$ ]]; then
         INSTALL_TB=true
     fi
 
-    colorized_echo blue "Создание файла .env"
-    cat > "$ENV_FILE" <<EOL
-### APP ###
-APP_PORT=$APP_PORT
-
-### XRAY ###
-$SSL_CERT
-EOL
-    colorized_echo green "Файл окружения сохранён в $ENV_FILE"
-
-    # Determine image based on --dev flag
-    IMAGE_TAG="latest"
-    if [ "$USE_DEV_BRANCH" == "true" ]; then
-        IMAGE_TAG="dev"
-    fi
-
-    colorized_echo blue "Создание файла docker-compose.yml"
-    
-    # Create docker-compose.yml with commented volumes section
-    cat > "$COMPOSE_FILE" <<EOL
-services:
-  remnanode:
-    container_name: $APP_NAME
-    hostname: $APP_NAME
-    image: remnawave/node:${IMAGE_TAG}
-    env_file:
-      - .env
-    network_mode: host
-    restart: always
-EOL
-
-    # Add volumes section (commented by default)
-    if [ "$INSTALL_XRAY" == "true" ]; then
-        # If Xray is installed, add uncommented volumes section
-        cat >> "$COMPOSE_FILE" <<EOL
-    volumes:
-      - $XRAY_FILE:/usr/local/bin/xray
-EOL
-        
-        # Add geo files if they exist
-        if [ -f "$GEOIP_FILE" ]; then
-            echo "      - $GEOIP_FILE:/usr/local/share/xray/geoip.dat" >> "$COMPOSE_FILE"
-        fi
-        if [ -f "$GEOSITE_FILE" ]; then
-            echo "      - $GEOSITE_FILE:/usr/local/share/xray/geosite.dat" >> "$COMPOSE_FILE"
-        fi
-        
-        # DATA_DIR volume removed - not needed
-    else
-        # If Xray is not installed, add commented volumes section
-        cat >> "$COMPOSE_FILE" <<EOL
-    # volumes:
-    #   - $XRAY_FILE:/usr/local/bin/xray
-    #   - $GEOIP_FILE:/usr/local/share/xray/geoip.dat
-    #   - $GEOSITE_FILE:/usr/local/share/xray/geosite.dat
-EOL
-    fi
-
-    colorized_echo green "Файл Docker Compose сохранён в $COMPOSE_FILE"
-
     # Optionally install tBlocker right away
     if [ "$INSTALL_TB" == "true" ]; then
         echo
-        colorized_echo blue "Установка tBlocker по вашему запросу"
+        colorized_echo blue "🛡️  Установка tBlocker по вашему запросу"
         install_tblocker_command
     fi
+
+    echo
+    echo -e "\033[1;32m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+    echo -e "\033[1;32m✅ Установка RemnaNode завершена!\033[0m"
+    echo -e "\033[1;32m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+    echo
+    echo -e "\033[38;5;250mДиректория: \033[1;37m$APP_DIR\033[0m"
+    echo -e "\033[38;5;250mЛоги: \033[1;37m/var/log/remnanode\033[0m"
+    echo -e "\033[38;5;250mDocker Compose: \033[1;37m$COMPOSE_FILE\033[0m"
+    echo
+    echo -e "\033[1;37mДля запуска используйте команду:\033[0m"
+    echo -e "\033[1;36m  remnanode up\033[0m"
+    echo
 }
 
 uninstall_remnanode_script() {
@@ -959,6 +1005,13 @@ install_command() {
     install_remnanode_script
     install_remnanode
     up_remnanode
+    
+    # Extract NODE_PORT from docker-compose.yml
+    NODE_PORT=$(grep -i "NODE_PORT=" "$COMPOSE_FILE" | sed 's/.*NODE_PORT=//' | sed 's/"//g' | head -1)
+    if [ -z "$NODE_PORT" ]; then
+        NODE_PORT="не указан в конфигурации"
+    fi
+    
     follow_remnanode_logs
 
     # final message
@@ -971,8 +1024,8 @@ install_command() {
     
     echo -e "\033[1;37m🌐 Информация о подключении:\033[0m"
     printf "   \033[38;5;15m%-12s\033[0m \033[38;5;250m%s\033[0m\n" "IP адрес:" "$NODE_IP"
-    printf "   \033[38;5;15m%-12s\033[0m \033[38;5;250m%s\033[0m\n" "Порт:" "$APP_PORT"
-    printf "   \033[38;5;15m%-12s\033[0m \033[38;5;250m%s:%s\033[0m\n" "Полный URL:" "$NODE_IP" "$APP_PORT"
+    printf "   \033[38;5;15m%-12s\033[0m \033[38;5;250m%s\033[0m\n" "Порт:" "$NODE_PORT"
+    printf "   \033[38;5;15m%-12s\033[0m \033[38;5;250m%s:%s\033[0m\n" "Полный URL:" "$NODE_IP" "$NODE_PORT"
     echo
     
     echo -e "\033[1;37m📋 Следующие шаги:\033[0m"
@@ -985,7 +1038,11 @@ install_command() {
         echo -e "   \033[38;5;250m3.\033[0m Установите Xray-core: \033[38;5;15msudo $APP_NAME core-update\033[0m"
     fi
     
-    echo -e "   \033[38;5;250m4.\033[0m Настройте UFW: \033[38;5;15msudo ufw allow from \033[38;5;244mPANEL_IP\033[38;5;15m to any port $APP_PORT\033[0m"
+    if [ "$INSTALL_TB" == "true" ]; then
+        echo -e "   \033[38;5;250m4.\033[0m \033[1;37mtBlocker установлен и готов к работе! ✅\033[0m"
+    fi
+    
+    echo -e "   \033[38;5;250m5.\033[0m Настройте UFW: \033[38;5;15msudo ufw allow from \033[38;5;244mPANEL_IP\033[38;5;15m to any port $NODE_PORT\033[0m"
     echo -e "      \033[38;5;8m(Включить UFW: \033[38;5;15msudo ufw enable\033[38;5;8m)\033[0m"
     echo
     

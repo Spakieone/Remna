@@ -809,8 +809,8 @@ def update_panel():
                 commands = [
                     f"cd {compose_dir}",
                     f"cd {compose_dir} && docker pull remnawave/backend:latest",
-                    f"cd {compose_dir} && docker stop remnawave",
-                    f"cd {compose_dir} && docker rm remnawave", 
+                    f"cd {compose_dir} && docker stop remnawave || true",
+                    f"cd {compose_dir} && docker rm remnawave || true", 
                     f"cd {compose_dir} && docker run -d --name remnawave --restart unless-stopped -p 3001:3001 -p 3000:3000 -v /opt/remnawave:/app remnawave/backend:latest"
                 ]
             else:
@@ -818,8 +818,8 @@ def update_panel():
                 commands = [
                     f"cd {compose_dir}",
                     f"cd {compose_dir} && docker pull remnawave/node:latest",
-                    f"cd {compose_dir} && docker stop remnanode",
-                    f"cd {compose_dir} && docker rm remnanode", 
+                    f"cd {compose_dir} && docker stop remnanode || true",
+                    f"cd {compose_dir} && docker rm remnanode || true", 
                     f"cd {compose_dir} && docker run -d --name remnanode --restart unless-stopped --network host -v /var/lib/remna:/var/lib/remna -v /var/log/remna:/var/log/remna remnawave/node:latest"
                 ]
         else:
@@ -1196,8 +1196,8 @@ def update_node():
                 commands = [
                     f"cd {compose_dir}",
                     f"cd {compose_dir} && docker pull remnawave/backend:latest",
-                    f"cd {compose_dir} && docker stop remnawave",
-                    f"cd {compose_dir} && docker rm remnawave", 
+                    f"cd {compose_dir} && docker stop remnawave || true",
+                    f"cd {compose_dir} && docker rm remnawave || true", 
                     f"cd {compose_dir} && docker run -d --name remnawave --restart unless-stopped -p 3001:3001 -p 3000:3000 -v /opt/remnawave:/app remnawave/backend:latest"
                 ]
             else:
@@ -1205,8 +1205,8 @@ def update_node():
                 commands = [
                     f"cd {compose_dir}",
                     f"cd {compose_dir} && docker pull remnawave/node:latest",
-                    f"cd {compose_dir} && docker stop remnanode",
-                    f"cd {compose_dir} && docker rm remnanode", 
+                    f"cd {compose_dir} && docker stop remnanode || true",
+                    f"cd {compose_dir} && docker rm remnanode || true", 
                     f"cd {compose_dir} && docker run -d --name remnanode --restart unless-stopped --network host -v /var/lib/remna:/var/lib/remna -v /var/log/remna:/var/log/remna remnawave/node:latest"
                 ]
         else:

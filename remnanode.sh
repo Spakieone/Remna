@@ -756,30 +756,11 @@ install_remnanode() {
     echo -e "\033[38;5;8m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
     echo
     colorized_echo yellow "Вставьте содержимое docker-compose.yml из Remnawave-Panel"
-    colorized_echo blue "После вставки нажмите ENTER два раза подряд"
+    colorized_echo blue "После вставки нажмите Ctrl+D для завершения"
     echo
     
-    COMPOSE_CONTENT=""
-    empty_count=0
-    
-    while IFS= read -r line; do
-        # Если строка НЕ пустая - добавляем и сбрасываем счетчик
-        if [[ -n "$line" ]]; then
-            empty_count=0
-            COMPOSE_CONTENT="${COMPOSE_CONTENT}${line}"$'\n'
-        else
-            # Строка пустая - увеличиваем счетчик
-            ((empty_count++))
-            # Если 2 пустые строки подряд И уже есть контент - завершаем
-            if [[ $empty_count -ge 2 ]] && [[ -n "$COMPOSE_CONTENT" ]]; then
-                break
-            fi
-            # Добавляем пустую строку (если это не первые пустые строки)
-            if [[ -n "$COMPOSE_CONTENT" ]]; then
-                COMPOSE_CONTENT="${COMPOSE_CONTENT}"$'\n'
-            fi
-        fi
-    done
+    # Используем cat для чтения всего ввода до Ctrl+D
+    COMPOSE_CONTENT=$(cat)
     
     # Проверяем что содержимое не пустое
     if [[ -z "$COMPOSE_CONTENT" ]]; then

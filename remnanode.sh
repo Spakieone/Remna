@@ -760,40 +760,37 @@ install_remnanode() {
     echo
     
     COMPOSE_CONTENT=""
-    empty_line_count=0
-    has_content=false
+    empty_count=0
     
     while IFS= read -r line; do
-        # Если строка НЕ пустая
+        # Если строка НЕ пустая - добавляем и сбрасываем счетчик
         if [[ -n "$line" ]]; then
-            # Есть контент
-            has_content=true
-            # Сбрасываем счетчик пустых строк
-            empty_line_count=0
-            # Добавляем строку
-            COMPOSE_CONTENT="$COMPOSE_CONTENT$line"$'\n'
+            empty_count=0
+            COMPOSE_CONTENT="${COMPOSE_CONTENT}${line}"$'\n'
         else
-            # Строка пустая
-            # Если уже есть контент - увеличиваем счетчик
-            if [[ "$has_content" == true ]]; then
-                ((empty_line_count++))
-                # Если две пустые строки подряд ПОСЛЕ контента - завершаем
-                if [[ $empty_line_count -ge 2 ]]; then
-                    break
-                fi
-                # Добавляем пустую строку в содержимое
-                COMPOSE_CONTENT="$COMPOSE_CONTENT"$'\n'
+            # Строка пустая - увеличиваем счетчик
+            ((empty_count++))
+            # Если 2 пустые строки подряд И уже есть контент - завершаем
+            if [[ $empty_count -ge 2 ]] && [[ -n "$COMPOSE_CONTENT" ]]; then
+                break
+            fi
+            # Добавляем пустую строку (если это не первые пустые строки)
+            if [[ -n "$COMPOSE_CONTENT" ]]; then
+                COMPOSE_CONTENT="${COMPOSE_CONTENT}"$'\n'
             fi
         fi
     done
     
-    # Удаляем лишние пустые строки в конце
-    COMPOSE_CONTENT=$(echo "$COMPOSE_CONTENT" | sed -e :a -e '/^\n*$/{$d;N;ba' -e '}')
+    # Проверяем что содержимое не пустое
+    if [[ -z "$COMPOSE_CONTENT" ]]; then
+        colorized_echo red "❌ Ошибка: docker-compose.yml не может быть пустым!"
+        exit 1
+    fi
     
-    # Проверяем что содержимое не пустое и содержит services:
-    if [[ -z "$COMPOSE_CONTENT" ]] || [[ $(echo "$COMPOSE_CONTENT" | grep -c "services:") -eq 0 ]]; then
-        colorized_echo red "❌ Ошибка: docker-compose.yml не может быть пустым или некорректным!"
-        colorized_echo yellow "Убедитесь что вы вставили полный docker-compose.yml с секцией 'services:'"
+    # Проверяем наличие секции services:
+    if ! echo "$COMPOSE_CONTENT" | grep -q "services:"; then
+        colorized_echo red "❌ Ошибка: docker-compose.yml должен содержать секцию 'services:'!"
+        colorized_echo yellow "Проверьте что вы вставили корректный docker-compose.yml"
         exit 1
     fi
 

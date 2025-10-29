@@ -8,6 +8,22 @@ install_tblocker_command() {
         echo -e "\033[38;5;244mСкачивание $script_name с GitHub...\033[0m"
         bash <(curl -fsSL "https://raw.githubusercontent.com/Spakieone/Remna/main/$script_name") install
     fi
+
+    echo
+    # Проверяем статус установки
+    if systemctl list-unit-files 2>/dev/null | grep -q '^tblocker\.service'; then
+        if systemctl is-active --quiet tblocker 2>/dev/null; then
+            echo -e "\033[1;32m✅ tBlocker установлен и запущен\033[0m"
+        else
+            echo -e "\033[1;33m⚠️  tBlocker установлен, но не запущен\033[0m"
+            echo -e "\033[38;5;244mЗапуск: \033[38;5;15msudo systemctl start tblocker\033[0m"
+        fi
+    elif [ -d "/opt/tblocker" ]; then
+        echo -e "\033[1;33m⚠️  Файлы tBlocker найдены, но сервис не создан\033[0m"
+        echo -e "\033[38;5;244mПереустановите: \033[38;5;15msudo remnanode install-tblocker\033[0m"
+    else
+        echo -e "\033[1;31m❌ tBlocker не установился\033[0m"
+    fi
 }
 
 uninstall_tblocker_command() {

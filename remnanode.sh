@@ -589,10 +589,18 @@ install_latest_xray_core() {
     mkdir -p "$DATA_DIR"
     cd "$DATA_DIR"
     
+    # Проверяем наличие wget
+    if ! command -v wget >/dev/null 2>&1; then
+        colorized_echo blue "Установка wget..."
+        detect_os
+        install_package wget
+    fi
+    
     latest_release=$(curl -s "https://api.github.com/repos/XTLS/Xray-core/releases/latest" | grep -oP '"tag_name": "\K(.*?)(?=")')
     if [ -z "$latest_release" ]; then
-        colorized_echo red "Не удалось получить последнюю версию Xray-core."
-        exit 1
+        colorized_echo red "⚠️  Не удалось получить последнюю версию Xray-core."
+        colorized_echo yellow "Установка Xray-core пропущена. Вы можете установить его позже командой: sudo $APP_NAME core-update"
+        return 1
     fi
     
     if ! dpkg -s unzip >/dev/null 2>&1; then
@@ -608,20 +616,23 @@ install_latest_xray_core() {
     colorized_echo yellow "URL: ${xray_download_url}"
     wget "${xray_download_url}" -q --show-progress
     if [ $? -ne 0 ]; then
-        colorized_echo red "Ошибка: Не удалось загрузить Xray-core."
-        exit 1
+        colorized_echo red "⚠️  Ошибка: Не удалось загрузить Xray-core."
+        colorized_echo yellow "Установка Xray-core пропущена. Вы можете установить его позже командой: sudo $APP_NAME core-update"
+        return 1
     fi
     colorized_echo green "✅ Загрузка завершена"
     
     colorized_echo blue "Извлечение Xray-core..."
     unzip -o "${xray_filename}" -d "$DATA_DIR" >/dev/null 2>&1
     if [ $? -ne 0 ]; then
-        colorized_echo red "Ошибка: Не удалось извлечь Xray-core."
-        exit 1
+        colorized_echo red "⚠️  Ошибка: Не удалось извлечь Xray-core."
+        colorized_echo yellow "Установка Xray-core пропущена. Вы можете установить его позже командой: sudo $APP_NAME core-update"
+        rm -f "${xray_filename}"
+        return 1
     fi
     colorized_echo green "✅ Извлечение завершено"
 
-    rm "${xray_filename}"
+    rm -f "${xray_filename}"
     chmod +x "$XRAY_FILE"
     
     # Check what files were extracted
@@ -636,7 +647,8 @@ install_latest_xray_core() {
         colorized_echo green "  ✅ geosite.dat"
     fi
     
-    colorized_echo green "Последний Xray-core (${latest_release}) установлен в $XRAY_FILE"
+    colorized_echo green "✅ Последний Xray-core (${latest_release}) установлен в $XRAY_FILE"
+    return 0
 }
 
 setup_log_rotation() {

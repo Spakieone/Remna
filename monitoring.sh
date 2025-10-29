@@ -43,6 +43,7 @@ install_prometheus() {
 
   curl -fsSL "$url" -o "/tmp/$tarname"
   tar -xzf "/tmp/$tarname" -C /tmp
+  local extracted="/tmp/prometheus-${ver#v}.linux-amd64"
 
   # Если сервис уже существует, останавливаем его перед заменой бинарников
   if systemctl list-unit-files 2>/dev/null | grep -q '^prometheus\.service'; then
@@ -58,16 +59,20 @@ install_prometheus() {
   fi
 
   # Копируем во временные файлы и заменяем атомарно
-  install -m 0755 "/tmp/prometheus-${ver#v}.linux-amd64/prometheus" /usr/local/bin/prometheus.new
-  install -m 0755 "/tmp/prometheus-${ver#v}.linux-amd64/promtool"   /usr/local/bin/promtool.new
+  install -m 0755 "$extracted/prometheus" /usr/local/bin/prometheus.new
+  install -m 0755 "$extracted/promtool"   /usr/local/bin/promtool.new
   mv -f /usr/local/bin/prometheus.new /usr/local/bin/prometheus
   mv -f /usr/local/bin/promtool.new   /usr/local/bin/promtool
 
   # Обновляем консоли
   rm -rf /opt/prometheus/console_libraries /opt/prometheus/consoles
-  cp -r "/tmp/prometheus-${ver#v}.linux-amd64/console_libraries" /opt/prometheus/
-  cp -r "/tmp/prometheus-${ver#v}.linux-amd64/consoles" /opt/prometheus/
-  rm -rf "/tmp/prometheus-${ver#v}.linux-amd64" "/tmp/$tarname"
+  local flags=""
+  if [ -d "$extracted/console_libraries" ] && [ -d "$extracted/consoles" ]; then
+    cp -r "$extracted/console_libraries" /opt/prometheus/
+    cp -r "$extracted/consoles"          /opt/prometheus/
+    flags="\\\n  --web.console.templates=/opt/prometheus/consoles \\\n  --web.console.libraries=/opt/prometheus/console_libraries"
+  fi
+  rm -rf "$extracted" "/tmp/$tarname"
 
   chown -R prometheus:prometheus /etc/prometheus /var/lib/prometheus /opt/prometheus
   chown root:root /usr/local/bin/prometheus /usr/local/bin/promtool
@@ -88,7 +93,7 @@ YAML
     chown prometheus:prometheus /etc/prometheus/prometheus.yml
   fi
 
-  cat > /etc/systemd/system/prometheus.service <<'UNIT'
+  cat > /etc/systemd/system/prometheus.service <<UNIT
 [Unit]
 Description=Prometheus Monitoring
 After=network-online.target
@@ -100,9 +105,7 @@ Group=prometheus
 Type=simple
 ExecStart=/usr/local/bin/prometheus \
   --config.file=/etc/prometheus/prometheus.yml \
-  --storage.tsdb.path=/var/lib/prometheus \
-  --web.console.templates=/opt/prometheus/consoles \
-  --web.console.libraries=/opt/prometheus/console_libraries
+  --storage.tsdb.path=/var/lib/prometheus${flags}
 Restart=always
 RestartSec=5
 

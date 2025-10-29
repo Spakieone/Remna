@@ -43,14 +43,34 @@ install_prometheus() {
 
   curl -fsSL "$url" -o "/tmp/$tarname"
   tar -xzf "/tmp/$tarname" -C /tmp
-  cp "/tmp/prometheus-${ver#v}.linux-amd64/prometheus" /usr/local/bin/
-  cp "/tmp/prometheus-${ver#v}.linux-amd64/promtool" /usr/local/bin/
+
+  # Если сервис уже существует, останавливаем его перед заменой бинарников
+  if systemctl list-unit-files 2>/dev/null | grep -q '^prometheus\.service'; then
+    systemctl stop prometheus 2>/dev/null || true
+    # Ждём, пока процесс отпустит бинарник
+    for i in $(seq 1 10); do
+      if pgrep -f "/usr/local/bin/prometheus" >/dev/null 2>&1; then
+        sleep 1
+      else
+        break
+      fi
+    done
+  fi
+
+  # Копируем во временные файлы и заменяем атомарно
+  install -m 0755 "/tmp/prometheus-${ver#v}.linux-amd64/prometheus" /usr/local/bin/prometheus.new
+  install -m 0755 "/tmp/prometheus-${ver#v}.linux-amd64/promtool"   /usr/local/bin/promtool.new
+  mv -f /usr/local/bin/prometheus.new /usr/local/bin/prometheus
+  mv -f /usr/local/bin/promtool.new   /usr/local/bin/promtool
+
+  # Обновляем консоли
+  rm -rf /opt/prometheus/console_libraries /opt/prometheus/consoles
   cp -r "/tmp/prometheus-${ver#v}.linux-amd64/console_libraries" /opt/prometheus/
   cp -r "/tmp/prometheus-${ver#v}.linux-amd64/consoles" /opt/prometheus/
   rm -rf "/tmp/prometheus-${ver#v}.linux-amd64" "/tmp/$tarname"
 
   chown -R prometheus:prometheus /etc/prometheus /var/lib/prometheus /opt/prometheus
-  chown prometheus:prometheus /usr/local/bin/prometheus /usr/local/bin/promtool
+  chown root:root /usr/local/bin/prometheus /usr/local/bin/promtool
 
   if [ ! -f /etc/prometheus/prometheus.yml ]; then
     cat > /etc/prometheus/prometheus.yml <<'YAML'

@@ -64,14 +64,9 @@ install_prometheus() {
   mv -f /usr/local/bin/prometheus.new /usr/local/bin/prometheus
   mv -f /usr/local/bin/promtool.new   /usr/local/bin/promtool
 
-  # Обновляем консоли
-  rm -rf /opt/prometheus/console_libraries /opt/prometheus/consoles
+  # Консоли отсутствуют в новых релизах: пропускаем копирование и флаги
+  rm -rf /opt/prometheus/console_libraries /opt/prometheus/consoles || true
   local flags=""
-  if [ -d "$extracted/console_libraries" ] && [ -d "$extracted/consoles" ]; then
-    cp -r "$extracted/console_libraries" /opt/prometheus/
-    cp -r "$extracted/consoles"          /opt/prometheus/
-    flags="\\\n  --web.console.templates=/opt/prometheus/consoles \\\n  --web.console.libraries=/opt/prometheus/console_libraries"
-  fi
   rm -rf "$extracted" "/tmp/$tarname"
 
   chown -R prometheus:prometheus /etc/prometheus /var/lib/prometheus /opt/prometheus
@@ -105,7 +100,7 @@ Group=prometheus
 Type=simple
 ExecStart=/usr/local/bin/prometheus \
   --config.file=/etc/prometheus/prometheus.yml \
-  --storage.tsdb.path=/var/lib/prometheus${flags}
+  --storage.tsdb.path=/var/lib/prometheus
 Restart=always
 RestartSec=5
 

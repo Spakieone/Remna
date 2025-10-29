@@ -1094,6 +1094,8 @@ is_remnanode_up() {
 }
 
 install_command() {
+    # Отключаем строгий режим, чтобы установка не прерывалась на несущественных ошибках
+    set +e
     check_running_as_root
     if is_remnanode_installed; then
         colorized_echo red "RemnaNode уже установлен в $APP_DIR"
@@ -1181,6 +1183,9 @@ install_command() {
     echo -e "\033[38;5;8m💡 Для всех команд: \033[38;5;15msudo $APP_NAME\033[0m"
     echo -e "\033[38;5;8m📚 Проект: \033[38;5;250mhttps://gig.ovh\033[0m"
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 70))\033[0m"
+    
+    # Возвращаем строгий режим
+    set -e
 }
 
 uninstall_command() {

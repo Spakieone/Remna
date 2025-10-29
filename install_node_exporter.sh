@@ -520,18 +520,26 @@ final_check() {
         else
             warn "Получено только $metrics_count метрик (ожидалось больше 100)"
         fi
-        echo -e "${GREEN}STATUS: INSTALLED OK${NC}"
     else
         warn "Endpoint метрик не отвечает (возможно, сервис еще запускается)"
-        echo -e "${GREEN}STATUS: INSTALLED${NC}"
     fi
     
     # Показываем информацию
     echo
-    info "Установка Node Exporter завершена!"
-    echo -e "${BLUE}Метрики доступны по адресу: http://localhost:${PORT}/metrics${NC}"
-    echo -e "${BLUE}Проверка статуса: systemctl status node_exporter${NC}"
-    echo -e "${BLUE}Просмотр логов: journalctl -u node_exporter -f${NC}"
+    echo -e "${GREEN}╔══════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${GREEN}║             ✓ Node Exporter успешно установлен               ║${NC}"
+    echo -e "${GREEN}╚══════════════════════════════════════════════════════════════╝${NC}"
+    echo
+    
+    # Финальная проверка статуса сервиса
+    echo -e "${CYAN}Статус сервиса:${NC}"
+    systemctl status node_exporter --no-pager -l || true
+    echo
+    echo -e "${BLUE}Метрики доступны: http://localhost:${PORT}/metrics${NC}"
+    echo -e "${BLUE}Проверка:         systemctl status node_exporter${NC}"
+    echo -e "${BLUE}Логи:             journalctl -u node_exporter -f${NC}"
+    echo
+    read -p "Нажмите Enter для продолжения..."
 }
 
 # Cleanup функция
@@ -565,22 +573,6 @@ main() {
     
     require_root
     
-    # Если уже запущен любой сервис Node Exporter — не переустанавливаем без FORCE_REINSTALL=1
-    if systemctl is-active --quiet node_exporter 2>/dev/null || \
-       systemctl is-active --quiet prometheus-node-exporter 2>/dev/null || \
-       systemctl is-active --quiet node-exporter 2>/dev/null; then
-        if [[ "${FORCE_REINSTALL:-0}" != "1" ]]; then
-            local running_ver
-            running_ver=$(get_installed_binary_version || echo "")
-            log "Node Exporter уже запущен${running_ver:+ (версия: $running_ver)}. Пропускаю установку."
-            echo -e "${GREEN}STATUS: ALREADY RUNNING${NC}"
-            echo -e "${BLUE}Подсказка:${NC} для принудительной переустановки запустите: FORCE_REINSTALL=1 sudo bash $0"
-            exit 0
-        else
-            warn "Принудительная переустановка (FORCE_REINSTALL=1)"
-        fi
-    fi
-
     local arch
     arch=$(detect_architecture)
     info "Определена архитектура: $arch"
@@ -589,25 +581,7 @@ main() {
     version=$(get_latest_version)
     info "Последняя версия: $version"
     
-    # Если бинарник уже установлен и совпадает версия — просто убедимся, что сервис активен
-    local current
-    current=$(get_installed_binary_version || echo "")
-    if [[ -n "$current" && "$current" == "$version" && "${FORCE_REINSTALL:-0}" != "1" ]]; then
-        log "Node Exporter уже установлен (версия $current)."
-        # Убедимся, что есть пользователь и сервис, и он запущен
-        create_user
-        if [[ ! -f "$NODE_EXPORTER_SERVICE" ]]; then
-            create_systemd_service
-        fi
-        setup_firewall
-        start_service
-        final_check
-        echo
-        log "🎉 Node Exporter готов!"
-        exit 0
-    fi
-    
-    # Иначе переустановка/обновление
+    # Проверяем текущую установку
     check_existing_installation
     detect_listen_port
     create_user
@@ -616,9 +590,6 @@ main() {
     setup_firewall
     start_service
     final_check
-    
-    echo
-    log "🎉 Node Exporter успешно установлен!"
 }
 
 # Запуск

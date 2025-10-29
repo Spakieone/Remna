@@ -222,6 +222,30 @@ show_menu() {
   while true; do
     clear
     echo -e "${WHITE}📈 Мониторинг (Prometheus + Grafana)${NC}"
+    echo
+    
+    # Проверяем статус Node Exporter
+    if systemctl is-active --quiet node_exporter 2>/dev/null; then
+      echo -e "${GREEN}  [✓] Node Exporter: RUNNING${NC}"
+    else
+      echo -e "${RED}  [✗] Node Exporter: NOT RUNNING${NC}"
+    fi
+    
+    # Проверяем статус Prometheus
+    if systemctl is-active --quiet prometheus 2>/dev/null; then
+      echo -e "${GREEN}  [✓] Prometheus: RUNNING${NC}"
+    else
+      echo -e "${RED}  [✗] Prometheus: NOT RUNNING${NC}"
+    fi
+    
+    # Проверяем статус Grafana
+    if systemctl is-active --quiet grafana 2>/dev/null; then
+      echo -e "${GREEN}  [✓] Grafana: RUNNING${NC}"
+    else
+      echo -e "${RED}  [✗] Grafana: NOT RUNNING${NC}"
+    fi
+    
+    echo
     echo -e "${CYAN}1) Установить Prometheus + Grafana${NC}"
     echo -e "${CYAN}2) Установить/проверить Node Exporter${NC}"
     echo -e "${CYAN}3) Удалить мониторинг${NC}"

@@ -79,10 +79,10 @@ test_speed_ru() {
     echo -e "${YELLOW}🇷🇺 Проверка скорости к российским провайдерам...${NC}"
     echo ""
     
-    echo -e "${BLUE}Выполняем: wget -qO- speedtest.artydev.ru | bash${NC}"
+    echo -e "${BLUE}Выполняем: wget -qO- bench.tlab.pw | bash${NC}"
     echo ""
     
-    wget -qO- speedtest.artydev.ru | bash
+    wget -qO- bench.tlab.pw | bash
     
     echo ""
     read -p "Нажмите Enter для продолжения..."

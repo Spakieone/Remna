@@ -163,8 +163,10 @@ if grep -q "/var/lib/remnanode:/var/lib/remnanode" "$COMPOSE_FILE"; then
     echo "✅ Старый том /var/lib/remnanode:/var/lib/remnanode удален"
 fi
 
-# Добавляем том /var/log/remnanode с правильными отступами
-if ! grep -q "/var/log/remnanode:/var/log/remnanode" "$COMPOSE_FILE"; then
+# Проверяем наличие тома логов
+if grep -q "/var/log/remnanode:/var/log/remnanode" "$COMPOSE_FILE"; then
+    echo "✅ Том /var/log/remnanode уже присутствует в docker-compose.yml"
+else
     echo "➡ Добавляем том /var/log/remnanode в docker-compose.yml..."
 
     prop_indent="$(get_property_indent)"
@@ -220,8 +222,6 @@ if ! grep -q "/var/log/remnanode:/var/log/remnanode" "$COMPOSE_FILE"; then
         ' "$COMPOSE_FILE" > "$COMPOSE_FILE.tmp" && mv "$COMPOSE_FILE.tmp" "$COMPOSE_FILE"
         echo "✅ Создана новая секция volumes с томом логов"
     fi
-else
-    echo "✅ volumes для логов уже настроен."
 fi
 
 # ===== Создание папки логов =====
@@ -242,11 +242,10 @@ if [ ! -f "$LOGROTATE_FILE" ]; then
     copytruncate
 }
 EOL
+    echo "✅ logrotate настроен."
 else
     echo "✅ logrotate уже настроен."
 fi
-
-logrotate -vf "$LOGROTATE_FILE"
 
 # ===== Установка Tblocker =====
 echo "➡ Устанавливаем Tblocker..."
@@ -319,5 +318,40 @@ systemctl daemon-reload
 systemctl enable tblocker
 systemctl restart tblocker
 
+# ===== Перезапуск RemnaNode =====
+echo ""
+echo "➡ Перезапуск RemnaNode для применения изменений в docker-compose.yml..."
+
+# Определяем команду docker compose
+if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+    COMPOSE_CMD="docker compose"
+elif command -v docker-compose >/dev/null 2>&1; then
+    COMPOSE_CMD="docker-compose"
+else
+    echo "⚠️  Команда docker compose не найдена. Перезапустите RemnaNode вручную:"
+    echo "   cd /opt/remnanode && docker compose restart"
+    COMPOSE_CMD=""
+fi
+
+if [ -n "$COMPOSE_CMD" ]; then
+    cd /opt/remnanode
+    if $COMPOSE_CMD ps -q >/dev/null 2>&1; then
+        echo "➡ Перезапускаем RemnaNode..."
+        $COMPOSE_CMD restart
+        echo "✅ RemnaNode перезапущен"
+    else
+        echo "ℹ️  RemnaNode не запущен, пропускаем перезапуск"
+    fi
+fi
+
+echo ""
 echo "✅ Установка завершена!"
+echo ""
+echo "📊 Статус tBlocker:"
 systemctl status tblocker --no-pager
+
+echo ""
+echo "📝 Полезные команды:"
+echo "   systemctl status tblocker   - Статус сервиса"
+echo "   systemctl restart tblocker  - Перезапуск"
+echo "   journalctl -u tblocker -f   - Просмотр логов"

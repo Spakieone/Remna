@@ -805,50 +805,14 @@ download_template() {
     
     # Определяем папку для скачивания в зависимости от выбранного шаблона
     case "$template_type" in
-        "1"|"10gag")
-            template_folder="10gag"
-            template_name="10gag - Сайт мемов"
-            ;;
-        "2"|"converter")
-            template_folder="converter"
-            template_name="Converter - Видеостудия-конвертер"
-            ;;
-        "3"|"convertit")
-            template_folder="convertit"
-            template_name="Convertit - Конвертер файлов"
-            ;;
-        "4"|"downloader")
-            template_folder="downloader"
-            template_name="Downloader - Даунлоадер"
-            ;;
-        "5"|"filecloud")
-            template_folder="filecloud"
-            template_name="FileCloud - Облачное хранилище"
-            ;;
-        "6"|"games-site")
-            template_folder="games-site"
-            template_name="Games-site - Ретро игровой портал"
-            ;;
-        "7"|"modmanager")
-            template_folder="modmanager"
-            template_name="ModManager - Мод-менеджер для игр"
-            ;;
-        "8"|"speedtest")
-            template_folder="speedtest"
-            template_name="SpeedTest - Спидтест"
-            ;;
-        "9"|"youtube")
-            template_folder="YouTube"
-            template_name="YouTube - Видеохостинг с капчей"
-            ;;
-        "10"|"503")
+        "1"|"10"|"503-1")
             template_folder="503-1"
             template_name="503 Error - Страница ошибки 503 - вариант 1"
             ;;
-        "11"|"503")
+        "2"|"11"|"503-2")
             template_folder="503-2"
             template_name="503 Error - Страница ошибки 503 - вариант 2"
-        ;;
+            ;;
         *)
             echo -e "${RED}❌ Unknown template type: $template_type${NC}"
             return 1

@@ -22,6 +22,30 @@ uninstall_tblocker_command() {
     fi
 }
 
+install_selfsteal_command() {
+    echo -e "\033[1;37m🎭 Установка Selfsteal\033[0m"
+    echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 40))\033[0m"
+    local script_name="selfsteal.sh"
+    if [ -f "script/scripts-main/$script_name" ]; then
+        bash "script/scripts-main/$script_name"
+    else
+        echo -e "\033[38;5;244mСкачивание $script_name с GitHub...\033[0m"
+        bash <(curl -fsSL "https://raw.githubusercontent.com/Spakieone/Remna/main/$script_name")
+    fi
+}
+
+uninstall_selfsteal_command() {
+    echo -e "\033[1;37m🗑️  Удаление Selfsteal\033[0m"
+    echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 40))\033[0m"
+    
+    # Запускаем команду uninstall для selfsteal
+    if command -v selfsteal >/dev/null 2>&1; then
+        selfsteal uninstall
+    else
+        echo -e "\033[1;33m⚠️  Selfsteal не установлен или команда недоступна\033[0m"
+    fi
+}
+
 # ===== Функции управления UFW =====
 
 ufw_enable_command() {
@@ -752,100 +776,52 @@ install_remnanode() {
 
     echo
     echo -e "\033[1;37m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
-    echo -e "\033[1;36m📋 Вставка конфигурации Docker Compose\033[0m"
+    echo -e "\033[1;36m📋 Настройка конфигурации RemnaNode\033[0m"
     echo -e "\033[38;5;8m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
     echo
-    colorized_echo yellow "Вставьте содержимое docker-compose.yml из Remnawave-Panel"
-    colorized_echo blue "После вставки нажмите Ctrl+D для завершения"
+    echo -e "\033[38;5;250mВведите параметры для подключения к панели Remnawave\033[0m"
     echo
     
-    # Используем cat для чтения всего ввода до Ctrl+D
-    COMPOSE_CONTENT=$(cat)
-    
-    # Проверяем что содержимое не пустое
-    if [[ -z "$COMPOSE_CONTENT" ]]; then
-        colorized_echo red "❌ Ошибка: docker-compose.yml не может быть пустым!"
-        exit 1
-    fi
-    
-    # Проверяем наличие секции services:
-    if ! echo "$COMPOSE_CONTENT" | grep -q "services:"; then
-        colorized_echo red "❌ Ошибка: docker-compose.yml должен содержать секцию 'services:'!"
-        colorized_echo yellow "Проверьте что вы вставили корректный docker-compose.yml"
-        exit 1
-    fi
-
-    # Save original compose file
-    echo "$COMPOSE_CONTENT" > "$COMPOSE_FILE.tmp"
-    
-    # Add log volume to docker-compose.yml
-    colorized_echo blue "Добавление volume для логов в docker-compose.yml..."
-    
-    # Check if volumes section exists
-    if grep -q "^[[:space:]]*volumes:" "$COMPOSE_FILE.tmp"; then
-        # Volumes section exists - check if log volume already present
-        if grep -q "/var/log/remnanode:/var/log/remnanode" "$COMPOSE_FILE.tmp"; then
-            colorized_echo green "✅ Volume для логов уже присутствует"
-            mv "$COMPOSE_FILE.tmp" "$COMPOSE_FILE"
+    # Запрашиваем порт
+    while true; do
+        read -p "Введите NODE_PORT (например, 5001): " NODE_PORT
+        if [[ "$NODE_PORT" =~ ^[0-9]+$ ]] && [ "$NODE_PORT" -ge 1 ] && [ "$NODE_PORT" -le 65535 ]; then
+            break
         else
-            # Add log volume to existing volumes section
-            awk '
-                /^[[:space:]]*volumes:/ {
-                    print $0
-                    # Detect indentation of the volumes line
-                    match($0, /^[[:space:]]*/)
-                    base_indent = substr($0, RSTART, RLENGTH)
-                    # Detect if using tabs or spaces for items
-                    getline next_line
-                    if (match(next_line, /^[[:space:]]*-/)) {
-                        match(next_line, /^[[:space:]]*/)
-                        item_indent = substr(next_line, RSTART, RLENGTH)
-                        print item_indent "- /var/log/remnanode:/var/log/remnanode"
-                        print next_line
-                    } else {
-                        print base_indent "  - /var/log/remnanode:/var/log/remnanode"
-                        print next_line
-                    }
-                    next
-                }
-                { print }
-            ' "$COMPOSE_FILE.tmp" > "$COMPOSE_FILE"
-            rm "$COMPOSE_FILE.tmp"
-            colorized_echo green "✅ Volume для логов добавлен в существующую секцию volumes"
+            echo -e "\033[1;31m❌ Неверный порт! Введите число от 1 до 65535\033[0m"
         fi
-    else
-        # No volumes section - add it
-        # Detect service indentation
-        service_indent=$(grep -m1 "^[[:space:]]*container_name:" "$COMPOSE_FILE.tmp" | sed 's/container_name:.*//' || echo "    ")
-        
-        # Add volumes section before the end
-        awk -v indent="$service_indent" '
-            # Track if we are inside remnanode service
-            /services:/ { in_services=1 }
-            /remnanode:/ && in_services { in_remnanode=1 }
-            
-            # If we find next service or end of file, add volumes before it
-            /^[[:space:]]*[a-zA-Z_-]+:/ && in_remnanode && !/remnanode:/ {
-                print indent "volumes:"
-                print indent "  - /var/log/remnanode:/var/log/remnanode"
-                in_remnanode=0
-            }
-            
-            { print }
-            
-            # Add at end if still in remnanode service
-            END {
-                if (in_remnanode) {
-                    print indent "volumes:"
-                    print indent "  - /var/log/remnanode:/var/log/remnanode"
-                }
-            }
-        ' "$COMPOSE_FILE.tmp" > "$COMPOSE_FILE"
-        rm "$COMPOSE_FILE.tmp"
-        colorized_echo green "✅ Секция volumes с логами успешно добавлена"
+    done
+    
+    echo
+    # Запрашиваем SECRET_KEY
+    echo -e "\033[38;5;250mВставьте SECRET_KEY (из панели Remnawave):\033[0m"
+    read -p "" SECRET_KEY
+    
+    if [ -z "$SECRET_KEY" ]; then
+        colorized_echo red "❌ SECRET_KEY не может быть пустым!"
+        exit 1
     fi
-
-    colorized_echo green "Файл Docker Compose сохранён в $COMPOSE_FILE"
+    
+    echo
+    colorized_echo blue "📝 Создание docker-compose.yml..."
+    
+    # Создаем docker-compose.yml из шаблона
+    cat > "$COMPOSE_FILE" <<EOF
+services:
+  remnanode:
+    container_name: remnanode
+    hostname: remnanode
+    image: remnawave/node:latest
+    network_mode: host
+    restart: always
+    environment:
+      - NODE_PORT=$NODE_PORT
+      - SECRET_KEY="$SECRET_KEY"
+    volumes:
+      - /var/log/remnanode:/var/log/remnanode
+EOF
+    
+    colorized_echo green "✅ Файл Docker Compose создан и сохранён в $COMPOSE_FILE"
     
     # Show the final compose file
     echo
@@ -886,6 +862,28 @@ install_remnanode() {
         echo
         colorized_echo blue "🛡️  Установка tBlocker по вашему запросу"
         install_tblocker_command
+    fi
+
+    # Ask about installing Selfsteal
+    echo
+    echo -e "\033[1;37m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+    echo -e "\033[1;36m🎭 Установка Selfsteal (Reality маскировка)\033[0m"
+    echo -e "\033[38;5;8m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+    echo
+    echo -e "\033[38;5;250mSelfsteal - система маскировки Reality трафика через Caddy\033[0m"
+    echo -e "\033[38;5;250mПоказывает поддельный сайт при прямом обращении к серверу\033[0m"
+    echo
+    read -p "Установить Selfsteal? (y/n): " -r install_selfsteal
+    INSTALL_SELFSTEAL=false
+    if [[ "$install_selfsteal" =~ ^[Yy]$ ]]; then
+        INSTALL_SELFSTEAL=true
+    fi
+
+    # Optionally install Selfsteal right away
+    if [ "$INSTALL_SELFSTEAL" == "true" ]; then
+        echo
+        colorized_echo blue "🎭 Установка Selfsteal по вашему запросу"
+        install_selfsteal_command
     fi
 
     echo
@@ -1041,7 +1039,11 @@ install_command() {
         echo -e "   \033[38;5;250m4.\033[0m \033[1;37mtBlocker установлен и готов к работе! ✅\033[0m"
     fi
     
-    echo -e "   \033[38;5;250m5.\033[0m Настройте UFW: \033[38;5;15msudo ufw allow from \033[38;5;244mPANEL_IP\033[38;5;15m to any port $NODE_PORT\033[0m"
+    if [ "$INSTALL_SELFSTEAL" == "true" ]; then
+        echo -e "   \033[38;5;250m5.\033[0m \033[1;37mSelfsteal установлен и готов к работе! ✅\033[0m"
+    fi
+    
+    echo -e "   \033[38;5;250m6.\033[0m Настройте UFW: \033[38;5;15msudo ufw allow from \033[38;5;244mPANEL_IP\033[38;5;15m to any port $NODE_PORT\033[0m"
     echo -e "      \033[38;5;8m(Включить UFW: \033[38;5;15msudo ufw enable\033[38;5;8m)\033[0m"
     echo
     
@@ -1548,6 +1550,119 @@ update_command() {
         echo -e "\033[38;5;250m   ID образа:  \033[38;5;15m$local_image_id\033[0m"
         echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 40))\033[0m"
     fi
+}
+
+update_docker_compose_command() {
+    check_running_as_root
+    
+    if ! is_remnanode_installed; then
+        echo -e "\033[1;31m❌ RemnaNode не установлен!\033[0m"
+        echo -e "\033[38;5;8m   Сначала выполните '\033[38;5;15msudo $APP_NAME install\033[38;5;8m'\033[0m"
+        exit 1
+    fi
+    
+    echo
+    echo -e "\033[1;37m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+    echo -e "\033[1;36m📝 Обновление Docker Compose конфигурации\033[0m"
+    echo -e "\033[38;5;8m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+    echo
+    
+    # Показываем текущие значения
+    if [ -f "$COMPOSE_FILE" ]; then
+        local current_port=$(grep -i "NODE_PORT=" "$COMPOSE_FILE" | sed 's/.*NODE_PORT=//' | sed 's/"//g' | head -1)
+        if [ -n "$current_port" ]; then
+            echo -e "\033[38;5;250mТекущий порт: \033[1;37m$current_port\033[0m"
+        fi
+    fi
+    
+    echo
+    echo -e "\033[1;37m📋 Введите новые параметры:\033[0m"
+    echo
+    
+    # Запрашиваем порт
+    while true; do
+        read -p "Введите NODE_PORT (например, 5001): " NODE_PORT
+        if [[ "$NODE_PORT" =~ ^[0-9]+$ ]] && [ "$NODE_PORT" -ge 1 ] && [ "$NODE_PORT" -le 65535 ]; then
+            break
+        else
+            echo -e "\033[1;31m❌ Неверный порт! Введите число от 1 до 65535\033[0m"
+        fi
+    done
+    
+    echo
+    # Запрашиваем SECRET_KEY
+    echo -e "\033[38;5;250mВставьте SECRET_KEY (из панели Remnawave):\033[0m"
+    read -p "" SECRET_KEY
+    
+    if [ -z "$SECRET_KEY" ]; then
+        echo -e "\033[1;31m❌ SECRET_KEY не может быть пустым!\033[0m"
+        exit 1
+    fi
+    
+    echo
+    echo -e "\033[1;37m📝 Создание нового docker-compose.yml...\033[0m"
+    
+    # Создаем резервную копию
+    if [ -f "$COMPOSE_FILE" ]; then
+        cp "$COMPOSE_FILE" "$COMPOSE_FILE.backup.$(date +%Y%m%d_%H%M%S)"
+        echo -e "\033[38;5;250m   ✅ Резервная копия создана\033[0m"
+    fi
+    
+    # Создаем новый docker-compose.yml
+    cat > "$COMPOSE_FILE" <<EOF
+services:
+  remnanode:
+    container_name: remnanode
+    hostname: remnanode
+    image: remnawave/node:latest
+    network_mode: host
+    restart: always
+    environment:
+      - NODE_PORT=$NODE_PORT
+      - SECRET_KEY="$SECRET_KEY"
+    volumes:
+      - /var/log/remnanode:/var/log/remnanode
+EOF
+    
+    echo -e "\033[1;32m✅ Новый docker-compose.yml создан\033[0m"
+    
+    # Показываем итоговый файл
+    echo
+    echo -e "\033[1;37m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+    echo -e "\033[1;36m📄 Итоговый docker-compose.yml:\033[0m"
+    echo -e "\033[38;5;8m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+    echo
+    cat "$COMPOSE_FILE"
+    echo
+    echo -e "\033[38;5;8m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+    
+    # Предлагаем перезапустить
+    echo
+    read -p "Перезапустить RemnaNode для применения изменений? (y/n): " -r restart_choice
+    
+    if [[ "$restart_choice" =~ ^[Yy]$ ]]; then
+        echo
+        echo -e "\033[1;37m🔄 Перезапуск RemnaNode...\033[0m"
+        detect_compose
+        
+        if is_remnanode_up; then
+            $COMPOSE -f $COMPOSE_FILE -p "$APP_NAME" down
+            echo -e "\033[38;5;250m   Контейнер остановлен\033[0m"
+        fi
+        
+        $COMPOSE -f $COMPOSE_FILE -p "$APP_NAME" up -d --remove-orphans
+        echo -e "\033[1;32m✅ RemnaNode перезапущен с новыми параметрами\033[0m"
+        
+        echo
+        echo -e "\033[1;37m🌐 Новые параметры подключения:\033[0m"
+        echo -e "\033[38;5;250m   IP адрес: \033[1;37m$NODE_IP\033[0m"
+        echo -e "\033[38;5;250m   Порт:     \033[1;37m$NODE_PORT\033[0m"
+    else
+        echo -e "\033[1;33m⚠️  Перезапуск пропущен\033[0m"
+        echo -e "\033[38;5;8m   Используйте '\033[38;5;15msudo $APP_NAME restart\033[38;5;8m' для применения изменений\033[0m"
+    fi
+    
+    echo
 }
 
 identify_the_operating_system_and_architecture() {
@@ -2478,6 +2593,7 @@ usage() {
 
     echo -e "\033[1;37m⚙️  Обновления и конфигурация:\033[0m"
     printf "   \033[38;5;178m%-18s\033[0m %s\n" "update" "🔄 Обновить RemnaNode"
+    printf "   \033[38;5;178m%-18s\033[0m %s\n" "update-compose" "🔧 Обновить docker-compose.yml"
     printf "   \033[38;5;178m%-18s\033[0m %s\n" "core-update" "⬆️  Обновить Xray-core"
     printf "   \033[38;5;178m%-18s\033[0m %s\n" "edit" "📝 Редактировать конфигурацию"
     echo
@@ -2499,6 +2615,7 @@ usage() {
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 55))\033[0m"
     echo -e "\033[1;37m📖 Примеры:\033[0m"
     echo -e "\033[38;5;244m   sudo $APP_NAME install\033[0m"
+    echo -e "\033[38;5;244m   sudo $APP_NAME update-compose\033[0m"
     echo -e "\033[38;5;244m   sudo $APP_NAME core-update\033[0m"
     echo -e "\033[38;5;244m   $APP_NAME logs\033[0m"
     echo -e "\033[38;5;244m   $APP_NAME menu           # Интерактивное меню\033[0m"
@@ -2725,15 +2842,16 @@ main_menu() {
         echo
         echo -e "\033[1;37m⚙️  Обновления и конфигурация:\033[0m"
         echo -e "   \033[38;5;15m10)\033[0m 🔄 Обновить RemnaNode"
-        echo -e "   \033[38;5;15m11)\033[0m ⬆️  Обновить Xray-core"
-        echo -e "   \033[38;5;15m12)\033[0m 📝 Редактировать конфигурацию"
-        echo -e "   \033[38;5;15m13)\033[0m 🗂️  Настроить ротацию логов"
+        echo -e "   \033[38;5;15m11)\033[0m 🔧 Обновить docker-compose.yml"
+        echo -e "   \033[38;5;15m12)\033[0m ⬆️  Обновить Xray-core"
+        echo -e "   \033[38;5;15m13)\033[0m 📝 Редактировать конфигурацию"
+        echo -e "   \033[38;5;15m14)\033[0m 🗂️  Настроить ротацию логов"
 
         # Разделитель и отдельный блок tBlocker с другим цветом заголовка
         echo -e "\033[38;5;8m$(printf '%.0s_' $(seq 1 54))\033[0m"
         echo -e "\033[1;36m🛡️  tBlocker:\033[0m"
-        echo -e "   \033[38;5;15m14)\033[0m 🛡️  Установить tBlocker"
-        echo -e "   \033[38;5;15m15)\033[0m 🗑️  Удалить tBlocker"
+        echo -e "   \033[38;5;15m15)\033[0m 🛡️  Установить tBlocker"
+        echo -e "   \033[38;5;15m16)\033[0m 🗑️  Удалить tBlocker"
         echo
         
         echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 55))\033[0m"
@@ -2750,16 +2868,16 @@ main_menu() {
                 ;;
             "Запущен")
                 if [ "$xray_version" = "Not installed" ]; then
-                    echo -e "\033[1;34m💡 Совет: Установите Xray-core с опцией 11 для лучшей производительности\033[0m"
+                    echo -e "\033[1;34m💡 Совет: Установите Xray-core с опцией 12 для лучшей производительности\033[0m"
                 else
-                    echo -e "\033[1;34m💡 Совет: Проверьте логи (7-9) или настройте ротацию логов (13)\033[0m"
+                    echo -e "\033[1;34m💡 Совет: Проверьте логи (7-9) или настройте ротацию логов (14)\033[0m"
                 fi
                 ;;
         esac
         
         echo -e "\033[38;5;8mRemnaNode CLI v$SCRIPT_VERSION by DigneZzZ • gig.ovh\033[0m"
         echo
-        read -p "$(echo -e "\033[1;37mВыберите опцию [0-15]:\033[0m ")" choice
+        read -p "$(echo -e "\033[1;37mВыберите опцию [0-16]:\033[0m ")" choice
 
         case "$choice" in
             1) install_command; read -p "Нажмите Enter для продолжения..." ;;
@@ -2772,11 +2890,12 @@ main_menu() {
             8) xray_log_out; read -p "Нажмите Enter для продолжения..." ;;
             9) xray_log_err; read -p "Нажмите Enter для продолжения..." ;;
             10) update_command; read -p "Нажмите Enter для продолжения..." ;;
-            11) update_core_command; read -p "Нажмите Enter для продолжения..." ;;
-            12) edit_command; read -p "Нажмите Enter для продолжения..." ;;
-            13) setup_log_rotation; read -p "Нажмите Enter для продолжения..." ;;
-            14) install_tblocker_command; read -p "Нажмите Enter для продолжения..." ;;
-            15) uninstall_tblocker_command; read -p "Нажмите Enter для продолжения..." ;;
+            11) update_docker_compose_command; read -p "Нажмите Enter для продолжения..." ;;
+            12) update_core_command; read -p "Нажмите Enter для продолжения..." ;;
+            13) edit_command; read -p "Нажмите Enter для продолжения..." ;;
+            14) setup_log_rotation; read -p "Нажмите Enter для продолжения..." ;;
+            15) install_tblocker_command; read -p "Нажмите Enter для продолжения..." ;;
+            16) uninstall_tblocker_command; read -p "Нажмите Enter для продолжения..." ;;
             0) clear; exit 0 ;;
             *) 
                 echo -e "\033[1;31m❌ Неверная опция!\033[0m"
@@ -2800,6 +2919,7 @@ case "${COMMAND:-menu}" in
     xray-log-out) xray_log_out ;;
     xray-log-err) xray_log_err ;;
     update) update_command ;;
+    update-compose) update_docker_compose_command ;;
     core-update) update_core_command ;;
     edit) edit_command ;;
     setup-logs) setup_log_rotation ;;

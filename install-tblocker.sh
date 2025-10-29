@@ -79,21 +79,13 @@ fi
 # ===== Обновление и установка зависимостей =====
 echo "➡ Обновляем пакеты и ставим зависимости..."
 
-# Исправляем проблемные репозитории
-if [ -f /etc/apt/sources.list.d/grafana.list ]; then
-    echo "➡ Удаляем проблемный репозиторий Grafana..."
-    rm -f /etc/apt/sources.list.d/grafana.list
-    rm -f /etc/apt/sources.list.d/grafana.list.save
-    rm -f /etc/apt/trusted.gpg.d/grafana.gpg
-fi
-
-# Обновляем apt с игнорированием ошибок от плохих репозиториев
+# Обновляем apt с игнорированием ошибок от проблемных репозиториев
 echo "➡ Обновление списка пакетов..."
-apt update -y 2>&1 | grep -v -E "(grafana|403|Access Denied)" || true
+apt update -y 2>&1 | grep -v -E "(403|Access Denied|Failed to fetch)" || true
 
 # Устанавливаем зависимости
 echo "➡ Установка зависимостей..."
-apt install -y curl logrotate 2>&1 | grep -v -E "(grafana|403)" || true
+apt install -y curl logrotate 2>&1 | grep -v -E "(403|Failed to fetch)" || true
 
 # Пытаемся установить docker-compose-plugin если доступен
 apt install -y docker-compose-plugin 2>/dev/null || echo "ℹ️  docker-compose-plugin не доступен, используем существующий Docker Compose"

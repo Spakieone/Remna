@@ -387,22 +387,23 @@ detect_and_update_package_manager() {
     colorized_echo blue "Обновление менеджера пакетов"
     if [[ "$OS" == "Ubuntu"* ]] || [[ "$OS" == "Debian"* ]]; then
         PKG_MANAGER="apt-get"
-        $PKG_MANAGER update -qq >/dev/null 2>&1
+        # Обновляем с игнорированием ошибок от проблемных репозиториев (не удаляем их!)
+        $PKG_MANAGER update -qq 2>&1 | grep -v -E "(403|Access Denied|Malformed|Failed to fetch)" || true
     elif [[ "$OS" == "CentOS"* ]] || [[ "$OS" == "AlmaLinux"* ]] || [[ "$OS" == "Amazon"* ]]; then
         PKG_MANAGER="yum"
-        $PKG_MANAGER update -y -q >/dev/null 2>&1
+        $PKG_MANAGER update -y -q >/dev/null 2>&1 || true
         if [[ "$OS" != "Amazon" ]]; then
-            $PKG_MANAGER install -y -q epel-release >/dev/null 2>&1
+            $PKG_MANAGER install -y -q epel-release >/dev/null 2>&1 || true
         fi
     elif [[ "$OS" == "Fedora"* ]]; then
         PKG_MANAGER="dnf"
-        $PKG_MANAGER update -q -y >/dev/null 2>&1
+        $PKG_MANAGER update -q -y >/dev/null 2>&1 || true
     elif [[ "$OS" == "Arch"* ]]; then
         PKG_MANAGER="pacman"
-        $PKG_MANAGER -Sy --noconfirm --quiet >/dev/null 2>&1
+        $PKG_MANAGER -Sy --noconfirm --quiet >/dev/null 2>&1 || true
     elif [[ "$OS" == "openSUSE"* ]]; then
         PKG_MANAGER="zypper"
-        $PKG_MANAGER refresh --quiet >/dev/null 2>&1
+        $PKG_MANAGER refresh --quiet >/dev/null 2>&1 || true
     else
         colorized_echo red "⚠️  Неподдерживаемая операционная система: $OS"
         colorized_echo yellow "Установка пакетов может не работать"
@@ -487,28 +488,29 @@ install_package() {
     
     local install_cmd=""
     if [[ "$OS" == "Ubuntu"* ]] || [[ "$OS" == "Debian"* ]]; then
-        $PKG_MANAGER -y -qq install "$PACKAGE" >/dev/null 2>&1
+        $PKG_MANAGER -y -qq install "$PACKAGE" 2>&1 | grep -v -E "(403|Failed to fetch)" || true
     elif [[ "$OS" == "CentOS"* ]] || [[ "$OS" == "AlmaLinux"* ]] || [[ "$OS" == "Amazon"* ]]; then
-        $PKG_MANAGER install -y -q "$PACKAGE" >/dev/null 2>&1
+        $PKG_MANAGER install -y -q "$PACKAGE" >/dev/null 2>&1 || true
     elif [[ "$OS" == "Fedora"* ]]; then
-        $PKG_MANAGER install -y -q "$PACKAGE" >/dev/null 2>&1
+        $PKG_MANAGER install -y -q "$PACKAGE" >/dev/null 2>&1 || true
     elif [[ "$OS" == "Arch"* ]]; then
-        $PKG_MANAGER -S --noconfirm --quiet "$PACKAGE" >/dev/null 2>&1
+        $PKG_MANAGER -S --noconfirm --quiet "$PACKAGE" >/dev/null 2>&1 || true
     elif [[ "$OS" == "openSUSE"* ]]; then
-        $PKG_MANAGER --quiet install -y "$PACKAGE" >/dev/null 2>&1
+        $PKG_MANAGER --quiet install -y "$PACKAGE" >/dev/null 2>&1 || true
     else
         colorized_echo yellow "⚠️  Не удалось установить $PACKAGE - неподдерживаемая ОС"
         return 1
     fi
     
-    local exit_code=$?
-    if [ $exit_code -eq 0 ]; then
+    # Проверяем что пакет установлен (игнорируем exit code т.к. могут быть warnings)
+    if command -v "$PACKAGE" >/dev/null 2>&1 || dpkg -l | grep -q "^ii.*$PACKAGE" 2>/dev/null || rpm -q "$PACKAGE" >/dev/null 2>&1; then
         colorized_echo green "✅ $PACKAGE установлен"
+        return 0
     else
-        colorized_echo yellow "⚠️  Не удалось установить $PACKAGE (код: $exit_code)"
-        return 1
+        colorized_echo yellow "⚠️  Пакет $PACKAGE может быть не установлен полностью"
+        # Не возвращаем ошибку, чтобы установка продолжалась
+        return 0
     fi
-    return 0
 }
 
 install_docker() {
@@ -534,10 +536,11 @@ install_docker() {
         colorized_echo blue "Установка Docker Compose..."
         
         if [[ "$OS" == "Ubuntu"* ]] || [[ "$OS" == "Debian"* ]]; then
-            apt-get update -qq >/dev/null 2>&1
-            apt-get install -y docker-compose-plugin >/dev/null 2>&1
+            # Обновляем с игнорированием ошибок от проблемных репозиториев
+            apt-get update -qq 2>&1 | grep -v -E "(403|Access Denied|Failed to fetch)" || true
+            apt-get install -y docker-compose-plugin 2>&1 | grep -v -E "(403|Failed to fetch)" || true
         elif [[ "$OS" == "CentOS"* ]] || [[ "$OS" == "AlmaLinux"* ]] || [[ "$OS" == "Fedora"* ]]; then
-            yum install -y docker-compose-plugin >/dev/null 2>&1
+            yum install -y docker-compose-plugin >/dev/null 2>&1 || true
         fi
         
         if docker compose version >/dev/null 2>&1; then

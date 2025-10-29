@@ -932,72 +932,25 @@ EOF
     echo
     echo -e "\033[38;5;8m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
 
-    # ===== БЛОК ВОПРОСОВ =====
-    # Ask about installing Xray-core
+    # Дополнительно: предложить установить tBlocker
     echo
     echo -e "\033[1;37m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
-    echo -e "\033[1;36m📦 Дополнительные компоненты\033[0m"
+    echo -e "\033[1;36m🛡️  Установка tBlocker (по желанию)\033[0m"
     echo -e "\033[38;5;8m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
     echo
-    
-    # Вопрос 1: Xray-core
-    echo -e "\033[1;37m1. Xray-core\033[0m"
-    echo -e "\033[38;5;250m   Высокопроизводительный прокси-сервер для RemnaNode\033[0m"
-    read -p "   Установить Xray-core? (y/n): " -r install_xray
-    INSTALL_XRAY=false
-    if [[ "$install_xray" =~ ^[Yy]$ ]]; then
-        INSTALL_XRAY=true
-    fi
+    echo -e "\033[38;5;250mtBlocker — блокировка торрент-трафика через iptables\033[0m"
+    echo -e "\033[38;5;250mИспользует логи доступа RemnaNode: /var/log/remnanode/access.log\033[0m"
     echo
-
-    # Вопрос 2: tBlocker
-    echo -e "\033[1;37m2. tBlocker\033[0m"
-    echo -e "\033[38;5;250m   Система блокировки торрент-трафика через iptables\033[0m"
-    echo -e "\033[38;5;250m   Обнаруживает и блокирует торрент-подключения пользователей\033[0m"
-    read -p "   Установить tBlocker? (y/n): " -r install_tb
+    read -p "Установить tBlocker? (y/n): " -r install_tb
     INSTALL_TB=false
     if [[ "$install_tb" =~ ^[Yy]$ ]]; then
         INSTALL_TB=true
-    fi
-    echo
-
-    # Вопрос 3: Selfsteal
-    echo -e "\033[1;37m3. Selfsteal (Reality маскировка)\033[0m"
-    echo -e "\033[38;5;250m   Система маскировки Reality трафика через Caddy\033[0m"
-    echo -e "\033[38;5;250m   Показывает поддельный сайт при прямом обращении к серверу\033[0m"
-    read -p "   Установить Selfsteal? (y/n): " -r install_selfsteal
-    INSTALL_SELFSTEAL=false
-    if [[ "$install_selfsteal" =~ ^[Yy]$ ]]; then
-        INSTALL_SELFSTEAL=true
-    fi
-    
-    # ===== БЛОК УСТАНОВКИ =====
-    echo
-    echo -e "\033[1;37m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
-    echo -e "\033[1;36m🚀 Начало установки компонентов\033[0m"
-    echo -e "\033[38;5;8m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
-    echo
-    
-    # Установка Xray-core
-    if [ "$INSTALL_XRAY" == "true" ]; then
-        echo -e "\033[1;37m📦 Установка Xray-core...\033[0m"
-        install_latest_xray_core
         echo
-    fi
-
-    # Установка tBlocker
-    if [ "$INSTALL_TB" == "true" ]; then
-        echo -e "\033[1;37m🛡️  Установка tBlocker...\033[0m"
+        colorized_echo blue "🛡️  Установка tBlocker по вашему запросу"
         install_tblocker_command
-        echo
     fi
 
-    # Установка Selfsteal
-    if [ "$INSTALL_SELFSTEAL" == "true" ]; then
-        echo -e "\033[1;37m🎭 Установка Selfsteal...\033[0m"
-        install_selfsteal_command
-        echo
-    fi
+    # Минимальная установка завершена
 
     echo
     echo -e "\033[1;32m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"

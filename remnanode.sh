@@ -375,9 +375,12 @@ detect_os() {
     elif [ -f /etc/arch-release ]; then
         OS="Arch"
     else
-        colorized_echo red "Неподдерживаемая операционная система"
-        exit 1
+        colorized_echo red "⚠️  Неподдерживаемая операционная система"
+        colorized_echo yellow "Поддерживаются: Ubuntu, Debian, CentOS, AlmaLinux, Fedora, Arch, openSUSE, Amazon Linux"
+        OS="Unknown"
+        return 1
     fi
+    return 0
 }
 
 detect_and_update_package_manager() {
@@ -401,9 +404,11 @@ detect_and_update_package_manager() {
         PKG_MANAGER="zypper"
         $PKG_MANAGER refresh --quiet >/dev/null 2>&1
     else
-        colorized_echo red "Неподдерживаемая операционная система"
-        exit 1
+        colorized_echo red "⚠️  Неподдерживаемая операционная система: $OS"
+        colorized_echo yellow "Установка пакетов может не работать"
+        return 1
     fi
+    return 0
 }
 
 detect_compose() {
@@ -471,10 +476,16 @@ detect_compose() {
 install_package() {
     if [ -z "$PKG_MANAGER" ]; then
         detect_and_update_package_manager
+        if [ $? -ne 0 ]; then
+            colorized_echo yellow "⚠️  Пропуск установки $1"
+            return 1
+        fi
     fi
 
     PACKAGE=$1
     colorized_echo blue "Установка $PACKAGE"
+    
+    local install_cmd=""
     if [[ "$OS" == "Ubuntu"* ]] || [[ "$OS" == "Debian"* ]]; then
         $PKG_MANAGER -y -qq install "$PACKAGE" >/dev/null 2>&1
     elif [[ "$OS" == "CentOS"* ]] || [[ "$OS" == "AlmaLinux"* ]] || [[ "$OS" == "Amazon"* ]]; then
@@ -486,9 +497,18 @@ install_package() {
     elif [[ "$OS" == "openSUSE"* ]]; then
         $PKG_MANAGER --quiet install -y "$PACKAGE" >/dev/null 2>&1
     else
-        colorized_echo red "Неподдерживаемая операционная система"
-        exit 1
+        colorized_echo yellow "⚠️  Не удалось установить $PACKAGE - неподдерживаемая ОС"
+        return 1
     fi
+    
+    local exit_code=$?
+    if [ $exit_code -eq 0 ]; then
+        colorized_echo green "✅ $PACKAGE установлен"
+    else
+        colorized_echo yellow "⚠️  Не удалось установить $PACKAGE (код: $exit_code)"
+        return 1
+    fi
+    return 0
 }
 
 install_docker() {
@@ -603,7 +623,8 @@ install_latest_xray_core() {
         return 1
     fi
     
-    if ! dpkg -s unzip >/dev/null 2>&1; then
+    # Проверка и установка unzip (универсально для всех систем)
+    if ! command -v unzip >/dev/null 2>&1; then
         colorized_echo blue "Установка unzip..."
         detect_os
         install_package unzip

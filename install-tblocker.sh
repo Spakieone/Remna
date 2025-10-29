@@ -78,8 +78,25 @@ fi
 
 # ===== Обновление и установка зависимостей =====
 echo "➡ Обновляем пакеты и ставим зависимости..."
-apt update -y
-apt install -y curl logrotate docker docker-compose
+
+# Исправляем проблемные репозитории
+if [ -f /etc/apt/sources.list.d/grafana.list ]; then
+    echo "➡ Удаляем проблемный репозиторий Grafana..."
+    rm -f /etc/apt/sources.list.d/grafana.list
+    rm -f /etc/apt/sources.list.d/grafana.list.save
+    rm -f /etc/apt/trusted.gpg.d/grafana.gpg
+fi
+
+# Обновляем apt с игнорированием ошибок от плохих репозиториев
+echo "➡ Обновление списка пакетов..."
+apt update -y 2>&1 | grep -v -E "(grafana|403|Access Denied)" || true
+
+# Устанавливаем зависимости
+echo "➡ Установка зависимостей..."
+apt install -y curl logrotate 2>&1 | grep -v -E "(grafana|403)" || true
+
+# Пытаемся установить docker-compose-plugin если доступен
+apt install -y docker-compose-plugin 2>/dev/null || echo "ℹ️  docker-compose-plugin не доступен, используем существующий Docker Compose"
 
 # ===== Настройка docker-compose.yml =====
 # Всегда используем фиксированное имя приложения
@@ -257,6 +274,7 @@ EOF
 # Проверяем, установился ли Tblocker
 if [ ! -d /opt/tblocker ]; then
     echo "❌ Установка Tblocker не удалась. Проверьте вывод установки."
+    echo "ℹ️  Вы можете установить Tblocker позже вручную"
     exit 1
 fi
 

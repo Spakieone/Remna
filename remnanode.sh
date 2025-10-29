@@ -605,7 +605,12 @@ is_port_occupied() {
 
 install_latest_xray_core() {
     colorized_echo blue "🚀 Начинаем установку Xray-core..."
-    identify_the_operating_system_and_architecture
+    
+    if ! identify_the_operating_system_and_architecture; then
+        colorized_echo yellow "Установка Xray-core пропущена"
+        return 1
+    fi
+    
     mkdir -p "$DATA_DIR"
     cd "$DATA_DIR"
     
@@ -1787,12 +1792,18 @@ identify_the_operating_system_and_architecture() {
             'ppc64le') ARCH='ppc64le' ;;
             'riscv64') ARCH='riscv64' ;;
             's390x') ARCH='s390x' ;;
-            *) echo "error: The architecture is not supported."; exit 1 ;;
+            *) 
+                colorized_echo red "⚠️  Неподдерживаемая архитектура: $(uname -m)"
+                colorized_echo yellow "Установка Xray-core пропущена"
+                return 1 
+                ;;
         esac
     else
-        echo "error: This operating system is not supported."
-        exit 1
+        colorized_echo red "⚠️  Неподдерживаемая ОС: $(uname)"
+        colorized_echo yellow "Установка Xray-core пропущена. Поддерживается только Linux"
+        return 1
     fi
+    return 0
 }
 
 get_xray_host_path_from_compose() {
@@ -1851,7 +1862,11 @@ get_current_xray_core_version() {
 }
 
 get_xray_core() {
-    identify_the_operating_system_and_architecture
+    if ! identify_the_operating_system_and_architecture; then
+        colorized_echo red "Не удалось определить архитектуру системы"
+        read -p "Нажмите Enter для возврата..."
+        return 1
+    fi
     clear
     
     validate_version() {
@@ -2128,7 +2143,8 @@ get_xray_core() {
     else
         echo -e "\033[1;31m❌ Ошибка загрузки!\033[0m"
         echo -e "\033[38;5;8m   Проверьте интернет-соединение или попробуйте другую версию.\033[0m"
-        exit 1
+        read -p "Нажмите Enter для возврата..."
+        return 1
     fi
     
     # Извлечение
@@ -2138,7 +2154,9 @@ get_xray_core() {
     else
         echo -e "\033[1;31m❌ Ошибка извлечения!\033[0m"
         echo -e "\033[38;5;8m   Загруженный файл может быть повреждён.\033[0m"
-        exit 1
+        rm -f "${xray_filename}"
+        read -p "Нажмите Enter для возврата..."
+        return 1
     fi
     
     # Очистка и настройка прав

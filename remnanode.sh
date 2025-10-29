@@ -407,25 +407,62 @@ detect_and_update_package_manager() {
 }
 
 detect_compose() {
-    if docker compose >/dev/null 2>&1; then
+    if docker compose version >/dev/null 2>&1; then
         COMPOSE='docker compose'
-    elif docker-compose >/dev/null 2>&1; then
+    elif docker-compose --version >/dev/null 2>&1; then
         COMPOSE='docker-compose'
     else
+        colorized_echo blue "Docker Compose не найден. Установка..."
+        
+        # Определяем путь установки плагина
         if [[ "$OS" == "Amazon"* ]]; then
-            colorized_echo blue "Плагин Docker Compose не найден. Попытка ручной установки..."
-            mkdir -p /usr/libexec/docker/cli-plugins
-            curl -SL "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/libexec/docker/cli-plugins/docker-compose >/dev/null 2>&1
-            chmod +x /usr/libexec/docker/cli-plugins/docker-compose
-            if docker compose >/dev/null 2>&1; then
+            PLUGIN_DIR="/usr/libexec/docker/cli-plugins"
+        else
+            PLUGIN_DIR="/usr/local/lib/docker/cli-plugins"
+        fi
+        
+        mkdir -p "$PLUGIN_DIR"
+        
+        # Скачиваем последнюю версию Docker Compose
+        COMPOSE_VERSION=$(curl -s https://api.github.com/repos/docker/compose/releases/latest | grep -oP '"tag_name": "\K(.*)(?=")')
+        if [ -z "$COMPOSE_VERSION" ]; then
+            COMPOSE_VERSION="v2.24.5"  # Fallback версия
+        fi
+        
+        colorized_echo yellow "Загрузка Docker Compose ${COMPOSE_VERSION}..."
+        
+        if curl -SL "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o "$PLUGIN_DIR/docker-compose" 2>/dev/null; then
+            chmod +x "$PLUGIN_DIR/docker-compose"
+            
+            # Проверяем что установилось
+            if docker compose version >/dev/null 2>&1; then
                 COMPOSE='docker compose'
-                colorized_echo green "Плагин Docker Compose успешно установлен"
+                colorized_echo green "✅ Docker Compose успешно установлен"
             else
-                colorized_echo red "Не удалось установить плагин Docker Compose. Проверьте настройки."
-                exit 1
+                # Пробуем установить через apt/yum
+                colorized_echo yellow "Попытка установки через пакетный менеджер..."
+                if [[ "$OS" == "Ubuntu"* ]] || [[ "$OS" == "Debian"* ]]; then
+                    apt-get update -qq >/dev/null 2>&1
+                    apt-get install -y docker-compose-plugin >/dev/null 2>&1
+                elif [[ "$OS" == "CentOS"* ]] || [[ "$OS" == "AlmaLinux"* ]] || [[ "$OS" == "Fedora"* ]]; then
+                    yum install -y docker-compose-plugin >/dev/null 2>&1
+                fi
+                
+                # Финальная проверка
+                if docker compose version >/dev/null 2>&1; then
+                    COMPOSE='docker compose'
+                    colorized_echo green "✅ Docker Compose успешно установлен"
+                elif docker-compose --version >/dev/null 2>&1; then
+                    COMPOSE='docker-compose'
+                    colorized_echo green "✅ Docker Compose (v1) успешно установлен"
+                else
+                    colorized_echo red "❌ Не удалось установить Docker Compose"
+                    colorized_echo yellow "Попробуйте установить вручную: https://docs.docker.com/compose/install/"
+                    exit 1
+                fi
             fi
         else
-            colorized_echo red "docker compose не найден"
+            colorized_echo red "❌ Не удалось загрузить Docker Compose"
             exit 1
         fi
     fi
@@ -464,7 +501,28 @@ install_docker() {
         colorized_echo green "Docker успешно установлен на Amazon Linux"
     else
         curl -fsSL https://get.docker.com | sh
+        systemctl start docker >/dev/null 2>&1
+        systemctl enable docker >/dev/null 2>&1
         colorized_echo green "Docker успешно установлен"
+    fi
+    
+    # Убедимся что Docker запущен
+    sleep 2
+    
+    # Установка Docker Compose если нужно
+    if ! docker compose version >/dev/null 2>&1 && ! docker-compose --version >/dev/null 2>&1; then
+        colorized_echo blue "Установка Docker Compose..."
+        
+        if [[ "$OS" == "Ubuntu"* ]] || [[ "$OS" == "Debian"* ]]; then
+            apt-get update -qq >/dev/null 2>&1
+            apt-get install -y docker-compose-plugin >/dev/null 2>&1
+        elif [[ "$OS" == "CentOS"* ]] || [[ "$OS" == "AlmaLinux"* ]] || [[ "$OS" == "Fedora"* ]]; then
+            yum install -y docker-compose-plugin >/dev/null 2>&1
+        fi
+        
+        if docker compose version >/dev/null 2>&1; then
+            colorized_echo green "✅ Docker Compose успешно установлен"
+        fi
     fi
 }
 

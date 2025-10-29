@@ -211,8 +211,8 @@ remove_stack() {
 install_node_exporter_menu() {
   require_root
   # Пытаемся найти локальный скрипт, иначе скачиваем из GitHub
-  if [ -f "script/scripts-main/install_node_exporter.sh" ]; then
-    bash "script/scripts-main/install_node_exporter.sh"
+  if [ -f "./install_node_exporter.sh" ]; then
+    bash "./install_node_exporter.sh"
   else
     bash <(curl -fsSL https://raw.githubusercontent.com/Spakieone/Remna/main/install_node_exporter.sh)
   fi

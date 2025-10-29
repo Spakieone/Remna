@@ -85,6 +85,15 @@ get_latest_version() {
     echo "$version"
 }
 
+# Версия установленного бинарника (если есть)
+get_installed_binary_version() {
+    if [[ -x "$NODE_EXPORTER_BINARY" ]]; then
+        "$NODE_EXPORTER_BINARY" --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || true
+    else
+        echo ""
+    fi
+}
+
 # Проверка и удаление всех существующих установок Node Exporter
 check_existing_installation() {
     info "Проверка существующих установок Node Exporter..."
@@ -331,7 +340,7 @@ After=network-online.target
 Type=simple
 User=$NODE_EXPORTER_USER
 Group=$NODE_EXPORTER_USER
-ExecReload=/bin/kill -HUP \$MAINPID
+ExecReload=/bin/kill -HUP $MAINPID
 ExecStart=$NODE_EXPORTER_BINARY \\
     --web.listen-address=:${PORT} \\
     --path.procfs=/proc \\
@@ -384,8 +393,23 @@ EOF
     log "Systemd сервис создан"
 }
 
-# Настройка firewall
+# Настройка firewall (опционально)
 setup_firewall() {
+    # Разрешение по умолчанию: не открывать порт
+    local open_port="${OPEN_NODE_EXPORTER_PORT:-}"
+    if [[ -z "$open_port" ]]; then
+        read -r -p "Открыть порт 9100 в firewall для удалённого доступа? [y/N]: " answer || true
+        case "$answer" in
+            y|Y|yes|YES) open_port="1" ;;
+            *) open_port="0" ;;
+        esac
+    fi
+
+    if [[ "$open_port" != "1" ]]; then
+        info "Открытие порта 9100 пропущено."
+        return 0
+    fi
+    
     info "Настройка firewall для порта 9100..."
     
     # Определяем ОС
@@ -400,11 +424,15 @@ setup_firewall() {
     case "$os_id" in
         ubuntu|debian)
             if command -v ufw >/dev/null 2>&1; then
-                ufw --force enable 2>/dev/null || true
-                if ufw allow 9100/tcp 2>/dev/null; then
-                    log "Порт 9100 открыт в UFW"
+                # Не включаем ufw автоматически, добавляем правило только если активен
+                if ufw status 2>/dev/null | grep -qi "active"; then
+                    if ufw allow 9100/tcp 2>/dev/null; then
+                        log "Порт 9100 открыт в UFW"
+                    else
+                        warn "Не удалось открыть порт 9100 в UFW"
+                    fi
                 else
-                    warn "Не удалось открыть порт 9100 в UFW"
+                    warn "UFW не активен — пропускаем добавление правила"
                 fi
             else
                 warn "UFW не найден"
@@ -412,12 +440,15 @@ setup_firewall() {
             ;;
         centos|rhel|fedora)
             if command -v firewall-cmd >/dev/null 2>&1; then
-                systemctl enable firewalld 2>/dev/null || true
-                systemctl start firewalld 2>/dev/null || true
-                if firewall-cmd --permanent --add-port=9100/tcp 2>/dev/null && firewall-cmd --reload 2>/dev/null; then
-                    log "Порт 9100 открыт в firewalld"
+                # Не включаем firewalld автоматически, работаем только если активен
+                if systemctl is-active --quiet firewalld; then
+                    if firewall-cmd --permanent --add-port=9100/tcp 2>/dev/null && firewall-cmd --reload 2>/dev/null; then
+                        log "Порт 9100 открыт в firewalld"
+                    else
+                        warn "Не удалось открыть порт 9100 в firewalld"
+                    fi
                 else
-                    warn "Не удалось открыть порт 9100 в firewalld"
+                    warn "firewalld не активен — пропускаем добавление правила"
                 fi
             else
                 warn "Firewalld не найден"
@@ -433,14 +464,14 @@ setup_firewall() {
 start_service() {
     info "Запуск Node Exporter сервиса..."
     
-  systemctl daemon-reload
+    systemctl daemon-reload
     
     if systemctl enable node_exporter; then
         log "Node Exporter добавлен в автозапуск"
     else
         err "Не удалось добавить Node Exporter в автозапуск"
-    exit 1
-fi
+        exit 1
+    fi
 
     if systemctl start node_exporter; then
         log "Node Exporter сервис запущен"
@@ -458,8 +489,8 @@ fi
         err "Node Exporter сервис не активен после запуска"
         info "Логи сервиса:"
         journalctl -u node_exporter --no-pager -n 10
-    exit 1
-fi
+        exit 1
+    fi
 }
 
 # Финальная проверка
@@ -489,8 +520,10 @@ final_check() {
         else
             warn "Получено только $metrics_count метрик (ожидалось больше 100)"
         fi
+        echo -e "${GREEN}STATUS: INSTALLED OK${NC}"
     else
         warn "Endpoint метрик не отвечает (возможно, сервис еще запускается)"
+        echo -e "${GREEN}STATUS: INSTALLED${NC}"
     fi
     
     # Показываем информацию
@@ -523,7 +556,7 @@ cleanup() {
 # Основная функция
 main() {
     echo -e "${BLUE}╔══════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${BLUE}║${NC}              ${GREEN}Node Exporter Installer v1.2.0${NC}                 ${BLUE}║${NC}"
+    echo -e "${BLUE}║${NC}              ${GREEN}Node Exporter Installer v1.3.0${NC}                 ${BLUE}║${NC}"
     echo -e "${BLUE}║${NC}                     ${YELLOW}Optimized Edition${NC}                       ${BLUE}║${NC}"
     echo -e "${BLUE}╚══════════════════════════════════════════════════════════════╝${NC}"
     echo
@@ -532,6 +565,22 @@ main() {
     
     require_root
     
+    # Если уже запущен любой сервис Node Exporter — не переустанавливаем без FORCE_REINSTALL=1
+    if systemctl is-active --quiet node_exporter 2>/dev/null || \
+       systemctl is-active --quiet prometheus-node-exporter 2>/dev/null || \
+       systemctl is-active --quiet node-exporter 2>/dev/null; then
+        if [[ "${FORCE_REINSTALL:-0}" != "1" ]]; then
+            local running_ver
+            running_ver=$(get_installed_binary_version || echo "")
+            log "Node Exporter уже запущен${running_ver:+ (версия: $running_ver)}. Пропускаю установку."
+            echo -e "${GREEN}STATUS: ALREADY RUNNING${NC}"
+            echo -e "${BLUE}Подсказка:${NC} для принудительной переустановки запустите: FORCE_REINSTALL=1 sudo bash $0"
+            exit 0
+        else
+            warn "Принудительная переустановка (FORCE_REINSTALL=1)"
+        fi
+    fi
+
     local arch
     arch=$(detect_architecture)
     info "Определена архитектура: $arch"
@@ -540,10 +589,26 @@ main() {
     version=$(get_latest_version)
     info "Последняя версия: $version"
     
-    # СНАЧАЛА удаляем существующие установки
-    check_existing_installation
+    # Если бинарник уже установлен и совпадает версия — просто убедимся, что сервис активен
+    local current
+    current=$(get_installed_binary_version || echo "")
+    if [[ -n "$current" && "$current" == "$version" && "${FORCE_REINSTALL:-0}" != "1" ]]; then
+        log "Node Exporter уже установлен (версия $current)."
+        # Убедимся, что есть пользователь и сервис, и он запущен
+        create_user
+        if [[ ! -f "$NODE_EXPORTER_SERVICE" ]]; then
+            create_systemd_service
+        fi
+        setup_firewall
+        start_service
+        final_check
+        echo
+        log "🎉 Node Exporter готов!"
+        exit 0
+    fi
     
-    # ПОТОМ определяем порт (теперь 9100 должен быть свободен)
+    # Иначе переустановка/обновление
+    check_existing_installation
     detect_listen_port
     create_user
     download_and_install "$version" "$arch"

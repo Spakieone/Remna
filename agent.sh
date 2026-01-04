@@ -3,7 +3,7 @@
 # Скрипт установки/удаления Remnawave Agent
 
 AGENT_DIR="/root/remnawave-agent"
-AGENT_PORT="${AGENT_PORT:-8080}"
+AGENT_PORT="${AGENT_PORT:-9111}"
 SERVICE_NAME="remnawave-agent"
 
 install_agent() {
@@ -48,14 +48,24 @@ install_agent() {
     elif python3 -m pip --version >/dev/null 2>&1; then
         PIP_CMD="python3 -m pip"
     else
-        echo "Ошибка: pip не найден. Установите pip: apt install python3-pip"
-        exit 1
+        echo "pip не найден, устанавливаем..."
+        if command -v apt-get >/dev/null 2>&1; then
+            apt-get update -qq >/dev/null 2>&1
+            apt-get install -y python3-pip >/dev/null 2>&1 || {
+                echo "Ошибка: Не удалось установить python3-pip"
+                exit 1
+            }
+            PIP_CMD="pip3"
+        else
+            echo "Ошибка: pip не найден и apt-get недоступен"
+            exit 1
+        fi
     fi
     
     if [ -f "$AGENT_DIR/requirements.txt" ]; then
-        $PIP_CMD install -q -r "$AGENT_DIR/requirements.txt" 2>&1 | grep -v "already satisfied" || true
+        $PIP_CMD install -q --break-system-packages -r "$AGENT_DIR/requirements.txt" 2>&1 | grep -v "already satisfied" || true
     else
-        $PIP_CMD install -q fastapi uvicorn pydantic python-dotenv 2>&1 | grep -v "already satisfied" || true
+        $PIP_CMD install -q --break-system-packages fastapi uvicorn pydantic python-dotenv 2>&1 | grep -v "already satisfied" || true
     fi
     
     # Запрашиваем токен у пользователя

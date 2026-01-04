@@ -2,7 +2,13 @@
 # Node Configuration Script
 # Version: 1.0.0
 
-set -e
+set -uo pipefail
+
+# Проверка root
+if [ "$EUID" -ne 0 ]; then
+    echo "❌ Запустите скрипт от root (sudo)."
+    exit 1
+fi
 
 # Цвета для вывода
 RED='\033[0;31m'
@@ -13,6 +19,7 @@ PURPLE='\033[0;35m'
 CYAN='\033[0;36m'
 WHITE='\033[1;37m'
 GRAY='\033[0;37m'
+BOLD='\033[1m'
 NC='\033[0m' # No Color
 
 # Функция для проверки статуса UFW
@@ -62,8 +69,9 @@ check_ipv6_status() {
 # Функция для отображения шапки со статусами
 show_status_header() {
     clear
-    echo -e "${WHITE}⚙️  Настройка ноды${NC}"
-    echo -e "${GRAY}$(printf '─%.0s' $(seq 1 50))${NC}"
+    echo -e "${BOLD}${WHITE}╔══════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${BOLD}${WHITE}║${NC}  ${BOLD}${CYAN}⚙️  НАСТРОЙКА НОДЫ${NC}"
+    echo -e "${BOLD}${WHITE}╚══════════════════════════════════════════════════════════════╝${NC}"
     echo
     
     # Статус UFW
@@ -736,22 +744,29 @@ main_menu() {
     while true; do
         show_status_header
         
-        echo -e "${WHITE}📋 Доступные настройки:${NC}"
+        echo -e "${BOLD}${WHITE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "${BOLD}${WHITE}🔥 UFW${NC}"
+        echo -e "${BOLD}${WHITE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "  ${BOLD}${GREEN}1)${NC} ${YELLOW}🔥 Управление UFW${NC}"
         echo
-        echo -e "${WHITE}🔥 UFW:${NC}"
-        echo -e "   ${WHITE}1)${NC} 🔥 Управление UFW"
+        echo -e "${BOLD}${WHITE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "${BOLD}${WHITE}🌐 IPv6${NC}"
+        echo -e "${BOLD}${WHITE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "  ${BOLD}${GREEN}2)${NC} ${YELLOW}❌ Отключить IPv6${NC}"
+        echo -e "  ${BOLD}${GREEN}3)${NC} ${YELLOW}✅ Включить IPv6${NC}"
         echo
-        echo -e "${WHITE}🌐 IPv6:${NC}"
-        echo -e "   ${WHITE}2)${NC} ❌ Отключить IPv6"
-        echo -e "   ${WHITE}3)${NC} ✅ Включить IPv6"
+        echo -e "${BOLD}${WHITE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "${BOLD}${WHITE}⚙️  СИСТЕМНЫЕ НАСТРОЙКИ${NC}"
+        echo -e "${BOLD}${WHITE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "  ${BOLD}${GREEN}4)${NC} ${YELLOW}🖥️  Настройка hostname${NC}"
+        echo -e "  ${BOLD}${GREEN}5)${NC} ${YELLOW}🕐 Настройка timezone${NC}"
+        echo -e "  ${BOLD}${GREEN}6)${NC} ${YELLOW}🌐 Настройка DNS${NC}"
+        echo -e "  ${BOLD}${GREEN}7)${NC} ${YELLOW}🚀 Настройка TCP параметров${NC}"
         echo
-        echo -e "${WHITE}⚙️  Системные настройки:${NC}"
-        echo -e "   ${WHITE}4)${NC} 🖥️  Настройка hostname"
-        echo -e "   ${WHITE}5)${NC} 🕐 Настройка timezone"
-        echo -e "   ${WHITE}6)${NC} 🌐 Настройка DNS"
-        echo -e "   ${WHITE}7)${NC} 🚀 Настройка TCP параметров"
-        echo
-        echo -e "   ${GRAY}0)${NC} ⬅️  Выход"
+        echo -e "${BOLD}${WHITE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "${BOLD}${WHITE}🚪 ВЫХОД${NC}"
+        echo -e "${BOLD}${WHITE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "  ${BOLD}${GREEN}0)${NC} ${YELLOW}⬅️  Выход${NC}"
         echo
         
         read -p "Выберите опцию [0-7]: " choice
@@ -759,31 +774,45 @@ main_menu() {
         case "$choice" in
             1)
                 manage_ufw
-                read -p "Нажмите Enter для продолжения..."
+                echo ""
+                echo -e "${GREEN}✅ Операция завершена. Возврат в меню через 3 секунды...${NC}"
+                sleep 3
                 ;;
             2)
                 disable_ipv6
-                read -p "Нажмите Enter для продолжения..."
+                echo ""
+                echo -e "${GREEN}✅ Операция завершена. Возврат в меню через 3 секунды...${NC}"
+                sleep 3
                 ;;
             3)
                 enable_ipv6
-                read -p "Нажмите Enter для продолжения..."
+                echo ""
+                echo -e "${GREEN}✅ Операция завершена. Возврат в меню через 3 секунды...${NC}"
+                sleep 3
                 ;;
             4)
                 configure_hostname
-                read -p "Нажмите Enter для продолжения..."
+                echo ""
+                echo -e "${GREEN}✅ Операция завершена. Возврат в меню через 3 секунды...${NC}"
+                sleep 3
                 ;;
             5)
                 configure_timezone
-                read -p "Нажмите Enter для продолжения..."
+                echo ""
+                echo -e "${GREEN}✅ Операция завершена. Возврат в меню через 3 секунды...${NC}"
+                sleep 3
                 ;;
             6)
                 configure_dns
-                read -p "Нажмите Enter для продолжения..."
+                echo ""
+                echo -e "${GREEN}✅ Операция завершена. Возврат в меню через 3 секунды...${NC}"
+                sleep 3
                 ;;
             7)
                 configure_tcp_params
-                read -p "Нажмите Enter для продолжения..."
+                echo ""
+                echo -e "${GREEN}✅ Операция завершена. Возврат в меню через 3 секунды...${NC}"
+                sleep 3
                 ;;
             0)
                 echo -e "${GREEN}👋 Возврат в главное меню...${NC}"

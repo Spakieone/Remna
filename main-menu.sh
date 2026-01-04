@@ -1,5 +1,13 @@
 #!/bin/bash 
 
+set -uo pipefail
+
+# Проверка root
+if [ "$EUID" -ne 0 ]; then
+    echo "❌ Запустите скрипт от root (sudo)."
+    exit 1
+fi
+
 # Цвета для красивого вывода
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -16,16 +24,12 @@ NC='\033[0m' # No Color
 show_header() {
     clear
     echo -e "${BOLD}${CYAN}╔══════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${BOLD}${CYAN}║${NC}                                                              ${BOLD}${CYAN}║${NC}"
-    echo -e "${BOLD}${CYAN}║${NC}  ${WHITE}██████╗ ███████╗███╗   ███╗███╗   ██╗ █████╗ ${NC}               ${BOLD}${CYAN}║${NC}"
-    echo -e "${BOLD}${CYAN}║${NC}  ${WHITE}██╔══██╗██╔════╝████╗ ████║████╗  ██║██╔══██╗${NC}               ${BOLD}${CYAN}║${NC}"
-    echo -e "${BOLD}${CYAN}║${NC}  ${WHITE}██████╔╝█████╗  ██╔████╔██║██╔██╗ ██║███████║${NC}               ${BOLD}${CYAN}║${NC}"
-    echo -e "${BOLD}${CYAN}║${NC}  ${WHITE}██╔══██╗██╔══╝  ██║╚██╔╝██║██║╚██╗██║██╔══██║${NC}               ${BOLD}${CYAN}║${NC}"
-    echo -e "${BOLD}${CYAN}║${NC}  ${WHITE}██║  ██║███████╗██║ ╚═╝ ██║██║ ╚████║██║  ██║${NC}               ${BOLD}${CYAN}║${NC}"
-    echo -e "${BOLD}${CYAN}║${NC}  ${WHITE}╚═╝  ╚═╝╚══════╝╚═╝     ╚═╝╚═╝  ╚═══╝╚═╝  ╚═╝${NC}               ${BOLD}${CYAN}║${NC}"
-    echo -e "${BOLD}${CYAN}║${NC}                                                              ${BOLD}${CYAN}║${NC}"
-    echo -e "${BOLD}${CYAN}║${NC}       ${GRAY}Management Suite by Spakieone${NC}                          ${BOLD}${CYAN}║${NC}"
-    echo -e "${BOLD}${CYAN}║${NC}                                                              ${BOLD}${CYAN}║${NC}"
+    echo -e "${BOLD}${CYAN}║${NC}  ${BOLD}${WHITE}██████╗ ███████╗███╗   ███╗███╗   ██╗ █████╗ ${NC}"
+    echo -e "${BOLD}${CYAN}║${NC}  ${BOLD}${WHITE}██╔══██╗██╔════╝████╗ ████║████╗  ██║██╔══██╗${NC}"
+    echo -e "${BOLD}${CYAN}║${NC}  ${BOLD}${WHITE}██████╔╝█████╗  ██╔████╔██║██╔██╗ ██║███████║${NC}"
+    echo -e "${BOLD}${CYAN}║${NC}  ${BOLD}${WHITE}██╔══██╗██╔══╝  ██║╚██╔╝██║██║╚██╗██║██╔══██║${NC}"
+    echo -e "${BOLD}${CYAN}║${NC}  ${BOLD}${WHITE}██║  ██║███████╗██║ ╚═╝ ██║██║ ╚████║██║  ██║${NC}"
+    echo -e "${BOLD}${CYAN}║${NC}  ${BOLD}${WHITE}╚═╝  ╚═╝╚══════╝╚═╝     ╚═╝╚═╝  ╚═══╝╚═╝  ╚═╝${NC}"
     echo -e "${BOLD}${CYAN}╚══════════════════════════════════════════════════════════════╝${NC}"
     echo ""
 }
@@ -35,51 +39,54 @@ show_main_menu() {
     show_header
     
     # Меню с выравниванием
-    echo -e "${BOLD}${WHITE}┌─ 🛠️  ИНСТРУМЕНТЫ УПРАВЛЕНИЯ ─────────────────────────┐${NC}"
-    echo -e "${BOLD}${WHITE}│${NC}                                                      ${BOLD}${WHITE}│${NC}"
-    echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}1.${NC} ${YELLOW}🧩 Remnawave Panel${NC}     ${GRAY}┃${NC} ${WHITE}Панель управления${NC}       ${BOLD}${WHITE}│${NC}"
-    echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}2.${NC} ${YELLOW}🖥️ RemnaNode Core${NC}      ${GRAY}┃${NC} ${WHITE}Узлы и сервисы${NC}          ${BOLD}${WHITE}│${NC}"
-    echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}3.${NC} ${YELLOW}🛡️ Reality Caddy${NC}       ${GRAY}┃${NC} ${WHITE}Маскировка трафика${NC}      ${BOLD}${WHITE}│${NC}"
-    echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}4.${NC} ${YELLOW}🚀 Network Tools${NC}       ${GRAY}┃${NC} ${WHITE}Диагностика сети${NC}        ${BOLD}${WHITE}│${NC}"
-    echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}5.${NC} ${YELLOW}📈 Мониторинг${NC}          ${GRAY}┃${NC} ${WHITE}Prometheus + Grafana${NC}    ${BOLD}${WHITE}│${NC}"
-    echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}6.${NC} ${YELLOW}📊 System Status${NC}       ${GRAY}┃${NC} ${WHITE}Детальная информация${NC}    ${BOLD}${WHITE}│${NC}"
-    echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}7.${NC} ${YELLOW}⚙️ Настройка ноды${NC}       ${GRAY}┃${NC} ${WHITE}UFW и IPv6${NC}              ${BOLD}${WHITE}│${NC}"
-    echo -e "${BOLD}${WHITE}│${NC}                                                      ${BOLD}${WHITE}│${NC}"
-    echo -e "${BOLD}${WHITE}└──────────────────────────────────────────────────────┘${NC}"
-    echo ""
-    echo -e "${BOLD}${WHITE}┌─ 💡 ПОЛЕЗНЫЕ КОМАНДЫ ────────────────────────────────┐${NC}"
-    echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}8.${NC} ${YELLOW}💡 Полезные команды${NC}    ${GRAY}┃${NC} ${WHITE}Системные команды${NC}       ${BOLD}${WHITE}│${NC}"
-    echo -e "${BOLD}${WHITE}└──────────────────────────────────────────────────────┘${NC}"
-    echo ""
-    echo -e "${BOLD}${WHITE}┌─🚪ВЫХОД ─────────────────────────────────────────────┐${NC}"
-    echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}0.${NC} ${WHITE}Завершение работы${NC}                                ${BOLD}${WHITE}│${NC}"
-    echo -e "${BOLD}${WHITE}└──────────────────────────────────────────────────────┘${NC}"
+    echo -e "${BOLD}${WHITE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${BOLD}${WHITE}🛠️  ИНСТРУМЕНТЫ УПРАВЛЕНИЯ${NC}"
+    echo -e "${BOLD}${WHITE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "  ${BOLD}${GREEN}1.${NC} ${YELLOW}🧩 Remnawave Panel${NC}     ${GRAY}┃${NC} ${WHITE}Панель управления${NC}"
+    echo -e "  ${BOLD}${GREEN}2.${NC} ${YELLOW}🖥️ RemnaNode Core${NC}      ${GRAY}┃${NC} ${WHITE}Узлы и сервисы${NC}"
+    echo -e "  ${BOLD}${GREEN}3.${NC} ${YELLOW}🛡️ Reality Caddy${NC}       ${GRAY}┃${NC} ${WHITE}Маскировка трафика${NC}"
+    echo -e "  ${BOLD}${GREEN}4.${NC} ${YELLOW}📊 System Status${NC}       ${GRAY}┃${NC} ${WHITE}Детальная информация${NC}"
+    echo -e "  ${BOLD}${GREEN}5.${NC} ${YELLOW}⚙️ Настройка ноды${NC}       ${GRAY}┃${NC} ${WHITE}UFW и IPv6${NC}"
+    echo
+    echo -e "${BOLD}${WHITE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${BOLD}${WHITE}💡 ПОЛЕЗНЫЕ КОМАНДЫ${NC}"
+    echo -e "${BOLD}${WHITE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "  ${BOLD}${GREEN}6.${NC} ${YELLOW}💡 Полезные команды${NC}    ${GRAY}┃${NC} ${WHITE}Системные команды${NC}"
+    echo
+    echo -e "${BOLD}${WHITE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${BOLD}${WHITE}🤖 АГЕНТ API${NC}"
+    echo -e "${BOLD}${WHITE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "  ${BOLD}${GREEN}7.${NC} ${YELLOW}🤖 Агент API${NC}            ${GRAY}┃${NC} ${WHITE}Управление агентом${NC}"
+    echo
+    echo -e "${BOLD}${WHITE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${BOLD}${WHITE}🚪 ВЫХОД${NC}"
+    echo -e "${BOLD}${WHITE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "  ${BOLD}${GREEN}0.${NC} ${WHITE}Завершение работы${NC}"
     echo ""
     echo -e "${WHITE}Выберите инструмент:${NC} "
     echo -n "   ➤ "
 }
 
+# Определяем директорию скриптов
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # Функция для вызова скриптов
 call_script() {
     local script_name=$1
     shift  # Убираем первый аргумент (имя скрипта), остальные - параметры
-    local script_path="./$script_name"
+    local script_path="${SCRIPT_DIR}/$script_name"
     
     # Проверяем разные возможные пути
     if [ -f "$script_path" ]; then
         echo -e "${YELLOW}Запуск $script_name...${NC}"
         echo ""
-        bash "$script_path" "$@"
+        bash "$script_path" "$@" || true
         echo ""
-        echo -e "${GREEN}Скрипт $script_name завершен.${NC}"
-        read -p "Нажмите Enter для возврата в главное меню..."
-    elif [ -f "script/scripts-main/$script_name" ]; then
+    elif [ -f "${SCRIPT_DIR}/../script/scripts-main/$script_name" ]; then
         echo -e "${YELLOW}Запуск $script_name...${NC}"
         echo ""
-        bash "script/scripts-main/$script_name" "$@"
+        bash "${SCRIPT_DIR}/../script/scripts-main/$script_name" "$@" || true
         echo ""
-        echo -e "${GREEN}Скрипт $script_name завершен.${NC}"
-        read -p "Нажмите Enter для возврата в главное меню..."
     else
         # Если файл не найден локально, скачиваем с GitHub
         echo -e "${YELLOW}Скачиваем $script_name с GitHub...${NC}"
@@ -89,13 +96,14 @@ call_script() {
         echo ""
         # Скачиваем скрипт во временный файл и запускаем с параметрами
         local temp_script="/tmp/$script_name"
-        curl -s "$github_url" -o "$temp_script"
-        chmod +x "$temp_script"
-        bash "$temp_script" "$@"
-        rm -f "$temp_script"
+        if curl -fsSL "$github_url" -o "$temp_script"; then
+            chmod +x "$temp_script"
+            bash "$temp_script" "$@" || true
+            rm -f "$temp_script"
+        else
+            echo -e "${RED}❌ Не удалось скачать $script_name с GitHub${NC}"
+        fi
         echo ""
-        echo -e "${GREEN}Скрипт $script_name завершен.${NC}"
-        read -p "Нажмите Enter для возврата в главное меню..."
     fi
 }
 
@@ -171,7 +179,8 @@ show_system_status() {
     echo ""
     echo -e "${GRAY}└─────────────────────────────────────────────────────────────┘${NC}"
     echo ""
-    read -p "Нажмите Enter для возврата в главное меню..."
+    echo -e "${GREEN}✅ Возврат в главное меню через 2 секунды...${NC}"
+    sleep 2
 }
 
 # ===============================================================================
@@ -201,7 +210,9 @@ check_service_status() {
 # Универсальная функция ожидания
 wait_for_user() {
     echo
-    read -p "Нажмите Enter для продолжения..."
+    echo ""
+    echo -e "${GREEN}✅ Возврат в главное меню через 2 секунды...${NC}"
+    sleep 2
 }
 
 # Функция скачивания скрипта с GitHub
@@ -658,14 +669,148 @@ remove_node_exporter() {
     wait_for_user
 }
 
+# Функции для агента
+check_agent_status() {
+    local agent_dir="/root/remnawave-agent"
+    local agent_file="$agent_dir/agent.py"
+    local env_file="$agent_dir/.env"
+    local service_file="/etc/systemd/system/remnawave-agent.service"
+    
+    local installed=false
+    local service_exists=false
+    local running=false
+    
+    if [ -f "$agent_file" ] && [ -f "$env_file" ]; then
+        installed=true
+    fi
+    
+    if [ -f "$service_file" ]; then
+        service_exists=true
+    fi
+    
+    if systemctl is-active --quiet remnawave-agent 2>/dev/null; then
+        running=true
+    fi
+    
+    echo "$installed|$service_exists|$running"
+}
+
+install_agent() {
+    show_header
+    log_info "🤖 Установка Remnawave Agent..."
+    echo
+    
+    call_script "agent.sh" "install"
+    
+    wait_for_user
+}
+
+remove_agent() {
+    show_header
+    log_info "❌ Удаление Remnawave Agent..."
+    echo
+    
+    log_warn "Это удалит Remnawave Agent, все его файлы и конфигурации"
+    read -p "Вы уверены? [y/N]: " confirm
+    if [[ "$confirm" != [yY] ]]; then
+        log_info "Отменено"
+        wait_for_user
+        return
+    fi
+    
+    call_script "agent.sh" "remove"
+    
+    wait_for_user
+}
+
+# Главное меню агента
+show_agent_menu() {
+    while true; do
+        show_header
+        
+        # Проверяем статус агента
+        local status_info
+        status_info=$(check_agent_status)
+        local installed=$(echo "$status_info" | cut -d'|' -f1)
+        local service_exists=$(echo "$status_info" | cut -d'|' -f2)
+        local running=$(echo "$status_info" | cut -d'|' -f3)
+        
+        echo -e "${CYAN_BOLD}┌─────────────────────────────────────────────────────────────────┐${NC}"
+        echo -e "${CYAN_BOLD}│${NC}                      ${PURPLE_BOLD}АГЕНТ API${NC}                           ${CYAN_BOLD}│${NC}"
+        echo -e "${CYAN_BOLD}└─────────────────────────────────────────────────────────────────┘${NC}"
+        echo
+        
+        # Статус агента
+        echo -e "${BOLD}${WHITE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "${BOLD}${WHITE}📊 СТАТУС${NC}"
+        echo -e "${BOLD}${WHITE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        
+        if [ "$installed" = "true" ]; then
+            echo -e "  ${GREEN}✅ Установлен${NC}"
+        else
+            echo -e "  ${RED}❌ Не установлен${NC}"
+        fi
+        
+        if [ "$service_exists" = "true" ]; then
+            echo -e "  ${GREEN}✅ Сервис создан${NC}"
+        else
+            echo -e "  ${RED}❌ Сервис не создан${NC}"
+        fi
+        
+        if [ "$running" = "true" ]; then
+            echo -e "  ${GREEN}✅ Запущен${NC}"
+        else
+            echo -e "  ${YELLOW}⚠️  Остановлен${NC}"
+        fi
+        
+        echo
+        echo -e "${BOLD}${WHITE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo
+        
+        echo -e "${GREEN}┌─ 🚀 УСТАНОВКА ──────────────────────────────────────────────────┐${NC}"
+        echo -e "${GREEN}│${NC} 1. 🤖 Установить агент                    ${CYAN}│${NC} Remnawave Agent        ${GREEN}│${NC}"
+        echo -e "${GREEN}└─────────────────────────────────────────────────────────────────┘${NC}"
+        echo
+        
+        echo -e "${RED}┌─ 🗑️ УДАЛЕНИЕ ───────────────────────────────────────────────────┐${NC}"
+        echo -e "${RED}│${NC} 2. ❌ Удалить агент                       ${CYAN}│${NC} Полное удаление       ${RED}│${NC}"
+        echo -e "${RED}└─────────────────────────────────────────────────────────────────┘${NC}"
+        echo
+        
+        echo -e "${BLUE}┌─ 🚪 ВЫХОД ──────────────────────────────────────────────────────┐${NC}"
+        echo -e "${BLUE}│${NC} 0. 🔙 Назад в главное меню              ${CYAN}│${NC} Возврат               ${BLUE}│${NC}"
+        echo -e "${BLUE}└─────────────────────────────────────────────────────────────────┘${NC}"
+        echo
+        
+        echo -e "${CYAN}Выберите опцию [1-2, 0-выход]: ${NC}"
+        echo -n "   ➤ "
+        
+        read -r choice
+        
+        case $choice in
+            1)
+                install_agent
+                ;;
+            2)
+                remove_agent
+                ;;
+            0)
+                return
+                ;;
+            *)
+                log_error "Неверный выбор. Попробуйте снова."
+                sleep 2
+                ;;
+        esac
+    done
+}
+
 # Главное меню Node Monitoring
 show_node_exporter_menu() {
     while true; do
         show_header
         echo -e "${CYAN_BOLD}┌─────────────────────────────────────────────────────────────────┐${NC}"
         echo -e "${CYAN_BOLD}│${NC}                    ${PURPLE_BOLD}NODE MONITORING SETUP${NC}                        ${CYAN_BOLD}│${NC}"
-        echo -e "${CYAN_BOLD}│${NC}                   ${BLUE}Management by Spakieone${NC}                       ${CYAN_BOLD}│${NC}"
-        echo -e "${CYAN_BOLD}│${NC}                     ${YELLOW}Optimized v1.2.0${NC}                            ${CYAN_BOLD}│${NC}"
         echo -e "${CYAN_BOLD}└─────────────────────────────────────────────────────────────────┘${NC}"
         echo
         
@@ -759,34 +904,29 @@ while true; do
             call_script "selfsteal.sh" 
             ;;
         4) 
-            echo -e "${BLUE}🌐 Запуск сетевых инструментов...${NC}"
-            call_script "wtm.sh" 
-            ;;
-        5) 
-            echo -e "${GREEN}📈 Запуск меню мониторинга...${NC}"
-            call_script "monitoring.sh"
-            ;;
-        6) 
             echo -e "${CYAN}📊 Загрузка статуса системы...${NC}"
             show_system_status 
             ;;
-        7) 
+        5) 
             echo -e "${PURPLE}⚙️  Запуск настройки ноды...${NC}"
             call_script "node-config.sh" 
             ;;
-        8) 
+        6) 
             echo -e "${YELLOW}💡 Запуск полезных команд...${NC}"
             call_script "useful_commands.sh" 
             ;;
+        7) 
+            show_agent_menu
+            ;;
         0) 
             echo ""
-            echo -e "${BOLD}${GREEN}👋 До свидания! Спасибо за использование Remna Management Suite!${NC}"
+            echo -e "${BOLD}${GREEN}👋 До свидания!${NC}"
             echo -e "${GRAY}   Удачного дня! 🚀${NC}"
             echo ""
             exit 0
             ;;
         *) 
-            echo -e "${RED}❌ Неверный выбор! Пожалуйста, выберите опцию от 0 до 8.${NC}"
+            echo -e "${RED}❌ Неверный выбор! Пожалуйста, выберите опцию от 0 до 7.${NC}"
             sleep 2
             ;;
     esac

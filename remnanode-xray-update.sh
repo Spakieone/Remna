@@ -1,9 +1,15 @@
 #!/bin/bash
 # Version: 1.0.0
 # RemnaNode Xray-core Updater
-# Created by DigneZzZ
 
-echo -e "\e[1m\e[33mНаше сообщество: https://gig.ovh\n\e[0m"
+set -uo pipefail
+
+# Проверка root
+if [ "$EUID" -ne 0 ]; then
+    echo "❌ Запустите скрипт от root (sudo)."
+    exit 1
+fi
+
 sleep 2s
 
 echo -e "\e[1m\e[33mЭтот скрипт устанавливает/обновляет Xray-core для RemnaNode\n\e[0m"

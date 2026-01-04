@@ -1,5 +1,13 @@
 #!/bin/bash
 
+set -uo pipefail
+
+# Проверка root
+if [ "$EUID" -ne 0 ]; then
+    echo "❌ Запустите скрипт от root (sudo)."
+    exit 1
+fi
+
 # Цвета для красивого вывода
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -16,9 +24,7 @@ NC='\033[0m' # No Color
 show_header() {
     clear
     echo -e "${BOLD}${CYAN}╔══════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${BOLD}${CYAN}║${NC}                                                              ${BOLD}${CYAN}║${NC}"
-    echo -e "${BOLD}${CYAN}║${NC}            ${WHITE}💡 ПОЛЕЗНЫЕ КОМАНДЫ СИСТЕМЫ${NC}                       ${BOLD}${CYAN}║${NC}"
-    echo -e "${BOLD}${CYAN}║${NC}                                                              ${BOLD}${CYAN}║${NC}"
+    echo -e "${BOLD}${CYAN}║${NC}  ${BOLD}${WHITE}💡 ПОЛЕЗНЫЕ КОМАНДЫ СИСТЕМЫ${NC}"
     echo -e "${BOLD}${CYAN}╚══════════════════════════════════════════════════════════════╝${NC}"
     echo ""
 }
@@ -27,20 +33,20 @@ show_header() {
 show_menu() {
     show_header
     
-    echo -e "${BOLD}${WHITE}┌─ 🛠️  СИСТЕМНЫЕ КОМАНДЫ ────────────────────────────────┐${NC}"
-    echo -e "${BOLD}${WHITE}│${NC}                                                        ${BOLD}${WHITE}│${NC}"
-    echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}1.${NC} ${YELLOW}⚡ Обновить систему${NC}       ${GRAY}┃${NC} ${WHITE}apt update && upgrade${NC}  ${BOLD}${WHITE}│${NC}"
-    echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}2.${NC} ${YELLOW}🌍 Тест на локацию${NC}        ${GRAY}┃${NC} ${WHITE}IP region check${NC}        ${BOLD}${WHITE}│${NC}"
-    echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}3.${NC} ${YELLOW}🚫 Проверка блокировок${NC}    ${GRAY}┃${NC} ${WHITE}IP.Check.Place${NC}         ${BOLD}${WHITE}│${NC}"
-    echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}4.${NC} ${YELLOW}🏠 Скорость к РФ${NC}          ${GRAY}┃${NC} ${WHITE}Russian providers${NC}      ${BOLD}${WHITE}│${NC}"
-    echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}5.${NC} ${YELLOW}🚀 Скорость к зарубежным${NC}  ${GRAY}┃${NC} ${WHITE}International providers${NC}${BOLD}${WHITE}│${NC}"
-    echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}6.${NC} ${YELLOW}📱 Проверка Instagram${NC}     ${GRAY}┃${NC} ${WHITE}Audio block check${NC}      ${BOLD}${WHITE}│${NC}"
-    echo -e "${BOLD}${WHITE}│${NC}                                                        ${BOLD}${WHITE}│${NC}"
-    echo -e "${BOLD}${WHITE}└────────────────────────────────────────────────────────┘${NC}"
-    echo ""
-    echo -e "${BOLD}${WHITE}┌─ 🚪ВЫХОД ────────────────────────────────────────────┐${NC}"
-    echo -e "${BOLD}${WHITE}│${NC}  ${BOLD}${GREEN}0.${NC} ${WHITE}Назад в главное меню${NC}                             ${BOLD}${WHITE}│${NC}"
-    echo -e "${BOLD}${WHITE}└──────────────────────────────────────────────────────┘${NC}"
+    echo -e "${BOLD}${WHITE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${BOLD}${WHITE}🛠️  СИСТЕМНЫЕ КОМАНДЫ${NC}"
+    echo -e "${BOLD}${WHITE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "  ${BOLD}${GREEN}1.${NC} ${YELLOW}⚡ Обновить систему${NC}       ${GRAY}┃${NC} ${WHITE}apt update && upgrade${NC}"
+    echo -e "  ${BOLD}${GREEN}2.${NC} ${YELLOW}🌍 Тест на локацию${NC}        ${GRAY}┃${NC} ${WHITE}IP region check${NC}"
+    echo -e "  ${BOLD}${GREEN}3.${NC} ${YELLOW}🚫 Проверка блокировок${NC}    ${GRAY}┃${NC} ${WHITE}IP.Check.Place${NC}"
+    echo -e "  ${BOLD}${GREEN}4.${NC} ${YELLOW}🏠 Скорость к РФ${NC}          ${GRAY}┃${NC} ${WHITE}Russian providers${NC}"
+    echo -e "  ${BOLD}${GREEN}5.${NC} ${YELLOW}🚀 Скорость к зарубежным${NC}  ${GRAY}┃${NC} ${WHITE}International providers${NC}"
+    echo -e "  ${BOLD}${GREEN}6.${NC} ${YELLOW}📱 Проверка Instagram${NC}     ${GRAY}┃${NC} ${WHITE}Audio block check${NC}"
+    echo
+    echo -e "${BOLD}${WHITE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${BOLD}${WHITE}🚪 ВЫХОД${NC}"
+    echo -e "${BOLD}${WHITE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "  ${BOLD}${GREEN}0.${NC} ${WHITE}Назад в главное меню${NC}"
     echo ""
     echo -e "${WHITE}Выберите команду:${NC} "
     echo -n "   ➤ "
@@ -57,7 +63,8 @@ test_location() {
     wget -qO - "https://raw.githubusercontent.com/vernette/ipregion/refs/heads/master/ipregion.sh" | bash
     
     echo ""
-    read -p "Нажмите Enter для продолжения..."
+    echo -e "${GREEN}✅ Операция завершена. Возврат в меню через 3 секунды...${NC}"
+    sleep 3
 }
 
 # Функция проверки блокировок
@@ -71,7 +78,7 @@ check_blocks() {
     bash <(curl -Ls IP.Check.Place) -l en
     
     echo ""
-    read -p "Нажмите Enter для продолжения..."
+    echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3
 }
 
 # Функция проверки скорости к российским провайдерам
@@ -85,7 +92,7 @@ test_speed_ru() {
     wget -qO- bench.tlab.pw | bash
     
     echo ""
-    read -p "Нажмите Enter для продолжения..."
+    echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3
 }
 
 # Функция проверки скорости к зарубежным провайдерам
@@ -99,7 +106,7 @@ test_speed_intl() {
     wget -qO- bench.sh | bash
     
     echo ""
-    read -p "Нажмите Enter для продолжения..."
+    echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3
 }
 
 # Функция проверки Instagram
@@ -113,7 +120,7 @@ check_instagram() {
     bash <(curl -L -s https://bench.openode.xyz/checker_inst.sh)
     
     echo ""
-    read -p "Нажмите Enter для продолжения..."
+    echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3
 }
 
 # Функция обновления системы
@@ -128,7 +135,9 @@ update_system() {
     
     echo ""
     echo -e "${GREEN}✅ Обновление завершено!${NC}"
-    read -p "Нажмите Enter для продолжения..."
+    echo ""
+    echo -e "${GREEN}✅ Операция завершена. Возврат в меню через 3 секунды...${NC}"
+    sleep 3
 }
 
 # Функция показа процессов
@@ -148,7 +157,7 @@ show_processes() {
     docker ps 2>/dev/null || echo -e "${RED}Docker не запущен${NC}"
     
     echo ""
-    read -p "Нажмите Enter для продолжения..."
+    echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3
 }
 
 # Основной цикл

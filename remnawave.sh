@@ -3,7 +3,7 @@
 # Этот скрипт устанавливает и управляет панелью Remnawave
 # VERSION=3.7.3
 
-set -e
+set -uo pipefail
 SCRIPT_VERSION="3.7.3"
 BACKUP_SCRIPT_VERSION="1.0.2"  # Версия backup скрипта создаваемого Schedule функцией
 
@@ -675,15 +675,15 @@ schedule_menu() {
             2) schedule_toggle ;;
             3) 
                 schedule_test_backup
-                read -p "Нажмите Enter для продолжения..."
+                echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3
                 ;;
             4) 
                 schedule_test_telegram
-                read -p "Нажмите Enter для продолжения..."
+                echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3
                 ;;
             5) 
                 schedule_status
-                read -p "Нажмите Enter для продолжения..."
+                echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3
                 ;;
             6) schedule_show_logs ;;
             7) schedule_cleanup ;;
@@ -760,7 +760,7 @@ schedule_update_script() {
     fi
     
     echo
-    read -p "Нажмите Enter для продолжения..."
+    echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3
 }
 schedule_setup_menu() {
     # Убеждаемся что rsync установлен для лучшей производительности
@@ -1145,7 +1145,7 @@ schedule_toggle() {
     fi
     
     # Add pause to show result before returning to menu
-    read -p "Нажмите Enter для продолжения..."
+    echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3
 }
 
 schedule_enable() {
@@ -2437,7 +2437,7 @@ restore_interactive_menu() {
                 if [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -ge 1 ] && [ "$choice" -le ${#backup_files[@]} ]; then
                     local selected_backup="${backup_files[$((choice - 1))]}"
                     restore_from_backup "$selected_backup" "$target_app_name" "$database_only" "$skip_install" "$force_restore" "$target_base_dir"
-                    read -p "Нажмите Enter для продолжения..."
+                    echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3
                 else
                     echo -e "\033[1;31mInvalid option!\033[0m"
                     sleep 1
@@ -3799,7 +3799,7 @@ schedule_test_backup() {
     if ! is_remnawave_up; then
         echo -e "\033[1;31m❌ Сервисы Remnawave не запущены!\033[0m"
         echo -e "\033[38;5;8m   Start services first with 'sudo $APP_NAME up'\033[0m"
-        read -p "Нажмите Enter для продолжения..."
+        echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3
         return
     fi
     
@@ -3839,7 +3839,7 @@ schedule_test_backup() {
         echo -e "\033[38;5;8m   Проверьте логи: $BACKUP_LOG_FILE\033[0m"
     fi
     
-    read -p "Нажмите Enter для продолжения..."
+    echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3
 }
 
 schedule_test_telegram() {
@@ -3850,14 +3850,14 @@ schedule_test_telegram() {
     
     if [ ! -f "$BACKUP_CONFIG_FILE" ]; then
         echo -e "\033[1;31m❌ No configuration found!\033[0m"
-        read -p "Нажмите Enter для продолжения..."
+        echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3
         return
     fi
     
     local telegram_enabled=$(jq -r '.telegram.enabled // false' "$BACKUP_CONFIG_FILE" 2>/dev/null)
     if [ "$telegram_enabled" != "true" ]; then
         echo -e "\033[1;31m❌ Telegram integration is disabled!\033[0m"
-        read -p "Нажмите Enter для продолжения..."
+        echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3
         return
     fi
     
@@ -3888,7 +3888,7 @@ schedule_test_telegram() {
         echo -e "\033[38;5;244mResponse: $(echo "$response" | jq -r '.description // "Unknown error"')\033[0m"
     fi
     
-    read -p "Нажмите Enter для продолжения..."
+    echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3
 }
 
 schedule_status() {
@@ -4068,7 +4068,7 @@ schedule_status() {
         printf "   \033[38;5;15m%-20s\033[0m \033[38;5;250m%s\033[0m\n" "Общий размер:" "0B"
     fi
     
-    read -p "Нажмите Enter для продолжения..."
+    echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3
 }
 
 
@@ -4114,7 +4114,7 @@ schedule_show_logs() {
     fi
     
     echo
-    read -p "Нажмите Enter для продолжения..."
+    echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3
 }
 
 schedule_run_backup() {
@@ -4125,7 +4125,7 @@ schedule_run_backup() {
     
     if ! is_remnawave_up; then
         echo -e "\033[1;31m❌ Сервисы Remnawave не запущены!\033[0m"
-        read -p "Нажмите Enter для продолжения..."
+        echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3
         return
     fi
     
@@ -4185,7 +4185,7 @@ schedule_run_backup() {
     fi
     
     echo
-    read -p "Нажмите Enter для продолжения..."
+    echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3
 }
 schedule_cleanup() {
     clear
@@ -4198,7 +4198,7 @@ schedule_cleanup() {
     if [ ! -d "$backup_directory" ]; then
         echo -e "\033[38;5;244mBackup directory not found: $backup_directory\033[0m"
         echo -e "\033[38;5;244mNo backups to clean\033[0m"
-        read -p "Нажмите Enter для продолжения..."
+        echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3
         return
     fi
 
@@ -4224,7 +4224,7 @@ schedule_cleanup() {
     if [ "$total_files" -eq 0 ]; then
         echo -e "\033[38;5;244mNo backup files found in $backup_directory\033[0m"
         echo -e "\033[38;5;244mNothing to clean\033[0m"
-        read -p "Нажмите Enter для продолжения..."
+        echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3
         return
     fi
     local dir_size=$(du -sh "$backup_directory" 2>/dev/null | cut -f1)
@@ -4302,7 +4302,7 @@ schedule_cleanup() {
     if [ "$old_count" -eq 0 ] || [ -z "$old_files" ]; then
         echo -e "\033[1;32m✅ No files to delete\033[0m"
         echo -e "\033[38;5;250mAll backups are within retention period or protected by minimum count\033[0m"
-        read -p "Нажмите Enter для продолжения..."
+        echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3
         return
     fi
     
@@ -4375,7 +4375,7 @@ schedule_cleanup() {
     fi
     
     echo
-    read -p "Нажмите Enter для продолжения..."
+    echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3
 }
 
 schedule_reset_config() {
@@ -4431,7 +4431,7 @@ schedule_help() {
     printf "   \033[38;5;15m%-15s\033[0m %s\n" "logs" "📋 Просмотр логов"
     printf "   \033[38;5;15m%-15s\033[0m %s\n" "cleanup" "🧹 Очистить старые бэкапы"
     echo
-    read -p "Нажмите Enter для продолжения..."
+    echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3
 }
 
 generate_random_string() {
@@ -5698,7 +5698,7 @@ Existing Installation:
 
 ⚠️  ВАЖНО: Целевая система должна иметь совместимую версию Remnawave Panel ($panel_version)
 
-Сгенерировано Remnawave Management CLI v$SCRIPT_VERSION
+Сгенерировано Remnawave Management CLI
 EOF
         
         echo -e "\033[1;32m✅ Configuration files included ($config_count items)\033[0m"
@@ -5989,7 +5989,7 @@ monitor_command() {
 
         if [[ "${BASH_SOURCE[1]}" =~ "main_menu" ]] || [[ "$0" =~ "$APP_NAME" ]] && [[ "$1" != "--no-pause" ]]; then
         echo
-        read -p "Нажмите Enter для продолжения..."
+        echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3
     fi
 }
 
@@ -6568,7 +6568,7 @@ status_command() {
     fi
     if [[ "${BASH_SOURCE[1]}" =~ "main_menu" ]] || [[ "$0" =~ "$APP_NAME" ]] && [[ "$1" != "--no-pause" ]]; then
         echo
-        read -p "Нажмите Enter для продолжения..."
+        echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3
     fi
 }
 
@@ -6631,7 +6631,7 @@ show_live_logs() {
     $COMPOSE -f "$COMPOSE_FILE" logs -f --tail=50
     
     echo
-    read -p "Press Enter to return to logs menu..."
+    echo ""; echo -e "\033[1;32m✅ Возврат в меню через 2 секунды...\033[0m"; sleep 2
 }
 
 show_recent_logs() {
@@ -6644,7 +6644,7 @@ show_recent_logs() {
     $COMPOSE -f "$COMPOSE_FILE" logs --tail=100
     
     echo
-    read -p "Press Enter to return to logs menu..."
+    echo ""; echo -e "\033[1;32m✅ Возврат в меню через 2 секунды...\033[0m"; sleep 2
 }
 
 show_service_logs() {
@@ -6687,7 +6687,7 @@ show_service_logs() {
         $COMPOSE -f "$COMPOSE_FILE" logs --tail=100 "$service_name"
         
         echo
-        read -p "Нажмите Enter для продолжения..."
+        echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3
     done
 }
 
@@ -6701,7 +6701,7 @@ show_error_logs() {
     $COMPOSE -f "$COMPOSE_FILE" logs --tail=200 | grep -i "error\|exception\|failed\|fatal" || echo "No errors found in recent logs"
     
     echo
-    read -p "Press Enter to return to logs menu..."
+    echo ""; echo -e "\033[1;32m✅ Возврат в меню через 2 секунды...\033[0m"; sleep 2
 }
 update_command() {
     check_running_as_root
@@ -6943,8 +6943,9 @@ pm2_monitor() {
 main_menu() {
     while true; do
         clear
-        echo -e "\033[1;37m⚡ $APP_NAME Panel Management\033[0m \033[38;5;244mv$SCRIPT_VERSION\033[0m"
-        echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 60))\033[0m"
+        echo -e "\033[1;37m╔══════════════════════════════════════════════════════════════╗\033[0m"
+        echo -e "\033[1;37m║\033[0m  \033[1;36m⚡ $APP_NAME Panel Management\033[0m"
+        echo -e "\033[1;37m╚══════════════════════════════════════════════════════════════╝\033[0m"
         echo
         
         # Проверка статуса панели
@@ -7077,55 +7078,63 @@ main_menu() {
         fi
         
         echo
-        echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 60))\033[0m"
+        echo -e "\033[1;37m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+        echo -e "\033[1;37m🚀 УСТАНОВКА И ОБНОВЛЕНИЯ\033[0m"
+        echo -e "\033[1;37m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+        echo -e "  \033[38;5;15m1)\033[0m 🛠️  Установить панель Remnawave"
+        echo -e "  \033[38;5;15m2)\033[0m ⬆️  Обновить до последней версии"
+        echo -e "  \033[38;5;15m3)\033[0m 🗑️  Полностью удалить панель"
         echo
-        echo -e "\033[1;37m🚀 Установка и обновления:\033[0m"
-        echo -e "   \033[38;5;15m1)\033[0m 🛠️  Установить панель Remnawave"
-        echo -e "   \033[38;5;15m2)\033[0m ⬆️  Обновить до последней версии"
-        echo -e "   \033[38;5;15m3)\033[0m 🗑️  Полностью удалить панель"
+        echo -e "\033[1;37m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+        echo -e "\033[1;37m⚙️  УПРАВЛЕНИЕ СЕРВИСАМИ\033[0m"
+        echo -e "\033[1;37m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+        echo -e "  \033[38;5;15m4)\033[0m ▶️  Запустить все сервисы"
+        echo -e "  \033[38;5;15m5)\033[0m ⏹️  Остановить все сервисы"
+        echo -e "  \033[38;5;15m6)\033[0m 🔄 Перезапустить все сервисы"
+        echo -e "  \033[38;5;15m7)\033[0m 📊 Показать статус сервисов"
         echo
-        echo -e "\033[1;37m⚙️  Управление сервисами:\033[0m"
-        echo -e "   \033[38;5;15m4)\033[0m ▶️  Запустить все сервисы"
-        echo -e "   \033[38;5;15m5)\033[0m ⏹️  Остановить все сервисы"
-        echo -e "   \033[38;5;15m6)\033[0m 🔄 Перезапустить все сервисы"
-        echo -e "   \033[38;5;15m7)\033[0m 📊 Показать статус сервисов"
+        echo -e "\033[1;37m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+        echo -e "\033[1;37m📊 МОНИТОРИНГ И ЛОГИ\033[0m"
+        echo -e "\033[1;37m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+        echo -e "  \033[38;5;15m8)\033[0m 📋 Просмотреть логи приложения"
+        echo -e "  \033[38;5;15m9)\033[0m 📈 Монитор производительности системы"
+        echo -e "  \033[38;5;15m10)\033[0m 🩺 Диагностика состояния здоровья"
         echo
-        echo -e "\033[1;37m📊 Мониторинг и логи:\033[0m"
-        echo -e "   \033[38;5;15m8)\033[0m 📋 Просмотреть логи приложения"
-        echo -e "   \033[38;5;15m9)\033[0m 📈 Монитор производительности системы"
-        echo -e "   \033[38;5;15m10)\033[0m 🩺 Диагностика состояния здоровья"
+        echo -e "\033[1;37m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+        echo -e "\033[1;37m💾 РЕЗЕРВНОЕ КОПИРОВАНИЕ И ВОССТАНОВЛЕНИЕ\033[0m"
+        echo -e "\033[1;37m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+        echo -e "  \033[38;5;15m11)\033[0m 💾 Ручное резервное копирование"
+        echo -e "  \033[38;5;15m12)\033[0m 📅 Система запланированных бэкапов"
+        echo -e "  \033[38;5;15m13)\033[0m 🔄 Восстановить из бэкапа"
         echo
-        echo -e "\033[1;37m💾 Резервное копирование и восстановление:\033[0m"
-        echo -e "   \033[38;5;15m11)\033[0m 💾 Ручное резервное копирование"
-        echo -e "   \033[38;5;15m12)\033[0m 📅 Система запланированных бэкапов"
-        echo -e "   \033[38;5;15m13)\033[0m 🔄 Восстановить из бэкапа"
+        echo -e "\033[1;37m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+        echo -e "\033[1;37m🔧 КОНФИГУРАЦИЯ И ДОСТУП\033[0m"
+        echo -e "\033[1;37m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+        echo -e "  \033[38;5;15m14)\033[0m 📝 Редактировать файлы конфигурации"
+        echo -e "  \033[38;5;15m15)\033[0m 🖥️  Доступ к оболочке контейнера"
+        echo -e "  \033[38;5;15m16)\033[0m 📊 Монитор процессов PM2"
         echo
-        echo -e "\033[1;37m🔧 Конфигурация и доступ:\033[0m"
-        echo -e "   \033[38;5;15m14)\033[0m 📝 Редактировать файлы конфигурации"
-        echo -e "   \033[38;5;15m15)\033[0m 🖥️  Доступ к оболочке контейнера"
-        echo -e "   \033[38;5;15m16)\033[0m 📊 Монитор процессов PM2"
-        echo
-        echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 60))\033[0m"
-        echo -e "\033[38;5;15m   0)\033[0m 🚪 Выход в терминал"
-        echo
-        echo -e "\033[38;5;8mRemnawave Panel CLI v$SCRIPT_VERSION by DigneZzZ • gig.ovh\033[0m"
+        echo -e "\033[1;37m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+        echo -e "\033[1;37m🚪 ВЫХОД\033[0m"
+        echo -e "\033[1;37m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+        echo -e "  \033[38;5;15m0)\033[0m 🚪 Выход в терминал"
         echo
         read -p "$(echo -e "\033[1;37mВыберите опцию [0-16]:\033[0m ")" choice
 
         case "$choice" in
-            1) install_command; read -p "Нажмите Enter для продолжения..." ;;
-            2) update_command; read -p "Нажмите Enter для продолжения..." ;;
-            3) uninstall_command; read -p "Нажмите Enter для продолжения..." ;;
-            4) up_command; read -p "Нажмите Enter для продолжения..." ;;
-            5) down_command; read -p "Нажмите Enter для продолжения..." ;;
-            6) restart_command; read -p "Нажмите Enter для продолжения..." ;;
-            7) status_command; read -p "Нажмите Enter для продолжения..." ;;
+            1) install_command; echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3 ;;
+            2) update_command; echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3 ;;
+            3) uninstall_command; echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3 ;;
+            4) up_command; echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3 ;;
+            5) down_command; echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3 ;;
+            6) restart_command; echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3 ;;
+            7) status_command; echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3 ;;
             8) logs_command ;;
             9) monitor_command ;;
-            10) health_check_command; read -p "Нажмите Enter для продолжения..." ;;
-            11) backup_command; read -p "Нажмите Enter для продолжения..." ;;
+            10) health_check_command; echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3 ;;
+            11) backup_command; echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3 ;;
             12) schedule_menu ;;
-            13) restore_command; read -p "Нажмите Enter для продолжения..." ;;  
+            13) restore_command; echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3 ;;  
             14) edit_command_menu ;;  
             15) console_command ;;
             16) pm2_monitor ;;
@@ -7154,9 +7163,9 @@ edit_command_menu() {
         read -p "Выберите опцию [0-3]: " choice
         
         case "$choice" in
-            1) edit_command; read -p "Нажмите Enter для продолжения..." ;;
-            2) edit_env_command; read -p "Нажмите Enter для продолжения..." ;;
-            3) edit_env_sub_command; read -p "Нажмите Enter для продолжения..." ;;
+            1) edit_command; echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3 ;;
+            2) edit_env_command; echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3 ;;
+            3) edit_env_sub_command; echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3 ;;
             0) return 0 ;;
             *) 
                 echo -e "\033[1;31mНеверная опция!\033[0m"
@@ -7166,7 +7175,7 @@ edit_command_menu() {
     done
 }
 usage() {
-    echo -e "\033[1;37m⚡ $APP_NAME\033[0m \033[38;5;8mCLI управления панелью\033[0m \033[38;5;244mv$SCRIPT_VERSION\033[0m"
+    echo -e "\033[1;37m⚡ $APP_NAME\033[0m \033[38;5;8mCLI управления панелью\033[0m"
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 60))\033[0m"
     echo
     echo -e "\033[1;37m🎯 Установка и обновления:\033[0m"
@@ -7233,15 +7242,13 @@ usage() {
     echo -e "\033[38;5;8mUse '\033[38;5;15m$APP_NAME <command> --help\033[38;5;8m' for detailed command help\033[0m"
     echo
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 60))\033[0m"
-    echo -e "\033[38;5;8m📚 Project: \033[38;5;250mhttps://gig.ovh\033[0m"
-    echo -e "\033[38;5;8m🐛 Issues: \033[38;5;250mhttps://github.com/Spakieone/Remna\033[0m"
     echo -e "\033[38;5;8m💬 Support: \033[38;5;250mhttps://t.me/remnawave\033[0m"
     echo -e "\033[38;5;8m👨‍💻 Author: \033[38;5;250mDigneZzZ\033[0m"
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 60))\033[0m"
 }
 
 usage_minimal() {
-    echo -e "\033[1;37m⚡ $APP_NAME\033[0m \033[38;5;244mv$SCRIPT_VERSION\033[0m"
+    echo -e "\033[1;37m⚡ $APP_NAME\033[0m"
     echo
     echo -e "\033[1;37mMain:\033[0m"
     printf "   \033[38;5;15m%-12s\033[0m %s\n" "install" "🛠️  Install"
@@ -7262,11 +7269,10 @@ usage_minimal() {
     printf "   \033[38;5;244m%-12s\033[0m %s\n" "schedule" "📅 Schedule"
     echo
     echo -e "\033[38;5;8mUse '\033[38;5;15m$APP_NAME help\033[38;5;8m' for full help\033[0m"
-    echo -e "\033[38;5;8m👨‍💻 DigneZzZ | 📚 gig.ovh\033[0m"
 }
 
 usage_compact() {
-    echo -e "\033[1;37m⚡ $APP_NAME\033[0m \033[38;5;8mPanel CLI\033[0m \033[38;5;244mv$SCRIPT_VERSION\033[0m"
+    echo -e "\033[1;37m⚡ $APP_NAME\033[0m \033[38;5;8mPanel CLI\033[0m"
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 50))\033[0m"
     echo
     
@@ -7315,7 +7321,6 @@ usage_compact() {
     echo
     echo -e "\033[38;5;8mUse '\033[38;5;15m$APP_NAME <command> help\033[38;5;8m' for details\033[0m"
     echo
-    echo -e "\033[38;5;8m📚 \033[38;5;250mhttps://gig.ovh\033[38;5;8m | 💬 \033[38;5;250m@remnawave\033[38;5;8m | 👨‍💻 \033[38;5;250mDigneZzZ\033[0m"
 }
 
 
@@ -7324,8 +7329,6 @@ show_version() {
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 40))\033[0m"
     echo -e "\033[38;5;250mVersion: \033[38;5;15m$SCRIPT_VERSION\033[0m"
     echo -e "\033[38;5;250mAuthor:  \033[38;5;15mDigneZzZ\033[0m"
-    echo -e "\033[38;5;250mGitHub:  \033[38;5;15mhttps://github.com/Spakieone/Remna\033[0m"
-    echo -e "\033[38;5;250mProject: \033[38;5;15mhttps://gig.ovh\033[0m"
     echo -e "\033[38;5;250mCommunity: \033[38;5;15mhttps://openode.xyz\033[0m"
     echo -e "\033[38;5;250mSupport: \033[38;5;15mhttps://t.me/remnawave\033[0m"
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 40))\033[0m"

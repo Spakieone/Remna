@@ -6,6 +6,8 @@
 # Автор: ChatGPT
 # Дата: 2025-08-30
 
+set -uo pipefail
+
 # ===== Проверка root =====
 if [ "$EUID" -ne 0 ]; then
     echo "❌ Запустите скрипт от root (sudo)."
@@ -24,11 +26,151 @@ if [ $# -gt 0 ]; then
         install)
             ACTION="install"
             ;;
+        status)
+            ACTION="status"
+            ;;
+        logs)
+            ACTION="logs"
+            ;;
         *)
             ACTION="install"
             ;;
     esac
 fi
+
+# ===== Функция показа статуса =====
+show_status() {
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "📊 СТАТУС TBLOCKER"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    
+    # Проверка установки
+    if [ ! -d "/opt/tblocker" ]; then
+        echo "❌ Tblocker не установлен"
+        echo ""
+        echo "💡 Для установки используйте: ./install-tblocker.sh install"
+        echo ""
+        return 0 2>/dev/null || true
+    fi
+    
+    # Статус systemd сервиса
+    if systemctl list-unit-files 2>/dev/null | grep -q '^tblocker\.service'; then
+        echo "📋 Статус сервиса:"
+        systemctl status tblocker --no-pager -l
+        echo ""
+        
+        # Дополнительная информация
+        if systemctl is-active --quiet tblocker 2>/dev/null; then
+            echo "✅ Сервис активен и работает"
+        else
+            echo "❌ Сервис не активен"
+        fi
+        
+        if systemctl is-enabled --quiet tblocker 2>/dev/null; then
+            echo "✅ Сервис включен в автозагрузку"
+        else
+            echo "⚠️  Сервис не включен в автозагрузку"
+        fi
+    else
+        echo "❌ Сервис tblocker не найден в systemd"
+    fi
+    
+    echo ""
+    
+    # Информация о конфигурации
+    CONFIG_FILE="/opt/tblocker/config.yaml"
+    if [ -f "$CONFIG_FILE" ]; then
+        echo "📝 Конфигурация:"
+        echo "   Файл: $CONFIG_FILE"
+        if grep -q "LogFile:" "$CONFIG_FILE"; then
+            LOG_FILE=$(grep "LogFile:" "$CONFIG_FILE" | cut -d'"' -f2)
+            echo "   Лог файл: $LOG_FILE"
+            if [ -f "$LOG_FILE" ]; then
+                LOG_SIZE=$(du -h "$LOG_FILE" | cut -f1)
+                echo "   Размер лога: $LOG_SIZE"
+            fi
+        fi
+        if grep -q "BlockDuration:" "$CONFIG_FILE"; then
+            BLOCK_DUR=$(grep "BlockDuration:" "$CONFIG_FILE" | awk '{print $2}')
+            echo "   Время блокировки: $BLOCK_DUR минут"
+        fi
+        if grep -q "WebhookURL:" "$CONFIG_FILE"; then
+            WEBHOOK=$(grep "WebhookURL:" "$CONFIG_FILE" | cut -d'"' -f2)
+            echo "   Webhook URL: $WEBHOOK"
+        fi
+    else
+        echo "⚠️  Конфигурационный файл не найден"
+    fi
+    
+    echo ""
+    
+    # Заблокированные IP
+    STORAGE_DIR="/opt/tblocker"
+    if [ -f "$STORAGE_DIR/blocked_ips.json" ]; then
+        BLOCKED_COUNT=$(grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' "$STORAGE_DIR/blocked_ips.json" 2>/dev/null | sort -u | wc -l)
+        echo "🚫 Заблокированных IP: $BLOCKED_COUNT"
+    fi
+    
+    # Проверка iptables правил
+    if iptables -L TBLOCKER_BLOCKED -n 2>/dev/null | grep -q "DROP\|REJECT"; then
+        IPTABLES_COUNT=$(iptables -L TBLOCKER_BLOCKED -n -v 2>/dev/null | grep -E "DROP|REJECT" | wc -l)
+        echo "🔒 Правил в iptables: $IPTABLES_COUNT"
+    fi
+    
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+}
+
+# ===== Функция показа логов =====
+show_logs() {
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "📋 ЛОГИ TBLOCKER"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    
+    # Проверка установки
+    if [ ! -d "/opt/tblocker" ]; then
+        echo "❌ Tblocker не установлен"
+        echo ""
+        echo "💡 Для установки используйте: ./install-tblocker.sh install"
+        echo ""
+        return 0 2>/dev/null || true
+    fi
+    
+    # Логи systemd
+    if systemctl list-unit-files 2>/dev/null | grep -q '^tblocker\.service'; then
+        echo "📊 Логи systemd (последние 50 строк):"
+        echo ""
+        journalctl -u tblocker -n 50 --no-pager
+        echo ""
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo ""
+        echo "💡 Для просмотра логов в реальном времени используйте:"
+        echo "   journalctl -u tblocker -f"
+        echo ""
+    else
+        echo "❌ Сервис tblocker не найден в systemd"
+    fi
+    
+    # Логи из файла конфигурации
+    CONFIG_FILE="/opt/tblocker/config.yaml"
+    if [ -f "$CONFIG_FILE" ] && grep -q "LogFile:" "$CONFIG_FILE"; then
+        LOG_FILE=$(grep "LogFile:" "$CONFIG_FILE" | cut -d'"' -f2)
+        if [ -f "$LOG_FILE" ]; then
+            echo "📄 Логи из файла $LOG_FILE (последние 30 строк):"
+            echo ""
+            tail -n 30 "$LOG_FILE" 2>/dev/null || echo "   Не удалось прочитать файл логов"
+            echo ""
+        fi
+    fi
+    
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+}
 
 # ===== Удаление Tblocker =====
 if [ "$ACTION" = "uninstall" ]; then
@@ -57,12 +199,25 @@ if [ "$ACTION" = "uninstall" ]; then
     exit 0
 fi
 
+# ===== Показать статус =====
+if [ "$ACTION" = "status" ]; then
+    show_status
+    exit 0
+fi
+
+# ===== Показать логи =====
+if [ "$ACTION" = "logs" ]; then
+    show_logs
+    exit 0
+fi
+
 echo "➡ Режим: установка"
 
 # ===== Исправление прерванного dpkg =====
 if sudo fuser /var/lib/dpkg/lock >/dev/null 2>&1; then
     echo "❌ dpkg занят, завершите другие установки и попробуйте снова."
-    exit 1
+    echo "💡 Попробуйте позже или завершите другие процессы установки"
+    return 1 2>/dev/null || exit 1
 fi
 
 if [ -f /var/lib/dpkg/lock ]; then
@@ -96,7 +251,8 @@ APP_NAME="remnanode"
 COMPOSE_FILE="/opt/${APP_NAME}/docker-compose.yml"
 if [ ! -f "$COMPOSE_FILE" ]; then
     echo "❌ Файл $COMPOSE_FILE не найден. Проверьте путь!"
-    exit 1
+    echo "💡 Убедитесь, что RemnaNode установлен"
+    return 1 2>/dev/null || exit 1
 fi
 
 # Удаляем ненужный том /var/lib/toblock
@@ -267,7 +423,8 @@ EOF
 if [ ! -d /opt/tblocker ]; then
     echo "❌ Установка Tblocker не удалась. Проверьте вывод установки."
     echo "ℹ️  Вы можете установить Tblocker позже вручную"
-    exit 1
+    echo "💡 Попробуйте запустить установку еще раз"
+    return 1 2>/dev/null || exit 1
 fi
 
 # ===== Ввод параметров =====
@@ -299,7 +456,8 @@ echo "➡ Создание systemd сервиса..."
 if [ ! -f "/opt/tblocker/tblocker" ]; then
     echo "❌ Исполняемый файл /opt/tblocker/tblocker не найден!"
     echo "Проверьте установку Tblocker."
-    exit 1
+    echo "💡 Попробуйте переустановить Tblocker"
+    return 1 2>/dev/null || exit 1
 fi
 
 # Делаем файл исполняемым

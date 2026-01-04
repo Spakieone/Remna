@@ -8,7 +8,7 @@ if [ $# -gt 0 ] && [ "$1" = "@" ]; then
     shift  
 fi
 
-set -e
+set -uo pipefail
 SCRIPT_VERSION="2.1.4"
 GITHUB_REPO="Spakieone/Remna"
 UPDATE_URL="https://raw.githubusercontent.com/$GITHUB_REPO/main/selfsteal.sh"
@@ -44,7 +44,7 @@ if [ $# -gt 0 ]; then
             exit 0
             ;;
         --version|-v)
-            echo "Скрипт управления Caddy Selfsteal v$SCRIPT_VERSION"
+            echo "Скрипт управления Caddy Selfsteal"
             exit 0
             ;;
         *)
@@ -1290,7 +1290,7 @@ template_command() {
                 else
                     echo -e "${RED}❌ Не удалось скачать шаблон 503 Error v1${NC}"
                 fi
-                read -p "Нажмите Enter для продолжения..."
+                echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3
                 ;;
             2)
                 echo
@@ -1309,7 +1309,7 @@ template_command() {
                 else
                     echo -e "${RED}❌ Не удалось скачать шаблон 503 Error v2${NC}"
                 fi
-                read -p "Нажмите Enter для продолжения..."
+                echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3
                 ;;
             3)
                 echo
@@ -1328,7 +1328,7 @@ template_command() {
                 else
                     echo -e "${RED}❌ Не удалось скачать шаблон Convertit${NC}"
                 fi
-                read -p "Нажмите Enter для продолжения..."
+                echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3
                 ;;
             4)
                 echo
@@ -1347,7 +1347,7 @@ template_command() {
                 else
                     echo -e "${RED}❌ Не удалось скачать шаблон Downloader${NC}"
                 fi
-                read -p "Нажмите Enter для продолжения..."
+                echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3
                 ;;
             5)
                 echo
@@ -1366,7 +1366,7 @@ template_command() {
                 else
                     echo -e "${RED}❌ Не удалось скачать шаблон FileCloud${NC}"
                 fi
-                read -p "Нажмите Enter для продолжения..."
+                echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3
                 ;;
             6)
                 echo
@@ -1385,7 +1385,7 @@ template_command() {
                 else
                     echo -e "${RED}❌ Не удалось скачать шаблон Games-site${NC}"
                 fi
-                read -p "Нажмите Enter для продолжения..."
+                echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3
                 ;;
             7)
                 echo
@@ -1404,7 +1404,7 @@ template_command() {
                 else
                     echo -e "${RED}❌ Не удалось скачать шаблон ModManager${NC}"
                 fi
-                read -p "Нажмите Enter для продолжения..."
+                echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3
                 ;;
             8)
                 echo
@@ -1423,7 +1423,7 @@ template_command() {
                 else
                     echo -e "${RED}❌ Не удалось скачать шаблон SpeedTest${NC}"
                 fi
-                read -p "Нажмите Enter для продолжения..."
+                echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3
                 ;;
             9)
                 echo
@@ -1442,7 +1442,7 @@ template_command() {
                 else
                     echo -e "${RED}❌ Не удалось скачать шаблон YouTube${NC}"
                 fi
-                read -p "Нажмите Enter для продолжения..."
+                echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3
                 ;;
             10)
                 echo
@@ -1461,7 +1461,7 @@ template_command() {
                 else
                     echo -e "${RED}❌ Не удалось скачать шаблон 503 Error${NC}"
                 fi
-                read -p "Нажмите Enter для продолжения..."
+                echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3
                 ;;
             11)
                 echo
@@ -1480,16 +1480,16 @@ template_command() {
                 else
                     echo -e "${RED}❌ Не удалось скачать шаблон 503 Error v2${NC}"
                 fi
-                read -p "Нажмите Enter для продолжения..."
+                echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3
                 ;;
             v|V)
                 echo
                 show_current_template_info
-                read -p "Нажмите Enter для продолжения..."
+                echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3
                 ;;
             k|K)
                 echo -e "${GRAY}Current template preserved${NC}"
-                read -p "Нажмите Enter для продолжения..."
+                echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3
                 ;;
             0)
                 return 0
@@ -1655,7 +1655,6 @@ status_command() {
         printf "   ${WHITE}%-15s${NC} ${GRAY}%s${NC}\n" "HTTPS-порт:" "$port"
         printf "   ${WHITE}%-15s${NC} ${GRAY}%s${NC}\n" "Путь к HTML:" "$HTML_DIR"
     fi
-    printf "   ${WHITE}%-15s${NC} ${GRAY}%s${NC}\n" "Версия скрипта:" "v$SCRIPT_VERSION"
 }
 
 logs_command() {
@@ -1889,7 +1888,7 @@ edit_command() {
 
 
 show_help() {
-    echo -e "${WHITE}Скрипт управления Caddy for Reality Selfsteal v$SCRIPT_VERSION${NC}"
+    echo -e "${WHITE}Скрипт управления Caddy for Reality Selfsteal${NC}"
     echo
     echo -e "${WHITE}Использование:${NC}"
     echo -e "  ${CYAN}$APP_NAME${NC} [${GRAY}команда${NC}]"
@@ -1937,7 +1936,6 @@ check_for_updates() {
         return 1
     fi
     
-    echo -e "${WHITE}📝 Текущая версия: ${GRAY}v$SCRIPT_VERSION${NC}"
     echo -e "${WHITE}📦 Последняя версия:  ${GRAY}v$remote_script_version${NC}"
     echo
     
@@ -2041,7 +2039,7 @@ check_for_updates_silent() {
         remote_script_version=$(timeout 5 curl -s "$UPDATE_URL" 2>/dev/null | grep "^SCRIPT_VERSION=" | cut -d'"' -f2 2>/dev/null)
         
         if [ -n "$remote_script_version" ] && [ "$SCRIPT_VERSION" != "$remote_script_version" ]; then
-            echo -e "${YELLOW}💡 Доступно обновление: v$remote_script_version (текущая: v$SCRIPT_VERSION)${NC}"
+            echo -e "${YELLOW}💡 Доступно обновление: v$remote_script_version${NC}"
             echo -e "${GRAY}   Выполните 'sudo $APP_NAME update' для обновления${NC}"
             echo
         fi
@@ -2215,9 +2213,9 @@ main_menu() {    # Auto-check for updates on first run
     
     while true; do
         clear
-    echo -e "${WHITE}🔗 Caddy for Reality Selfsteal${NC}"
-    echo -e "${GRAY}Система управления v$SCRIPT_VERSION${NC}"
-        echo -e "${GRAY}$(printf '─%.0s' $(seq 1 40))${NC}"
+    echo -e "${WHITE}╔══════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${WHITE}║${NC}  ${WHITE}🔗 Caddy for Reality Selfsteal${NC}"
+    echo -e "${WHITE}╚══════════════════════════════════════════════════════════════╝${NC}"
         echo
 
 
@@ -2308,34 +2306,39 @@ main_menu() {    # Auto-check for updates on first run
         fi
         
         echo
-        echo -e "${WHITE}📋 Доступные операции:${NC}"
+        echo -e "${WHITE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "${WHITE}🔧 УПРАВЛЕНИЕ СЕРВИСОМ${NC}"
+        echo -e "${WHITE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "  ${WHITE}1)${NC} 🚀 Установить Caddy"
+        echo -e "  ${WHITE}2)${NC} ▶️  Запустить сервисы"
+        echo -e "  ${WHITE}3)${NC} ⏹️  Остановить сервисы"
+        echo -e "  ${WHITE}4)${NC} 🔄 Перезапустить сервисы"
+        echo -e "  ${WHITE}5)${NC} 📊 Статус сервиса"
         echo
-
-        echo -e "${WHITE}🔧 Управление сервисом:${NC}"
-        echo -e "   ${WHITE}1)${NC} 🚀 Установить Caddy"
-        echo -e "   ${WHITE}2)${NC} ▶️  Запустить сервисы"
-        echo -e "   ${WHITE}3)${NC} ⏹️  Остановить сервисы"
-        echo -e "   ${WHITE}4)${NC} 🔄 Перезапустить сервисы"
-        echo -e "   ${WHITE}5)${NC} 📊 Статус сервиса"
+        echo -e "${WHITE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "${WHITE}🎨 УПРАВЛЕНИЕ САЙТОМ${NC}"
+        echo -e "${WHITE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "  ${WHITE}6)${NC} 🎨 Шаблоны сайтов"
+        echo -e "  ${WHITE}7)${NC} 📖 Руководство по настройке"
         echo
-
-        echo -e "${WHITE}🎨 Управление сайтом:${NC}"
-        echo -e "   ${WHITE}6)${NC} 🎨 Шаблоны сайтов"
-        echo -e "   ${WHITE}7)${NC} 📖 Руководство по настройке"
+        echo -e "${WHITE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "${WHITE}📝 ЛОГИ И МОНИТОРИНГ${NC}"
+        echo -e "${WHITE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "  ${WHITE}8)${NC} 📝 Просмотреть логи"
+        echo -e "  ${WHITE}9)${NC} 📊 Размеры логов"
+        echo -e "  ${WHITE}10)${NC} 🧹 Очистить логи"
+        echo -e "  ${WHITE}11)${NC} ✏️  Редактировать конфигурацию"
         echo
-
-        echo -e "${WHITE}📝 Логи и мониторинг:${NC}"
-        echo -e "   ${WHITE}8)${NC} 📝 Просмотреть логи"
-        echo -e "   ${WHITE}9)${NC} 📊 Размеры логов"
-        echo -e "   ${WHITE}10)${NC} 🧹 Очистить логи"
-        echo -e "   ${WHITE}11)${NC} ✏️  Редактировать конфигурацию"
+        echo -e "${WHITE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "${WHITE}🗑️  ОБСЛУЖИВАНИЕ${NC}"
+        echo -e "${WHITE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "  ${WHITE}12)${NC} 🗑️  Удалить Caddy"
+        echo -e "  ${WHITE}13)${NC} 🔄 Проверить обновления"
         echo
-
-        echo -e "${WHITE}🗑️  Обслуживание:${NC}"
-        echo -e "   ${WHITE}12)${NC} 🗑️  Удалить Caddy"
-        echo -e "   ${WHITE}13)${NC} 🔄 Проверить обновления"
-        echo
-        echo -e "   ${GRAY}0)${NC} ⬅️  Выход"
+        echo -e "${WHITE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "${WHITE}🚪 ВЫХОД${NC}"
+        echo -e "${WHITE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "  ${GRAY}0)${NC} ⬅️  Выход"
         echo
         case "$menu_status" in
             "Not installed")
@@ -2355,19 +2358,19 @@ main_menu() {    # Auto-check for updates on first run
         read -p "$(echo -e "${WHITE}Выберите опцию [0-13]:${NC} ")" choice
 
         case "$choice" in
-            1) install_command; read -p "Нажмите Enter для продолжения..." ;;
-            2) up_command; read -p "Нажмите Enter для продолжения..." ;;
-            3) down_command; read -p "Нажмите Enter для продолжения..." ;;
-            4) restart_command; read -p "Нажмите Enter для продолжения..." ;;
-            5) status_command; read -p "Нажмите Enter для продолжения..." ;;
+            1) install_command; echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3 ;;
+            2) up_command; echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3 ;;
+            3) down_command; echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3 ;;
+            4) restart_command; echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3 ;;
+            5) status_command; echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3 ;;
             6) template_command ;;
-            7) guide_command; read -p "Нажмите Enter для продолжения..." ;;
-            8) logs_command; read -p "Нажмите Enter для продолжения..." ;;
-            9) logs_size_command; read -p "Нажмите Enter для продолжения..." ;;
-            10) clean_logs_command; read -p "Нажмите Enter для продолжения..." ;;
-            11) edit_command; read -p "Нажмите Enter для продолжения..." ;;
-            12) uninstall_command; read -p "Нажмите Enter для продолжения..." ;;
-            13) update_command; read -p "Нажмите Enter для продолжения..." ;;
+            7) guide_command; echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3 ;;
+            8) logs_command; echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3 ;;
+            9) logs_size_command; echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3 ;;
+            10) clean_logs_command; echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3 ;;
+            11) edit_command; echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3 ;;
+            12) uninstall_command; echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3 ;;
+            13) update_command; echo ""; echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"; sleep 3 ;;
             0) clear; exit 0 ;;
             *) 
                 echo -e "${RED}❌ Invalid option!${NC}"
@@ -2395,7 +2398,7 @@ case "$COMMAND" in
     update) update_command ;;
     check-update) update_command ;;
     help) show_help ;;
-    --version|-v) echo "Caddy Selfsteal Management Script v$SCRIPT_VERSION" ;;
+    --version|-v) echo "Caddy Selfsteal Management Script" ;;
     --help|-h) show_help ;;
     "") main_menu ;;
     *) 

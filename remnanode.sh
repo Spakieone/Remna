@@ -2,11 +2,14 @@ install_tblocker_command() {
     echo -e "\033[1;37m🛡️  Установка tBlocker\033[0m"
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 40))\033[0m"
     local script_name="install-tblocker.sh"
-    if [ -f "script/scripts-main/$script_name" ]; then
-        bash "script/scripts-main/$script_name" install
+    local script_path="/root/scripts/$script_name"
+    if [ -f "$script_path" ]; then
+        bash "$script_path" install || true
+    elif [ -f "script/scripts-main/$script_name" ]; then
+        bash "script/scripts-main/$script_name" install || true
     else
         echo -e "\033[38;5;244mСкачивание $script_name с GitHub...\033[0m"
-        bash <(curl -fsSL "https://raw.githubusercontent.com/Spakieone/Remna/main/$script_name") install
+        bash <(curl -fsSL "https://raw.githubusercontent.com/Spakieone/Remna/main/$script_name") install || true
     fi
 
     echo
@@ -30,11 +33,44 @@ uninstall_tblocker_command() {
     echo -e "\033[1;37m🗑️  Удаление tBlocker\033[0m"
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 40))\033[0m"
     local script_name="install-tblocker.sh"
-    if [ -f "script/scripts-main/$script_name" ]; then
-        bash "script/scripts-main/$script_name" uninstall
+    local script_path="/root/scripts/$script_name"
+    if [ -f "$script_path" ]; then
+        bash "$script_path" uninstall || true
+    elif [ -f "script/scripts-main/$script_name" ]; then
+        bash "script/scripts-main/$script_name" uninstall || true
     else
         echo -e "\033[38;5;244mСкачивание $script_name с GitHub...\033[0m"
-        bash <(curl -fsSL "https://raw.githubusercontent.com/Spakieone/Remna/main/$script_name") uninstall
+        bash <(curl -fsSL "https://raw.githubusercontent.com/Spakieone/Remna/main/$script_name") uninstall || true
+    fi
+}
+
+status_tblocker_command() {
+    echo -e "\033[1;37m📊 Статус tBlocker\033[0m"
+    echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 40))\033[0m"
+    local script_name="install-tblocker.sh"
+    local script_path="/root/scripts/$script_name"
+    if [ -f "$script_path" ]; then
+        bash "$script_path" status || true
+    elif [ -f "script/scripts-main/$script_name" ]; then
+        bash "script/scripts-main/$script_name" status || true
+    else
+        echo -e "\033[38;5;244mСкачивание $script_name с GitHub...\033[0m"
+        bash <(curl -fsSL "https://raw.githubusercontent.com/Spakieone/Remna/main/$script_name") status || true
+    fi
+}
+
+logs_tblocker_command() {
+    echo -e "\033[1;37m📋 Логи tBlocker\033[0m"
+    echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 40))\033[0m"
+    local script_name="install-tblocker.sh"
+    local script_path="/root/scripts/$script_name"
+    if [ -f "$script_path" ]; then
+        bash "$script_path" logs || true
+    elif [ -f "script/scripts-main/$script_name" ]; then
+        bash "script/scripts-main/$script_name" logs || true
+    else
+        echo -e "\033[38;5;244mСкачивание $script_name с GitHub...\033[0m"
+        bash <(curl -fsSL "https://raw.githubusercontent.com/Spakieone/Remna/main/$script_name") logs || true
     fi
 }
 
@@ -253,7 +289,7 @@ node_exporter_menu_command() { :; }
 
 #!/usr/bin/env bash
 # Version: 3.2.2
-set -e
+set -uo pipefail
 SCRIPT_VERSION="3.2.2"
 
 # Handle @ prefix for consistency with other scripts
@@ -890,11 +926,17 @@ install_remnanode() {
     mkdir -p /var/log/remnanode
 
     echo
-    echo -e "\033[1;37m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
-    echo -e "\033[1;36m📋 Настройка конфигурации RemnaNode\033[0m"
-    echo -e "\033[38;5;8m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+    echo -e "\033[1;37m\033[1;4m╔══════════════════════════════════════════════════════════════╗\033[0m"
+    echo -e "\033[1;37m\033[1;4m║\033[0m                                                              \033[1;37m\033[1;4m║\033[0m"
+    echo -e "\033[1;37m\033[1;4m║\033[0m  \033[1;36m📋 НАСТРОЙКА КОНФИГУРАЦИИ REMNANODE\033[0m                        \033[1;37m\033[1;4m║\033[0m"
+    echo -e "\033[1;37m\033[1;4m║\033[0m                                                              \033[1;37m\033[1;4m║\033[0m"
+    echo -e "\033[1;37m\033[1;4m╚══════════════════════════════════════════════════════════════╝\033[0m"
     echo
-    echo -e "\033[38;5;250mВведите параметры для подключения к панели Remnawave\033[0m"
+    echo -e "\033[1;37m\033[1;4m┌─ 📝 ПАРАМЕТРЫ ПОДКЛЮЧЕНИЯ К ПАНЕЛИ REMNAWAVE ──────────────────┐\033[0m"
+    echo -e "\033[1;37m\033[1;4m│\033[0m                                                              \033[1;37m\033[1;4m│\033[0m"
+    echo -e "\033[1;37m\033[1;4m│\033[0m  \033[38;5;250mВведите параметры для подключения к панели Remnawave\033[0m      \033[1;37m\033[1;4m│\033[0m"
+    echo -e "\033[1;37m\033[1;4m│\033[0m                                                              \033[1;37m\033[1;4m│\033[0m"
+    echo -e "\033[1;37m\033[1;4m└──────────────────────────────────────────────────────────────┘\033[0m"
     echo
     
     # Запрашиваем порт
@@ -913,12 +955,23 @@ install_remnanode() {
     read -p "" SECRET_KEY
     
     if [ -z "$SECRET_KEY" ]; then
-        colorized_echo red "❌ SECRET_KEY не может быть пустым!"
-        exit 1
+        echo -e "\033[1;37m\033[1;4m│\033[0m  \033[1;31m❌ SECRET_KEY не может быть пустым!\033[0m"
+        echo -e "\033[1;37m\033[1;4m│\033[0m                                                              \033[1;37m\033[1;4m│\033[0m"
+        echo -e "\033[1;37m\033[1;4m└──────────────────────────────────────────────────────────────┘\033[0m"
+        echo
+        echo -e "\033[1;33m⏳ Возврат в меню через 3 секунды...\033[0m"
+        sleep 3
+        return 1
     fi
     
+    echo -e "\033[1;37m\033[1;4m│\033[0m  \033[1;32m✅ SECRET_KEY принят\033[0m"
+    echo -e "\033[1;37m\033[1;4m│\033[0m                                                              \033[1;37m\033[1;4m│\033[0m"
+    echo -e "\033[1;37m\033[1;4m└──────────────────────────────────────────────────────────────┘\033[0m"
     echo
-    colorized_echo blue "📝 Создание docker-compose.yml..."
+    echo -e "\033[1;37m\033[1;4m┌─ 📝 СОЗДАНИЕ КОНФИГУРАЦИИ ───────────────────────────────────────┐\033[0m"
+    echo -e "\033[1;37m\033[1;4m│\033[0m                                                              \033[1;37m\033[1;4m│\033[0m"
+    echo -e "\033[1;37m\033[1;4m│\033[0m  \033[1;36m📝 Создание docker-compose.yml...\033[0m"
+    echo -e "\033[1;37m\033[1;4m│\033[0m                                                              \033[1;37m\033[1;4m│\033[0m"
     
     # Создаем docker-compose.yml из шаблона
     cat > "$COMPOSE_FILE" <<EOF
@@ -936,28 +989,31 @@ services:
       - /var/log/remnanode:/var/log/remnanode
 EOF
     
-    colorized_echo green "✅ Файл Docker Compose создан и сохранён в $COMPOSE_FILE"
+    echo -e "\033[1;37m\033[1;4m│\033[0m  \033[1;32m✅ Файл Docker Compose создан и сохранён в $COMPOSE_FILE\033[0m"
+    echo -e "\033[1;37m\033[1;4m│\033[0m                                                              \033[1;37m\033[1;4m│\033[0m"
+    echo -e "\033[1;37m\033[1;4m└──────────────────────────────────────────────────────────────┘\033[0m"
     
     # Show the final compose file
     echo
-    echo -e "\033[1;37m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
-    echo -e "\033[1;36m📄 Итоговый docker-compose.yml:\033[0m"
-    echo -e "\033[38;5;8m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
-    echo
-    cat "$COMPOSE_FILE"
-    echo
-    echo -e "\033[38;5;8m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+    echo -e "\033[1;37m\033[1;4m┌─ 📄 ИТОГОВЫЙ DOCKER-COMPOSE.YML ─────────────────────────────────┐\033[0m"
+    echo -e "\033[1;37m\033[1;4m│\033[0m                                                              \033[1;37m\033[1;4m│\033[0m"
+    echo -e "\033[1;37m\033[1;4m│\033[0m"
+    cat "$COMPOSE_FILE" | sed 's/^/│  /'
+    echo -e "\033[1;37m\033[1;4m│\033[0m"
+    echo -e "\033[1;37m\033[1;4m│\033[0m                                                              \033[1;37m\033[1;4m│\033[0m"
+    echo -e "\033[1;37m\033[1;4m└──────────────────────────────────────────────────────────────┘\033[0m"
 
     # Дополнительно: предложить установить tBlocker
     echo
-    echo -e "\033[1;37m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
-    echo -e "\033[1;36m🛡️  Установка tBlocker (по желанию)\033[0m"
-    echo -e "\033[38;5;8m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
-    echo
-    echo -e "\033[38;5;250mtBlocker — блокировка торрент-трафика через iptables\033[0m"
-    echo -e "\033[38;5;250mИспользует логи доступа RemnaNode: /var/log/remnanode/access.log\033[0m"
-    echo
-    read -p "Установить tBlocker? (y/n): " -r install_tb
+    echo -e "\033[1;37m\033[1;4m┌─ 🛡️  УСТАНОВКА TBLOCKER (ПО ЖЕЛАНИЮ) ────────────────────────────┐\033[0m"
+    echo -e "\033[1;37m\033[1;4m│\033[0m                                                              \033[1;37m\033[1;4m│\033[0m"
+    echo -e "\033[1;37m\033[1;4m│\033[0m  \033[38;5;250mtBlocker — блокировка торрент-трафика через iptables\033[0m"
+    echo -e "\033[1;37m\033[1;4m│\033[0m  \033[38;5;250mИспользует логи доступа RemnaNode: /var/log/remnanode/access.log\033[0m"
+    echo -e "\033[1;37m\033[1;4m│\033[0m                                                              \033[1;37m\033[1;4m│\033[0m"
+    echo -e "\033[1;37m\033[1;4m│\033[0m  \033[1;36mУстановить tBlocker?\033[0m \033[38;5;244m(y/n):\033[0m"
+    echo -e "\033[1;37m\033[1;4m│\033[0m  ➤ \033[38;5;15m"
+    read -r install_tb
+    echo -e "\033[0m"
     INSTALL_TB=false
     if [[ "$install_tb" =~ ^[Yy]$ ]]; then
         INSTALL_TB=true
@@ -969,17 +1025,32 @@ EOF
     # Минимальная установка завершена
 
     echo
-    echo -e "\033[1;32m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
-    echo -e "\033[1;32m✅ Установка RemnaNode завершена!\033[0m"
-    echo -e "\033[1;32m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+    echo -e "\033[1;37m\033[1;4m╔══════════════════════════════════════════════════════════════╗\033[0m"
+    echo -e "\033[1;37m\033[1;4m║\033[0m                                                              \033[1;37m\033[1;4m║\033[0m"
+    echo -e "\033[1;37m\033[1;4m║\033[0m  \033[1;32m✅ УСТАНОВКА REMNANODE ЗАВЕРШЕНА УСПЕШНО!\033[0m                    \033[1;37m\033[1;4m║\033[0m"
+    echo -e "\033[1;37m\033[1;4m║\033[0m                                                              \033[1;37m\033[1;4m║\033[0m"
+    echo -e "\033[1;37m\033[1;4m╚══════════════════════════════════════════════════════════════╝\033[0m"
     echo
-    echo -e "\033[38;5;250mДиректория: \033[1;37m$APP_DIR\033[0m"
-    echo -e "\033[38;5;250mЛоги: \033[1;37m/var/log/remnanode\033[0m"
-    echo -e "\033[38;5;250mDocker Compose: \033[1;37m$COMPOSE_FILE\033[0m"
+    echo -e "\033[1;37m\033[1;4m┌─ 📁 ИНФОРМАЦИЯ ОБ УСТАНОВКЕ ────────────────────────────────────┐\033[0m"
+    echo -e "\033[1;37m\033[1;4m│\033[0m                                                              \033[1;37m\033[1;4m│\033[0m"
+    printf "\033[1;37m\033[1;4m│\033[0m  \033[1;36m%-20s\033[0m \033[38;5;250m%s\033[0m" "Директория:" "$APP_DIR"
+    printf "%$((60 - ${#APP_DIR} - 22))s\033[1;37m\033[1;4m│\033[0m\n" ""
+    printf "\033[1;37m\033[1;4m│\033[0m  \033[1;36m%-20s\033[0m \033[38;5;250m%s\033[0m" "Логи:" "/var/log/remnanode"
+    printf "%$((60 - 22 - 22))s\033[1;37m\033[1;4m│\033[0m\n" ""
+    printf "\033[1;37m\033[1;4m│\033[0m  \033[1;36m%-20s\033[0m \033[38;5;250m%s\033[0m" "Docker Compose:" "$COMPOSE_FILE"
+    printf "%$((60 - ${#COMPOSE_FILE} - 22))s\033[1;37m\033[1;4m│\033[0m\n" ""
+    echo -e "\033[1;37m\033[1;4m│\033[0m                                                              \033[1;37m\033[1;4m│\033[0m"
+    echo -e "\033[1;37m\033[1;4m└──────────────────────────────────────────────────────────────┘\033[0m"
     echo
-    echo -e "\033[1;37mДля запуска используйте команду:\033[0m"
-    echo -e "\033[1;36m  remnanode up\033[0m"
+    echo -e "\033[1;37m\033[1;4m┌─ 🚀 СЛЕДУЮЩИЕ ШАГИ ────────────────────────────────────────────┐\033[0m"
+    echo -e "\033[1;37m\033[1;4m│\033[0m                                                              \033[1;37m\033[1;4m│\033[0m"
+    echo -e "\033[1;37m\033[1;4m│\033[0m  \033[1;36mДля запуска используйте команду:\033[0m"
+    echo -e "\033[1;37m\033[1;4m│\033[0m  \033[1;32m  remnanode up\033[0m"
+    echo -e "\033[1;37m\033[1;4m│\033[0m                                                              \033[1;37m\033[1;4m│\033[0m"
+    echo -e "\033[1;37m\033[1;4m└──────────────────────────────────────────────────────────────┘\033[0m"
     echo
+    echo -e "\033[1;33m⏳ Возврат в меню через 5 секунд...\033[0m"
+    sleep 5
 }
 
 uninstall_remnanode_script() {
@@ -1150,11 +1221,10 @@ install_command() {
     
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 70))\033[0m"
     echo -e "\033[38;5;8m💡 Для всех команд: \033[38;5;15msudo $APP_NAME\033[0m"
-    echo -e "\033[38;5;8m📚 Проект: \033[38;5;250mhttps://gig.ovh\033[0m"
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 70))\033[0m"
     
     # Возвращаем строгий режим
-    set -e
+    set -uo pipefail
 }
 
 uninstall_command() {
@@ -1841,7 +1911,9 @@ get_current_xray_core_version() {
 get_xray_core() {
     if ! identify_the_operating_system_and_architecture; then
         colorized_echo red "Не удалось определить архитектуру системы"
-        read -p "Нажмите Enter для возврата..."
+        echo
+        echo -e "\033[1;33m⏳ Возврат в меню через 3 секунды...\033[0m"
+        sleep 3
         return 1
     fi
     clear
@@ -1860,7 +1932,7 @@ get_xray_core() {
         clear
         
         # Заголовок в монохромном стиле
-        echo -e "\033[1;37m⚡ Xray-core Installer\033[0m \033[38;5;8mVersion Manager\033[0m \033[38;5;244mv$SCRIPT_VERSION\033[0m"
+        echo -e "\033[1;37m⚡ Xray-core Installer\033[0m \033[38;5;8mVersion Manager\033[0m"
         echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 70))\033[0m"
         echo
         
@@ -2120,7 +2192,11 @@ get_xray_core() {
     else
         echo -e "\033[1;31m❌ Ошибка загрузки!\033[0m"
         echo -e "\033[38;5;8m   Проверьте интернет-соединение или попробуйте другую версию.\033[0m"
-        read -p "Нажмите Enter для возврата..."
+        echo -e "\033[1;31m❌ Ошибка загрузки!\033[0m"
+        echo -e "\033[38;5;8m   Проверьте интернет-соединение или попробуйте другую версию.\033[0m"
+        echo
+        echo -e "\033[1;33m⏳ Возврат в меню через 5 секунд...\033[0m"
+        sleep 5
         return 1
     fi
     
@@ -2132,7 +2208,9 @@ get_xray_core() {
         echo -e "\033[1;31m❌ Ошибка извлечения!\033[0m"
         echo -e "\033[38;5;8m   Загруженный файл может быть повреждён.\033[0m"
         rm -f "${xray_filename}"
-        read -p "Нажмите Enter для возврата..."
+        echo
+        echo -e "\033[1;33m⏳ Возврат в меню через 5 секунд...\033[0m"
+        sleep 5
         return 1
     fi
     
@@ -2142,26 +2220,45 @@ get_xray_core() {
     
     # Финальное сообщение
     echo
-    echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 60))\033[0m"
-    echo -e "\033[1;37m🎉 Установка завершена!\033[0m"
+    echo -e "\033[1;37m\033[1;4m╔══════════════════════════════════════════════════════════════╗\033[0m"
+    echo -e "\033[1;37m\033[1;4m║\033[0m                                                              \033[1;37m\033[1;4m║\033[0m"
+    echo -e "\033[1;37m\033[1;4m║\033[0m  \033[1;32m🎉 УСТАНОВКА ЗАВЕРШЕНА УСПЕШНО!\033[0m                            \033[1;37m\033[1;4m║\033[0m"
+    echo -e "\033[1;37m\033[1;4m║\033[0m                                                              \033[1;37m\033[1;4m║\033[0m"
+    echo -e "\033[1;37m\033[1;4m╚══════════════════════════════════════════════════════════════╝\033[0m"
+    echo
     
     # Информация об установке
-    echo -е "\033[1;37m📋 Подробности установки:\033[0m"
-    printf "   \033[38;5;15m%-15s\033[0m \033[38;5;250m%s\033[0m\n" "Версия:" "$selected_version"
-    printf "   \033[38;5;15m%-15s\033[0m \033[38;5;250m%s\033[0m\n" "Архитектура:" "$ARCH"
-    printf "   \033[38;5;15m%-15s\033[0m \033[38;5;250m%s\033[0m\n" "Путь установки:" "$XRAY_FILE"
-    printf "   \033[38;5;15m%-15s\033[0m \033[38;5;250m%s\033[0m\n" "Размер файла:" "$(du -h "$XRAY_FILE" | cut -f1)"
+    echo -e "\033[1;37m\033[1;4m┌─ 📋 ПОДРОБНОСТИ УСТАНОВКИ ───────────────────────────────────┐\033[0m"
+    echo -e "\033[1;37m\033[1;4m│\033[0m                                                              \033[1;37m\033[1;4m│\033[0m"
+    printf "\033[1;37m\033[1;4m│\033[0m  \033[1;36m%-20s\033[0m \033[38;5;250m%s\033[0m" "Версия:" "$selected_version"
+    printf "%$((60 - ${#selected_version} - 22))s\033[1;37m\033[1;4m│\033[0m\n" ""
+    printf "\033[1;37m\033[1;4m│\033[0m  \033[1;36m%-20s\033[0m \033[38;5;250m%s\033[0m" "Архитектура:" "$ARCH"
+    printf "%$((60 - ${#ARCH} - 22))s\033[1;37m\033[1;4m│\033[0m\n" ""
+    printf "\033[1;37m\033[1;4m│\033[0m  \033[1;36m%-20s\033[0m \033[38;5;250m%s\033[0m" "Путь установки:" "$XRAY_FILE"
+    printf "%$((60 - ${#XRAY_FILE} - 22))s\033[1;37m\033[1;4m│\033[0m\n" ""
+    local file_size=$(du -h "$XRAY_FILE" | cut -f1)
+    printf "\033[1;37m\033[1;4m│\033[0m  \033[1;36m%-20s\033[0m \033[38;5;250m%s\033[0m" "Размер файла:" "$file_size"
+    printf "%$((60 - ${#file_size} - 22))s\033[1;37m\033[1;4m│\033[0m\n" ""
+    echo -e "\033[1;37m\033[1;4m│\033[0m                                                              \033[1;37m\033[1;4m│\033[0m"
+    echo -e "\033[1;37m\033[1;4m└──────────────────────────────────────────────────────────────┘\033[0m"
     echo
     
     # Проверка версии
-    echo -e "\033[1;37m🔍 Проверка установки...\033[0m"
+    echo -e "\033[1;37m\033[1;4m┌─ 🔍 ПРОВЕРКА УСТАНОВКИ ────────────────────────────────────────┐\033[0m"
+    echo -e "\033[1;37m\033[1;4m│\033[0m                                                              \033[1;37m\033[1;4m│\033[0m"
     if installed_version=$("$XRAY_FILE" -version 2>/dev/null | head -n1 | awk '{print $2}'); then
-        echo -e "\033[1;32m✅ Xray-core работает корректно\033[0m"
-        printf "   \033[38;5;15m%-15s\033[0m \033[38;5;250m%s\033[0m\n" "Используемая версия:" "$installed_version"
+        echo -e "\033[1;37m\033[1;4m│\033[0m  \033[1;32m✅ Xray-core работает корректно\033[0m"
+        printf "\033[1;37m\033[1;4m│\033[0m  \033[1;36m%-20s\033[0m \033[38;5;250m%s\033[0m" "Используемая версия:" "$installed_version"
+        printf "%$((60 - ${#installed_version} - 22))s\033[1;37m\033[1;4m│\033[0m\n" ""
     else
-        echo -e "\033[1;31m⚠️  Установка завершена, но проверка не прошла\033[0m"
-        echo -e "\033[38;5;8m   Бинарный файл может быть несовместим с вашей системой\033[0m"
+        echo -e "\033[1;37m\033[1;4m│\033[0m  \033[1;31m⚠️  Установка завершена, но проверка не прошла\033[0m"
+        echo -e "\033[1;37m\033[1;4m│\033[0m  \033[38;5;244m   Бинарный файл может быть несовместим с вашей системой\033[0m"
     fi
+    echo -e "\033[1;37m\033[1;4m│\033[0m                                                              \033[1;37m\033[1;4m│\033[0m"
+    echo -e "\033[1;37m\033[1;4m└──────────────────────────────────────────────────────────────┘\033[0m"
+    echo
+    echo -e "\033[1;33m⏳ Возврат в меню через 5 секунд...\033[0m"
+    sleep 5
 }
 
 
@@ -2664,7 +2761,7 @@ edit_command() {
 usage() {
     clear
 
-    echo -e "\033[1;37m⚡ $APP_NAME\033[0m \033[38;5;8mИнтерфейс командной строки\033[0m \033[38;5;244mv$SCRIPT_VERSION\033[0m"
+    echo -e "\033[1;37m⚡ $APP_NAME\033[0m \033[38;5;8mИнтерфейс командной строки\033[0m"
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 60))\033[0m"
     echo
     echo -e "\033[1;37m📖 Использование:\033[0m"
@@ -2724,10 +2821,6 @@ usage() {
     echo -e "\033[38;5;8mИспользуйте '\033[38;5;15m$APP_NAME <команда> --help\033[38;5;8m' для подробной справки по команде\033[0m"
     echo
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 55))\033[0m"
-    echo -e "\033[38;5;8m📚 Проект: \033[38;5;250mhttps://gig.ovh\033[0m"
-    echo -e "\033[38;5;8m🐛 Проблемы: \033[38;5;250mhttps://github.com/Spakieone/Remna\033[0m"
-    echo -e "\033[38;5;8m💬 Поддержка: \033[38;5;250mhttps://t.me/remnawave\033[0m"
-    echo -e "\033[38;5;8m👨‍💻 Автор: \033[38;5;250mDigneZzZ\033[0m"
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 55))\033[0m"
 }
 
@@ -2735,19 +2828,14 @@ usage() {
 show_version() {
     echo -e "\033[1;37m🚀 CLI управления RemnaNode\033[0m"
     echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 40))\033[0m"
-    echo -e "\033[38;5;250mВерсия: \033[38;5;15m$SCRIPT_VERSION\033[0m"
-    echo -e "\033[38;5;250mАвтор:  \033[38;5;15mDigneZzZ\033[0m"
-    echo -e "\033[38;5;250mGitHub:  \033[38;5;15mhttps://github.com/Spakieone/Remna\033[0m"
-    echo -e "\033[38;5;250mПроект: \033[38;5;15mhttps://gig.ovh\033[0m"
-    echo -e "\033[38;5;250mПоддержка: \033[38;5;15mhttps://t.me/remnawave\033[0m"
-    echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 40))\033[0m"
 }
 
 main_menu() {
     while true; do
         clear
-        echo -e "\033[1;37m🚀 Управление RemnaNode $APP_NAME\033[0m \033[38;5;244mv$SCRIPT_VERSION\033[0m"
-        echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 55))\033[0m"
+        echo -e "\033[1;37m╔══════════════════════════════════════════════════════════════╗\033[0m"
+        echo -e "\033[1;37m║\033[0m  \033[1;36m🚀 УПРАВЛЕНИЕ REMNANODE\033[0m"
+        echo -e "\033[1;37m╚══════════════════════════════════════════════════════════════╝\033[0m"
         echo
         
         # Проверка статуса узла
@@ -2925,37 +3013,44 @@ main_menu() {
         fi
         
         echo
-        echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 55))\033[0m"
+        echo -e "\033[1;37m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+        echo -e "\033[1;37m🚀 УСТАНОВКА И УПРАВЛЕНИЕ\033[0m"
+        echo -e "\033[1;37m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+        echo -e "  \033[1;32m1)\033[0m \033[1;33m🛠️  Установить RemnaNode\033[0m"
+        echo -e "  \033[1;32m2)\033[0m \033[1;33m▶️  Запустить сервисы RemnaNode\033[0m"
+        echo -e "  \033[1;32m3)\033[0m \033[1;33m⏹️  Остановить сервисы RemnaNode\033[0m"
+        echo -e "  \033[1;32m4)\033[0m \033[1;33m🔄 Перезапустить сервисы RemnaNode\033[0m"
+        echo -e "  \033[1;32m5)\033[0m \033[1;33m🗑️  Удалить RemnaNode\033[0m"
         echo
-        echo -e "\033[1;37m🚀 Установка и управление:\033[0m"
-        echo -e "   \033[38;5;15m1)\033[0m 🛠️  Установить RemnaNode"
-        echo -e "   \033[38;5;15m2)\033[0m ▶️  Запустить сервисы RemnaNode"
-        echo -e "   \033[38;5;15m3)\033[0m ⏹️  Остановить сервисы RemnaNode"
-        echo -e "   \033[38;5;15m4)\033[0m 🔄 Перезапустить сервисы RemnaNode"
-        echo -e "   \033[38;5;15m5)\033[0m 🗑️  Удалить RemnaNode"
+        echo -e "\033[1;37m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+        echo -e "\033[1;37m📊 МОНИТОРИНГ И ЛОГИ\033[0m"
+        echo -e "\033[1;37m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+        echo -e "  \033[1;32m6)\033[0m \033[1;33m📊 Показать статус RemnaNode\033[0m"
+        echo -e "  \033[1;32m7)\033[0m \033[1;33m📋 Просмотреть логи контейнера\033[0m"
+        echo -e "  \033[1;32m8)\033[0m \033[1;33m📤 Просмотреть выходные логи Xray\033[0m"
+        echo -e "  \033[1;32m9)\033[0m \033[1;33m📥 Просмотреть логи ошибок Xray\033[0m"
         echo
-        echo -e "\033[1;37m📊 Мониторинг и логи:\033[0m"
-        echo -e "   \033[38;5;15m6)\033[0m 📊 Показать статус RemnaNode"
-        echo -e "   \033[38;5;15m7)\033[0m 📋 Просмотреть логи контейнера"
-        echo -e "   \033[38;5;15m8)\033[0m 📤 Просмотреть выходные логи Xray"
-        echo -e "   \033[38;5;15m9)\033[0m 📥 Просмотреть логи ошибок Xray"
+        echo -e "\033[1;37m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+        echo -e "\033[1;37m⚙️  ОБНОВЛЕНИЯ И КОНФИГУРАЦИЯ\033[0m"
+        echo -e "\033[1;37m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+        echo -e "  \033[1;32m10)\033[0m \033[1;33m🔄 Обновить RemnaNode\033[0m"
+        echo -e "  \033[1;32m11)\033[0m \033[1;33m🔧 Обновить docker-compose.yml\033[0m"
+        echo -e "  \033[1;32m12)\033[0m \033[1;33m⬆️  Обновить Xray-core\033[0m"
+        echo -e "  \033[1;32m13)\033[0m \033[1;33m📝 Редактировать конфигурацию\033[0m"
+        echo -e "  \033[1;32m14)\033[0m \033[1;33m🗂️  Настроить ротацию логов\033[0m"
         echo
-        echo -e "\033[1;37m⚙️  Обновления и конфигурация:\033[0m"
-        echo -e "   \033[38;5;15m10)\033[0m 🔄 Обновить RemnaNode"
-        echo -e "   \033[38;5;15m11)\033[0m 🔧 Обновить docker-compose.yml"
-        echo -e "   \033[38;5;15m12)\033[0m ⬆️  Обновить Xray-core"
-        echo -e "   \033[38;5;15m13)\033[0m 📝 Редактировать конфигурацию"
-        echo -e "   \033[38;5;15m14)\033[0m 🗂️  Настроить ротацию логов"
-
-        # Разделитель и отдельный блок tBlocker с другим цветом заголовка
-        echo -e "\033[38;5;8m$(printf '%.0s_' $(seq 1 54))\033[0m"
-        echo -e "\033[1;36m🛡️  tBlocker:\033[0m"
-        echo -e "   \033[38;5;15m15)\033[0m 🛡️  Установить tBlocker"
-        echo -e "   \033[38;5;15m16)\033[0m 🗑️  Удалить tBlocker"
+        echo -e "\033[1;37m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+        echo -e "\033[1;37m🛡️  TBLOCKER\033[0m"
+        echo -e "\033[1;37m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+        echo -e "  \033[1;32m15)\033[0m \033[1;33m🛡️  Установить tBlocker\033[0m"
+        echo -e "  \033[1;32m16)\033[0m \033[1;33m🗑️  Удалить tBlocker\033[0m"
+        echo -e "  \033[1;32m17)\033[0m \033[1;33m📊 Статус tBlocker\033[0m"
+        echo -e "  \033[1;32m18)\033[0m \033[1;33m📋 Логи tBlocker\033[0m"
         echo
-        
-        echo -e "\033[38;5;8m$(printf '─%.0s' $(seq 1 55))\033[0m"
-        echo -e "\033[38;5;15m   0)\033[0m 🚪 Выход в терминал"
+        echo -e "\033[1;37m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+        echo -e "\033[1;37m🚪 ВЫХОД\033[0m"
+        echo -e "\033[1;37m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+        echo -e "  \033[1;32m0)\033[0m \033[1;33m🚪 Выход в терминал\033[0m"
         echo
         
         # Показываем подсказки в зависимости от состояния
@@ -2975,31 +3070,127 @@ main_menu() {
                 ;;
         esac
         
-        echo -e "\033[38;5;8mRemnaNode CLI v$SCRIPT_VERSION by DigneZzZ • gig.ovh\033[0m"
         echo
-        read -p "$(echo -e "\033[1;37mВыберите опцию [0-16]:\033[0m ")" choice
+        read -p "$(echo -e "\033[1;37mВыберите опцию [0-18]:\033[0m ")" choice
 
         case "$choice" in
-            1) install_command; read -p "Нажмите Enter для продолжения..." ;;
-            2) up_command; read -p "Нажмите Enter для продолжения..." ;;
-            3) down_command; read -p "Нажмите Enter для продолжения..." ;;
-            4) restart_command; read -p "Нажмите Enter для продолжения..." ;;
-            5) uninstall_command; read -p "Нажмите Enter для продолжения..." ;;
-            6) status_command; read -p "Нажмите Enter для продолжения..." ;;
-            7) logs_command; read -p "Нажмите Enter для продолжения..." ;;
-            8) xray_log_out; read -p "Нажмите Enter для продолжения..." ;;
-            9) xray_log_err; read -p "Нажмите Enter для продолжения..." ;;
-            10) update_command; read -p "Нажмите Enter для продолжения..." ;;
-            11) update_docker_compose_command; read -p "Нажмите Enter для продолжения..." ;;
-            12) update_core_command; read -p "Нажмите Enter для продолжения..." ;;
-            13) edit_command; read -p "Нажмите Enter для продолжения..." ;;
-            14) setup_log_rotation; read -p "Нажмите Enter для продолжения..." ;;
-            15) install_tblocker_command; read -p "Нажмите Enter для продолжения..." ;;
-            16) uninstall_tblocker_command; read -p "Нажмите Enter для продолжения..." ;;
-            0) clear; exit 0 ;;
+            1) 
+                install_command
+                echo
+                echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"
+                sleep 3
+                ;;
+            2) 
+                up_command
+                echo
+                echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"
+                sleep 3
+                ;;
+            3) 
+                down_command
+                echo
+                echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"
+                sleep 3
+                ;;
+            4) 
+                restart_command
+                echo
+                echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"
+                sleep 3
+                ;;
+            5) 
+                uninstall_command
+                echo
+                echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"
+                sleep 3
+                ;;
+            6) 
+                status_command
+                echo
+                echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"
+                sleep 3
+                ;;
+            7) 
+                logs_command
+                echo
+                echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"
+                sleep 3
+                ;;
+            8) 
+                xray_log_out
+                echo
+                echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"
+                sleep 3
+                ;;
+            9) 
+                xray_log_err
+                echo
+                echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"
+                sleep 3
+                ;;
+            10) 
+                update_command
+                echo
+                echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"
+                sleep 3
+                ;;
+            11) 
+                update_docker_compose_command
+                echo
+                echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"
+                sleep 3
+                ;;
+            12) 
+                update_core_command
+                echo
+                echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"
+                sleep 3
+                ;;
+            13) 
+                edit_command
+                echo
+                echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"
+                sleep 3
+                ;;
+            14) 
+                setup_log_rotation
+                echo
+                echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"
+                sleep 3
+                ;;
+            15) 
+                install_tblocker_command
+                echo
+                echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"
+                sleep 3
+                ;;
+            16) 
+                uninstall_tblocker_command
+                echo
+                echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"
+                sleep 3
+                ;;
+            17) 
+                status_tblocker_command
+                echo
+                echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"
+                sleep 3
+                ;;
+            18) 
+                logs_tblocker_command
+                echo
+                echo -e "\033[1;32m✅ Операция завершена. Возврат в меню через 3 секунды...\033[0m"
+                sleep 3
+                ;;
+            0) 
+                echo
+                echo -e "\033[1;32m👋 Возврат в главное меню...\033[0m"
+                sleep 1
+                exit 0
+                ;;
             *) 
                 echo -e "\033[1;31m❌ Неверная опция!\033[0m"
-                sleep 1
+                sleep 2
                 ;;
         esac
     done

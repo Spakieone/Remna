@@ -15,9 +15,9 @@ install_agent() {
     # Переходим в директорию
     cd "$AGENT_DIR" || exit 1
     
-    # Скачиваем файлы агента с GitHub из папки scripts
+    # Скачиваем файлы агента с GitHub
     echo "Скачивание файлов агента с GitHub..."
-    GITHUB_REPO="https://raw.githubusercontent.com/Spakieone/Remna/main/scripts/remnawave-agent"
+    GITHUB_REPO="https://raw.githubusercontent.com/Spakieone/Remna/main/remnawave-agent"
     
     if command -v curl >/dev/null 2>&1; then
         curl -fsSL "${GITHUB_REPO}/agent.py" -o "agent.py" || {

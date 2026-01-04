@@ -15,9 +15,9 @@ install_agent() {
     # Переходим в директорию
     cd "$AGENT_DIR" || exit 1
     
-    # Скачиваем файлы агента с GitHub
+    # Скачиваем файлы агента с GitHub из папки scripts
     echo "Скачивание файлов агента с GitHub..."
-    GITHUB_REPO="https://raw.githubusercontent.com/Spakieone/Remna/main/remnawave-agent"
+    GITHUB_REPO="https://raw.githubusercontent.com/Spakieone/Remna/main/scripts/remnawave-agent"
     
     if command -v curl >/dev/null 2>&1; then
         curl -fsSL "${GITHUB_REPO}/agent.py" -o "agent.py" || {
@@ -40,8 +40,8 @@ install_agent() {
     
     # Устанавливаем зависимости
     echo "Установка зависимостей..."
-    if [ -f "requirements.txt" ]; then
-        pip3 install -q -r requirements.txt 2>&1 | grep -v "already satisfied" || true
+    if [ -f "$AGENT_DIR/requirements.txt" ]; then
+        pip3 install -q -r "$AGENT_DIR/requirements.txt" 2>&1 | grep -v "already satisfied" || true
     else
         pip3 install -q fastapi uvicorn pydantic python-dotenv 2>&1 | grep -v "already satisfied" || true
     fi

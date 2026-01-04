@@ -40,10 +40,22 @@ install_agent() {
     
     # Устанавливаем зависимости
     echo "Установка зависимостей..."
-    if [ -f "$AGENT_DIR/requirements.txt" ]; then
-        pip3 install -q -r "$AGENT_DIR/requirements.txt" 2>&1 | grep -v "already satisfied" || true
+    # Определяем команду для pip
+    if command -v pip3 >/dev/null 2>&1; then
+        PIP_CMD="pip3"
+    elif command -v pip >/dev/null 2>&1; then
+        PIP_CMD="pip"
+    elif python3 -m pip --version >/dev/null 2>&1; then
+        PIP_CMD="python3 -m pip"
     else
-        pip3 install -q fastapi uvicorn pydantic python-dotenv 2>&1 | grep -v "already satisfied" || true
+        echo "Ошибка: pip не найден. Установите pip: apt install python3-pip"
+        exit 1
+    fi
+    
+    if [ -f "$AGENT_DIR/requirements.txt" ]; then
+        $PIP_CMD install -q -r "$AGENT_DIR/requirements.txt" 2>&1 | grep -v "already satisfied" || true
+    else
+        $PIP_CMD install -q fastapi uvicorn pydantic python-dotenv 2>&1 | grep -v "already satisfied" || true
     fi
     
     # Запрашиваем токен у пользователя
